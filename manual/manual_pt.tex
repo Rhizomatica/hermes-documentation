@@ -1,0 +1,342 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[brazil]{babel} % carrega portugues brasileiro
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry} %margens menores!
+\usepackage{graphicx} % incluir figuras .eps
+\usepackage{tabularx}
+\usepackage{color} % colorir texto
+\usepackage{indentfirst}
+\usepackage{textcomp}
+\usepackage[colorlinks=true]{hyperref}
+\usepackage{amssymb,amsmath}
+\usepackage{float}
+%\usepackage[portuguese]{babel}
+% \usepackage{siunitx}
+% \usepackage[ampersand]{easylist}
+
+\title{Manual De Uso Do HERMES}
+
+\author{
+       \large
+        \textsc{Rafael Diniz}
+        \mbox{}\\ %
+        rafael@rhizomatica.org\\
+        \mbox{Rhizomatica} \\ %
+%        \normalsize
+%        \texttt{Brasília - Brasil}\\
+}
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Este é o manual do sistema de comunicação digital em HF HERMES. O HERMES utiliza um modem para HF de alta performance e o sistema UUCP (Unix to Unix Communication Protocol). O manual também abrange a interface gráfica para usuário baseada em tecnologia Web, e o sistema de transporte de emails que o HERMES provê.
+
+
+\end{abstract}
+
+\newpage
+
+\tableofcontents
+
+\section{Introdução}
+
+O sistema HERMES provê serviços de telecomunicação através do uso de enlaces de rádio na banda de Ondas Curtas (HF).
+
+O sistema Hermes permite transmissão de textos e arquivos entre as estações conectadas, através de mensagens públicas, que são enviadas por essa interface, ou de mensagens privadas utilizando e-mail pelo aplicativo deltachat. 
+
+O sistema funciona através de um rádio digital que agenda transmissões entre estações utilizando um protocolo chamado uucp. Todas as comunicações entre as estações são criptografadas e acontecem fora da internet.
+
+\section{Interface Web}
+
+Ao acessar a rede wifi Hermes por um celular ou computador, você terá acesso à interface web do sistema. Através dela é possível enviar mensagens públicas entre as estações e ler as mensagens enviadas para a sua estação. também é possível criar usuários do sistema, criar e-mails Hermes e administrar o sistema.
+
+
+\subsection{Mensagens públicas}
+Mensagens Públicas podem ser enviadas entre as estações, e são listadas na página inicial da interface web. 
+
+%Public messages can be sent between stations, and are listed on the main page of the web interface.
+
+%Los mensajes públicos pueden enviarse entre estaciones, y aparecen en la página principal de la interfaz web.
+
+Ao escrever uma mensagem clicando no ícone () o usuário pode criar mensagens de texto, e anexar arquivos, como imagens ou áudios. 
+
+%By clicking on the () icon, it's possible to write a new message and to attach files such as images or sound files. 
+
+%Al escribir un mensaje, haciendo clic en el icono (), el usuario puede crear mensajes de texto y adjuntar archivos, como imágenes o audios. 
+
+Mensagens públicas também podem ser enviadas para a própria estação,  que é uma forma fácil de divulgar notícias dentro da própria comunidade.
+
+%Public messages can be sent to your own station, which is a easy way to publicize news inside your own community.
+
+%También se pueden enviar mensajes públicos a la propia emisora, lo que representa una forma fácil de difundir noticias dentro de la propia comunidad.
+
+As mensagens públicas podem também ser protegidas por senha, o que significa que somente quem souber a senha conseguirá ler o conteúdo delas, mas a descrição da mensagem fica sempre disponível para todos.
+
+%Public messages can also be password protected, which means that only those who know the password can read the content. However, the message description or title is always available to everyone.
+
+%Los mensajes públicos también pueden estar protegidos por una contraseña, lo que significa que sólo los que conocen la contraseña podrán leer su contenido. Sin embargo, la descripción del mensaje siempre está visible para todos.
+
+Tenha em mente que uma vez definida uma senha para criptografia da mensagem (que deve ter no mínimo 4 caracteres), ela não pode ser trocada, nem recuperada.
+
+%Have in mind that once a password for the message (which must be at least 4 characters in length) is defined, there is no way to recover it, nor to change it.
+
+%Tenga en cuenta que una vez definida la contraseña del mensaje (que debe tener al menos 4 caracteres), no hay forma de recuperarla, ni de cambiarla.
+
+Um administrador do sistema pode configurar quem pode anexar arquivos nas mensagens públicas entre três opções: qualquer um com acesso à rede, somente usuários registrados ou somente administradores.
+
+%A system administrator can change who can attach files on messages between stations: everyone with access to the network, only registered users, or only administrators.
+
+%Un administrador del sistema puede cambiar quién puede adjuntar archivos en los mensajes entre estaciones: todo el mundo con acceso a la red, sólo los usuarios registrados o sólo los administradores.
+
+Poque a propagação de dados via rádio é bem lenta, o tamanho dos arquivos anexados é restrito a 20kb. O sistema aceitará inputs de imagem e som até 30mb e para outros formatos até 2mb, e vai tentar comprimi-los até chegar ao tamanho máximo permitido para os pacotes de transmissão. Para imagem e som, a resolução dos arquivos pode ser afetada. Para oitros formatos, um compressor simples será aplicado e pacotes com tamanho maior que 20kb podem não ser transmitidos. 
+
+
+%Because the radio propagation of data is very low, file attachments are constrained to 20kb sizes. The system will accept inputs for image and sound up to 30mB and for other files util 2mb, and will try to compress them to fit the maximum size for packages. For image and sound, the resolution can be changed, and the quality may be affected. For other formats, a simple compressor will be applied and message packages with size greater than 20kb may not be transmitted.
+
+%Debido a que la propagación de datos por radio es muy baja, los archivos adjuntos están limitados a tamaños de 20 kb. El sistema aceptará entradas para imagen y sonido hasta 30mb y para otros archivos util 2mb, e intentará comprimirlas para que se ajusten al tamaño máximo para paquetes. Para la imagen y el sonido, la resolución se puede cambiar y la calidad puede verse afectada. Para otros formatos, se aplicará un compresor simple y no se podrán transmitir paquetes de mensajes con un tamaño superior a 20kb.
+
+\subsection{Mensagens privadas}
+
+Mensagens privadas no sistema HERMES funcionam através de e-mails pessoais. Qualquer usuario do sistema pode criar uma conta de email clicando na opção "criar usuário" na tela de login do sistema.
+
+
+%Private messages in the HERMES system work through personal e-mails. Any user can create an Hermes email account by clicking on the "create user" option on the login screen.
+
+%Private messages in the HERMES system work through personal e-mails. Any user can create an Hermes email account by clicking on the "create user" option on the login screen.
+
+Cada estação tem um domínio diferente, que pode ser visto no topo dessa interface. Nesta estação, todos emails serão criados dentro do domínio  alguma\_coisa.hermes.radio e parecerão com algo do tipo: nome\_de\_usuario@alguma\_coisa.hermes.radio. Onde o nome\_de\_usuário é o username utilizado na criação do usuário.
+
+
+%Each workstation has a different domain, which can be seen at the top of the interface. On this station, all emails will be created within the domain something.hermes.radio and will look like this:
+%user_name@something.hermes.radio. Where username is the username used when creating the user.
+
+%Cada estación de trabajo tiene un dominio diferente, que puede verse en la parte superior de esta interfaz. En esta estación, todos los correos electrónicos se crearán dentro del dominio algo.hermes.radio y tendrán el siguiente aspecto:
+%nombre_de_usuario@algo.hermes.radio. Donde nombre_de_usuario es el nombre de usuario utilizado al crear el usuario.
+
+Através de um redirecionamento, emails Hermes podem ser enviados e recebidos de servidores externos, mas tenha em vista que existe uma limitação ao anexar dados devido às limitações de capacidade de transmissão de dados por rádio.
+
+
+
+%A través de una redirección, los correos electrónicos de HERMES pueden ser enviados y recibidos desde servidores externos, pero tenga en cuenta que existe una limitación a la hora de adjuntar archivos grandes debido a las limitaciones de la capacidad de transmisión de datos por radio.
+
+%Through a redirect, HERMES emails can be sent to and received from external servers, but be aware that there is a limitation when attaching data due to the limitations of data transmission capacity over radio.
+
+Através do aplicativo Deltachat, pode-se utilizar os emails hermes para realizar comunicações pessoais de troca de mensagens; este aplicativo funciona nos smartphones mais comuns e tem uma aparência semelhante ao whatsapp ou telegram. Tenham em mente que devido ao agendamento de transmissão das mensagens, elas podem demorar a chegar, dependendo da quantidade de mensagens na fila e dos horários de funcionamento dos transmissores.
+
+%Through the Deltachat app, one can use HERMES emails to conduct personal message exchange communications (similar to chat); this app works on most smartphones and has a similar appearance to Whatsapp or Telegram. Keep in mind that due to the scheduling of transmission of the messages, they may take a while to arrive, depending on the amount of messages in the queue and the transmitters' hours of operation.
+
+%A través de la aplicación Deltachat, se pueden utilizar los correos electrónicos de HERMES para llevar a cabo el intercambio de mensajes personales; esta aplicación funciona en los smartphones más comunes y tiene una apariencia similar a la de Whatsapp o Telegram. Hay que tener en cuenta que, debido a la programación de la transmisión de los mensajes, éstos pueden tardar en llegar, dependiendo de la cantidad de mensajes en cola y del horario de operación de los transmisores.
+
+Para baixar o sistema Hermes, clique em um dos links na seção Help da interface do Hermes, de acordo com o seu sistema operacional. No Iphone e Ipad você vai precisar baixar o aplicativo da App Store de um lugar com internet.
+
+
+Poque a propagação de dados via rádio é bem lenta, o tamanho dos arquivos anexados é restrito a 20kb. O sistema aceitará inputs de imagem e som até 30mb e para outros formatos até 2mb, e vai tentar comprimi-los até chegar ao tamanho máximo permitido para os pacotes de transmissão. Para imagem e som, a resolução dos arquivos pode ser afetada. Para oitros formatos, um compressor simples será aplicado e pacotes com tamanho maior que 20kb podem não ser transmitidos. 
+
+
+%To download Deltachat, select one of the packages on the Help session of the Hermes interface, according to your phone's operating system. On Iphone and ipad you will need to download the app from the App Store in a place with internet.
+
+%Para descargar Deltachat, seleccione uno de los paquetes en la sesión de Ayuda de la interfaz de Hermes, de acuerdo con el sistema operativo de su teléfono. En Iphone, ipad y mac OSX, deberá descargar la aplicación de la App Store en un lugar con Internet.
+
+\subsection{Fila de transmissão}
+
+Uma vez que as mensagens são enviadas, elas entram para uma fila de transmissão antes de chegarem ao seu destino final. Um administrador do sistema pode cancelar os pacotes antes de serem enviados e também pode apagar as mensagens recebidas ou enviadas. Isso é uma tarefa importnte de se fazer com uma certa frequência para evitar que acabe o espaço no servidor da estação.
+
+%Once the messages are sent, they will go to a transmission queue before arriving at their final destination. A system administrator can cancel the packages before they are sent, and also delete the sent and received messages. This is a task that need to be done often to avoid that the space in the server ends.
+
+%Una vez enviados los mensajes, entran en una cola de transmisión antes de llegar a su destino final. Un administrador del sistema puede cancelar los paquetes antes de que se envíen y también eliminar los mensajes enviados y recibidos. Esta es una tarea que debe hacerse a menudo para evitar que el espacio en el servidor termine.
+
+
+Como a comunicação por rádio é unidirecional, as transmissões são agendadas pelo sistema para acontecerem de acordo com o estabelecido pela estação central, alternando momentos de recepção e transmissão. Em casos de emergência, o administrador do sistema pode forçar a transmissão das mensagens na fila, utilizando o botão "transmitir agora". Isto pode interromper o recebimento de mensagens de outras estações.
+
+%As the communication between the stations are unidirectional, the transmissions are schedules to happen acconding to the central staion, alternating between reception and transmission events. In an emergency case, the system administrator can force message transmission queue by clicking on the "transmit now" link. This can interrupt receiving messages from other stations for a while.
+
+%Como la comunicación por radio es unidireccional, las transmisiones están programadas por el sistema a pasar acomodándose a lo determinado por la estación central, alternando momentos de recepción y transmisión. En casos de emergencia, el administrador del sistema puede forzar la transmisión de los mensajes en la cola utilizando el botón "transmitir ahora". Esto puede interrumpir la recepción de mensajes de otras estaciones.
+
+
+\subsection{Administração da Interface do HERMES}
+
+Para acessar os recursos de administração da interface é preciso ter uma senha de administração do sistema, somente os administradores podem criar outros usuários com poder de administração, enquanto qualquer um pode criar usuários comuns.
+
+%To access admin features, you need an admin password, while anyone can create an user account, and only the system's admins can create new administrator users.
+
+%Para acceder a las funciones de administración de la interfaz, es necesario tener una contraseña de administración del sistema, sólo los administradores pueden crear otros usuarios con poder de administración, mientras que cualquiera puede crear usuarios ordinarios..
+
+Dentro da seção de administração, um administrador da rede vai encontrar as seguintes opções:
+
+%Inside the admin section, an administrator will find the following options:
+
+%Dentro de la sección de administración, un administrador de red encontrará las siguientes opciones:
+
+- Gerenciamento de usuários: permite criar novos usuários e alterar dados dos usuários registrados e apagar usuários. Cada usuário corrensponde também a uma conta de e-mail Hermes do tipo username@servidor.com. 
+
+%User management: allows you to create new users and to change data of registered users as well as delete users. Each active user is also assigned a Hermes e-mail account of the type username@servidor.com. 
+
+%Gestión de usuarios: permite crear nuevos usuarios y modificar los datos de los usuarios registrados y eliminarlos. A cada usuarioregistrado se le asigna también una cuenta de correo electrónico de Hermes del tipo username@servidor.com. 
+
+Administradores também podem dar o poder de administração para outros usuários, bastando selecionar a opção "é administrador" na interface de criação de usuários.
+
+%Administrators can also give administration authority to other users by selecting the "is administrator" option in the user creation interface.
+
+%Los administradores también pueden dar el poder de administración a otros usuarios simplemente seleccionando la opción "es administrador" en la interfaz de creación de usuarios.
+
+- administração de mensagens: Nesta seção o administrador pode determinar quem pode anexar arquivos nas mensagens públicas entre estações: todo mundo, somente usuários registrados ou somente administradores
+
+%message administration: In this section an administrator can determine who can attach files in public messages between stations: anyone, only registered users, or only administrators.
+
+%administración de mensajes: En esta sección un administrador puede determinar quién puede adjuntar archivos en los mensajes públicos entre estaciones: todos, sólo los usuarios registrados o sólo los administradores
+
+- Informação de rede: mostra informações sobre o sistema, tais como endereços de rede, indicativo de chamada, nome do servidor, etc.
+
+%Network info: displays information about the system, such as network addresses, call sign, server name, etc.
+
+%Información de red: muestra información sobre el sistema, como las direcciones de red, call sign, el nombre del servidor, etc.
+
+- estaçoes: uma lista de estações HERMES conectadas na sua rede
+
+%- stations: provides a list of the connected stations on the system
+
+%- estaciones: una lista de estaciones HERMES conectadas a su red
+
+- Log detalhado: fornece acesso aos logs do sistema, tais como logs de e-mail e uucp, que registram todas as atividades no sistema
+
+%Detailed Log: provides access to system logs, such as email and uucp logs, that register every activity on the system
+
+%Registro detallado: proporciona acceso a los registros del sistema, como los registros de correo electrónico y los registros uucp, que registran toda la actividad del sistema
+
+
+- configurações de rádio: uma interace para acessar as informações de frequência e modo de transmissão do rádio. Também permite alterar e restauras as configurações de fábrica.
+
+%- radio settings: an interface for accessing radio frequency and transmission mode information. It also allows you to change and restore the factory settings.
+
+%- ajustes de radio: una interfaz para acceder a la información sobre la frecuencia de radio y el modo de transmisión. También permite cambiar y restaurar los ajustes de fábrica.
+
+
+\section{E-Mail}
+
+\subsection{DeltaChat}
+Através do aplicativo Deltachat, pode-se utilizar os emails hermes para realizar comunicações pessoais de troca de mensagens; este aplicativo funciona nos smartphones mais comuns e tem uma aparência semelhante ao whatsapp ou telegram. Tenham em mente que devido ao agendamento de transmissão das mensagens, elas podem demorar a chegar, dependendo da quantidade de mensagens na fila e dos horários de funcionamento dos transmissores.
+
+\subsubsection{Instalação}
+
+Para baixar o Deltachat, selecione um dos pacotes abaixo, de acordo com o sistema operacional do seu telefone:
+
+\subsubsection{Configuração}
+
+Disable end-to-end encription in order the server-based image and audio compression works, otherwise image and audio exchange will not be possible.
+
+Enable show all emails.
+
+\subsubsection{Uso}
+
+
+
+
+\newpage
+\section{Apendice - informações técnicas}
+\subsection{Informações de Rede}
+
+Cada estação HERMES é um ponto de acesso sem fio (wireless access point )
+\begin{itemize}
+\item rede wifi: HERMES
+\item senha wifi: amazonia
+\item o IP da estação HERMES na interface wireless: 10.0.0.1
+\end{itemize}
+
+\subsection{Serviços de rede:} 
+
+\subsubsection{email} 
+certificados auto emitidos e válidos até ano 2031
+  \begin{itemize}
+      \item   smtp: porta 25, permite acesso sem ssl
+      \item  imap: porta 143 (TLS)
+      \item  smtps: 465, (TLS)  (deltachat)
+   \end{itemize}
+  
+
+\subsubsection{web}
+\begin{itemize}
+      \item HERMES web interface: porta 80 (http)
+      \item sistema de trocas de mensagens com capacidades P2P
+      \item administração de usuarios e emails
+      \item gerenciamento de fila de mensagens (uucp queue)
+      \item gerenciamento do rádio
+      \item serviço de manutenção do rádio ( precisa entrar? pode gerar bug se usar o ptt e manter )
+      \item-informações de rede (para casos em que deseja integrar a estação em uma rede existente)
+      \item downloads de deltachat para GNU Linux, android, macOSX e Windows
+\end{itemize}
+
+
+As mensagens privadas no sistema Hermes funcionam através de e-mails pessoais. Um administrador do sistema pode criar usuários para que tenham uma conta de e-mail do sistema.
+
+Cada estação tem um domínio diferente, que pode ser visto no topo dessa interface. Nesta estação, todos emails serão criados dentro do domínio ((()))) e ficarão assim:
+nome\_de\_usuário@((())))).hermes.radio 
+Onde o nome\_de\_usuário é o username utilizado na criação do usuário.
+Através de um redirecionamento, emails Hermes podem ser enviados e recebidos de servidores externos, mas tenha em vista que existe uma limitação ao anexar dados devido às limitações de capacidade de transmissão de dados por rádio.
+
+
+
+\section{Resolução de Problemas}
+
+Para acessar o sistema, são necessários três componentes principais: um celular, ou computador, um servidor Hermes e uma antena com transmissor. 
+
+%To access the system, three main components are needed: a smartphone or a computer, a HERMES server and an antenna with a transmitter.
+
+%Para acceder al sistema se necesitan tres componentes principales: un teléfono móvil o un ordenador, un servidor HERMES y una antena con un transmisor. 
+
+Para saber o que fazer em caso de erro é preciso saber primeiro em qual dos componentes está o problema.
+
+%To know what to do in case of an error, you first need to know which component is causing the problem.
+
+%Para saber qué hacer en caso de error, primero hay que saber en cuál de los componentes está el problema.
+
+Para saber se o problema é no celular, o jeito mais fácil é testar o acesso por outro aparelho, ou por outro navegador no mesmo aparelho. Caso o problema seja só com você, é possível que o problema esteja nas configurações de rede. Confira abaixo as configurações necessárias para acessar a rede Hermes:
+
+%To find out if the problem is with the device connecting to the network (cell phone, tablet, computer), the easiest way is to test access from another device, or from another browser on the same device. If the problem is only with you, it is possible that the problem is in the network settings. Check below the necessary settings to access the Hermes network:
+
+%Para saber si el problema está en el móvil u ordenador, lo más fácil es probar el acceso por otro dispositivo, o por otro navegador en el mismo dispositivo. Si el problema es sólo tuyo, es posible que el problema esté en la configuración de la red. Compruebe a continuación los ajustes necesarios para acceder a la red Hermes:
+
+Caso isso não resolva seu problema, tente limpar os históricos de navegação e acessar o sistema novamente, ou trocar de navegador. Caso nada disso resolva, é possível que seu aparelho seja incompatível com a rede.
+
+%If this does not solve your problem, try cleaning your browser's history and logging in again, or change browsers. If none of this resolves the problem, it is possible that your device is incompatible with the network.
+
+%Si eso no resuelve el problema, prueba a limpiar el historial de navegación y a volver a conectarte, o cambia de navegador. Si nada de eso lo resuelve, es posible que su dispositivo sea incompatible con la red.
+
+Em caso de problema na Antena, um led se acenderá na caixa do servidor, nesse caso, verifique a correta posição dos fios da fonte de alimentação de energia e verifique a posição da Antena e do transmissor.
+
+
+
+%En caso de problema en la antena, se encenderá un LED en la caja del servidor, en este caso, compruebe la posición correcta de los cables de la fuente de alimentación y compruebe la posición e integridad de la antena, cable coaxial y del transmisor.
+
+Caso as mensagens da lista de transmissão não estejam sendo transmitidas com o passar do tempo, verificar se as configurações de rádio foram alteradas, nesse caso, pode ser que as outras estações estejam offline, deve-se restaurar as configurações padrão de fábrica.
+
+
+Caso o problema seja no rádio digital, haverá uma mensagem de erro quando o administrador entrar em Administração -> configuração do rádio.
+
+Se você receber uma mensagem dizendo que o servidor está offline, e seu equipamento parece estar ligado, pode ser que parte do seu sistema esteja corrompido. Neste caso, você pode ter que levar seu equipamento para um lugar com acesso à internet para uma manutenção à distância.
+
+
+
+
+Para acessar o sistema, são necessários três componentes principais: um celular, ou computador, um servidor Hermes e uma antena com transmissor. 
+Para saber o que fazer em caso de erro é preciso saber primeiro em qual dos componentes está o problema.
+
+Para saber se o problema é no celular, o jeito mais fácil é testar o acesso por outro aparelho, ou por outro navegador no mesmo aparelho. Caso o problema seja só com você, é possível que o problema esteja nas configurações de rede. Confira abaixo as configurações necessárias para acessar a rede Hermes:
+
+Caso isso não resolva seu problema, tente limpar os históricos de navegação e acessar o sistema novamente, ou trocar de navegador. Caso nada disso resolva, é possível que seu aparelho seja incompatível com a rede
+
+Em caso de problema na Antena, um led se acenderá na caixa do servidor, nesse caso, verifique a correta posição dos fios da fonte de alimentação de energia e verifique a posição da Antena e do transmissor.
+
+Se receber uma mensagem dizendo servidor offline, provavelmente o seu equipamento está desligado. Caso a mensagem persista, pode ser que alguma das partes do sistema esteja corrompida. 
+
+O servidor Hermes é formado por três componentes principais: um computador, um rádio transmissor e um arduino que faz a comunicação entre os dois.
+
+Caso o problema seja no rádio digital, haverá uma mensagem de erro quando o administrador entrar em Administração -> configuração do rádio. 
+
+Caso as mensagens da lista de transmissão não estejam sendo transmitidas com o passar do tempo, verificar se as configurações de rádio foram alteradas, nesse caso, pode ser que as outras estações estejam offline, deve-se restaurar as configurações padrão de fábrica.
+
+\end{document}
