@@ -1,3 +1,5 @@
+## SWR Threshold set at around 2.6, swr_threshold 240
+
 freq 7100000
 mode USB
 bfo 11056700
