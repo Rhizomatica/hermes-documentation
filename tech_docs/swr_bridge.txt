@@ -21,7 +21,7 @@ fwd 13.7
 ref 0
 swr 1.0
 
--
+--
 
 freq 7350000
 mode USB
@@ -36,6 +36,10 @@ sys_led LED_ON
 connected_led LED_OFF
 serial 17
 
+785 / 1023 * 5
+Vfwd = 3.8368
+142 / 1023 * 5
+Vref = 0.6940
 
 
 fwd 11.5
@@ -56,12 +60,15 @@ sys_led LED_ON
 connected_led LED_OFF
 serial 17
 
+825 / 1023 * 5
+Vfwd = 4.0323
+225 / 1023 * 5
+Vref = 1.0997
+
+
 fwd 12.6
 ref 1.65
 swr 2.5
-
-
---
 
 
 --
