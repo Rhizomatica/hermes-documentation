@@ -5,8 +5,6 @@ all:
 	pdflatex manual_en.tex
 	pdflatex manual_es.tex
 	pdflatex manual_es.tex
-	pdflatex manual_pt_v2.tex
-	pdflatex manual_pt_v2.tex
 	pdflatex software_pt.tex
 	pdflatex software_pt.tex
 	pdflatex hardware_en.tex
@@ -22,4 +20,3 @@ clean:
 	rm -f manual_pt.aux manual_pt.out manual_pt.log manual_pt.toc manual_pt.pdf
 	rm -f manual_en.aux manual_en.out manual_en.log manual_en.toc manual_en.pdf
 	rm -f manual_es.aux manual_es.out manual_es.log manual_es.toc manual_es.pdf
-	rm -f manual_pt_v2.aux manual_pt_v2.out manual_pt_v2.log manual_pt_v2.toc manual_pt_v2.pdf
