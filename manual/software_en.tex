@@ -35,8 +35,8 @@
 
 \begin{abstract}
 
-This document describes the software stack of the HERMES
-system - a digital communication system for the HF band which uses a
+This document describes the software stack of the HERMES (High-frequency Emergency and Rural Multimedia Exchange System)
+- a digital communication system for the HF band which uses a
 high-performance HF modem and UUCP networking (Unix to Unix
 Communication Protocol), for email transport and other ad-hoc
 services. HERMES is also composed of email software infrastructure and
@@ -48,67 +48,101 @@ Web Interface for access to the services, which run on a computer.
 
 \tableofcontents
 
-\section{Reference system}
+\section{Introduction}
+
+  Telecommunication in the HF Band using skywave propagation offers hundreds to thousands
+  of kilometers coverage with relative low power and simple antennas, but it is also challenging,
+  given the extreme limitation on throughtput  and very long transceiver turn-around times between tx and rx.
+
+  HERMES is a digital telecommunication system for the HF band, which uses a high-performance HF modem and UUCP
+  (Unix-to-Unix Communication Protocol), for email transport and other ad-hoc services.
+  UUCP is arguably the most relevant store-and-forward system to date, in use since the late 70's
+  for software exchange, email, bulletin board systems  news and even military communication. First released
+  in Bell Labs' Unix Version 7, it is still present in all major Unixes (including Linux) and integrate seamless
+  with email software like Postfix.
+
+  Upper network layers are composed by email software infrastructure and Web Interface for management and access to the services.
+  HERMES network topology is flexible, but tipically configured as star, with a ``gateway'' station located where Internet is available
+  (in order to route data from stations located in isolated areas) and ``remote'' stations located at communities without access to
+  other telecommunication systems.
+
+%  While not a requirement at the time of development, UUCP lacks basic security and supports no encryption. HERMES,
+%  on the other hand, is being used by indigenous communities in vulnerable contexts, in which encryption is a must-have.
+%  While HERMES already provide some level of security, as individual messages can be encrypted, through the use of e-mail encryption,
+%  all metadata is transported in clear, including the UUCP connection establishment and authentication procedures. This revised proposal
+%  to NLNet involves adding security and encryption to UUCP, without the need for extra layers and extensive overhead (like using UUCP
+%  over ssh over IP, which is not feasible in HF given the amount of tx/rx switches and huge overhead).
+
+\section{HERMES Description}
+
+This section briefly introduces what HERMES system can do today. HERMES is basically composed of:
 
 \begin{itemize}
-\item HF transceiver connected to a computer through audio (signal) I/O and
-  control interface (see Hardware document);
-\item Computer running Linux and the software stack described by this
-  document. The computer provides local connectivity through WiFi and should
-  be connected to the HF transceiver.
+\item HF transceiver and associated antenna, connected to a computer;
+\item Computer running the HERMES free software stack;
+\item The computer provides local connectivity through WiFi (or other local-area network
+  technology)
 \end{itemize}
 
-\section{What HERMES Can Do}
+Rhizomatica developed the HERMES hardware which embedds all the needed parts for a simple to use
+HF telecomunication equipment. Figure~\ref{fig1} and ~\ref{fig2} contains a picture of the HERMES box. The HERMES box contains
+everything needed for joining a HERMES network, while users have access to the HERMES services over WiFi or ethernet.
 
-HERMES is as a system to be used with HF transceivers for digital
-communication. HERMES is meant to work with HF NVIS (near vertical incidence
-skywave) and provide hundreds of kilometers of reach for each station.
 
-The modem we currently use (ARDOP) supports both point-to-point mode (ARQ
-mode - Automatic repeat request) and broadcast mode (FEC mode - Forward
-Error Correction). We only use ARQ mode, which guarantees error-free
-reception of the data. Using broadcast mode would require a protocol
-different than UUCP.
+\begin{figure}[h!]
+  \centering
+  \includegraphics[scale=0.15]{hermes-pic1.jpeg}
+  \caption{The HERMES hardware at a ``gateway'' location, a power supply (yellow), a standard HF voice radio (top right) and a wattmeter (top left).}
+  \label{fig1}
+\end{figure}
 
-We adopted UUCP as the networking solution to be carried over the ARDOP modem in
-ARQ mode. UUCP can carry files and execute remote commands. Specific support
-for email exists and can be used out-of-the-box to provide email service over
-HF (UUCP was created in the late 1970s and one of the main uses was email).
+\begin{figure}[h!]
+  \centering
+  \includegraphics[scale=0.15]{hermes-pic2.jpeg}
+  \caption{The HERMES hardware at a ``remote'' location, with a battery appearing the bottom left.}
+  \label{fig2}
+\end{figure}
 
-In the more basic configuration, HERMES is used for file exchange, with the
-option for secure (through cryptography) exchange of files.
 
-\section{HERMES software configuration}
+HERMES uses GNU UUCP with Debian downstream patches (version 1.07-27 or greater, available at: \url{https://packages.debian.org/bullseye/uucp}).
 
-HERMES uses ARDOP (Amateur Radio Digital Open Protocol) for a modem. ARDOP is
-an SDR (software defined radio) modem made by amateur radio operators which
-uses modern modulation techniques (OFDM) and supports standard and
-homebrew HF transceivers.
+Specific HERMES network stack source code, radio firmware and other system components are available at:
+
+\begin{itemize}
+\item Main network components and firmware: https://github.com/Rhizomatica/hermes-net
+\item REST API: https://github.com/Rhizomatica/hermes-api
+\item Web GUI: https://github.com/Rhizomatica/hermes-gui
+\item Documentation: https://github.com/Rhizomatica/hermes-documentation
+\end{itemize}
+
+
+\section{HERMES Software Stack}
+
+HERMES uses ARDOP (Amateur Radio Digital Open Protocol) or VARA for modem. ARDOP and VARA are
+SDR (software defined radio) modems which use modern modulation techniques (OFDM) and support
+standard HF transceiver specification (up to 3 kHz bandwidth).
 
 For the network layer, UUCP is used. UUCP is a system for asynchronous
 store-and-forward communication first released in Bell Labs Unix V7 in
 the late 1970s, and still used today in niches, like communication over HF.
 
-The RHIZO-UUArdopD project was developed to provide tools that integrate
-the UUCP system with the ARDOP modem.
-
-A mini computer running Linux is needed. We recommend Debian Buster (10)
-arm64 (multilib with armhf if you want to use the pre-compiled ``piardopc ''
-by John Wiseman) as the Linux reference system, running on a Raspberry Pi with
-Wifi configured in AP (Access Point) mode, for serving the system web
-interface.
+The uucpd (previously called rhizo-uuardop) project was developed to provide
+integration between UUCP and the HF modem.
 
 The HERMES network stack is made of:
 \begin{itemize}
-\item Computer to Radio connection
-\item ALSA (Audio configuration)
-\item ARDOP (Modem configuration)
+\item HF Radio Transceiver
+\item ALSA (Audio/Signal configuration)
+\item HF Modem (Modem configuration)
 \item UUCP (Network configuration)
-\item Rhizo-UUArdopD (UUCP / ARDOP connection tools)
-\item User Web Interface
+\item UUCPD (UUCP / HF Modem connection tools)
+\item Email (Email stack configuration)
+\item Graphical Web-based User Interface
 \end{itemize}
 
-\subsection{Computer to Radio connection}
+\subsection{HF Radio Transceiver}
+
+TODO (what follows is old text... prior to HERMES hardware development)
 
 Different setups require different configuration. In the case of using a USB
 (Universal Serial Bus) interface (e.g. Signalink), the delay must be set to
@@ -265,11 +299,10 @@ journalctl -f -u uuardopd
 
 \subsection{User Web Interface}
 
-HERMES provides a web-based interface for file exchange, using HTML + PHP and
-some shell scripts located in the ``gui'' directory of the Rhizo-Uuardopd source
-code
-(\url{https://github.com/DigitalHERMES/rhizo-uuardop/tree/master/gui}). Current
-implementation supports symmetric cryptography and image compression.
+HERMES provides a web-based interface which uses Angular. Source
+code is located at:
+(\url{https://github.com/Rhizomatica/hermes-gui/}). Current
+implementation supports symmetric cryptography and audio/image compression.
 
 We use ``/var/www/html/arquivos'' as the default UUCP path to send
 files through the web interface.
@@ -278,16 +311,17 @@ Requirements of the user interface:
 
 \begin{itemize}
 \item ImageMagic: for image manipulation
-\item mozjpeg: Best public JPEG encoder: \url{https://github.com/mozilla/mozjpeg}
+\item VVC: Best free software low bitrate image compression codec: \url{https://github.com/fraunhoferhhi/}
 % \item opusenc: para comprimir áudio
+\item LPCNet: Best free software audio compression codec: \url{https://github.com/xiph/LPCNet}
 \item GnuPG: For cryptography
 \item hostapd: WiFi AP mode software
 \end{itemize}
 
 The Web interface can be accessed by typing any address in a browser
-connected to the WiFi (set the DNS accordingly) or simply 192.168.1.1.
+connected to the WiFi (set the DNS accordingly) or simply 10.0.0.1.
 
-%\subsection{Email}
+\subsection{Email}
 
 %ps: WORK IN PROGRESS
 
