@@ -20,11 +20,11 @@
 
 
 \author{
-%       \large
-        \textsc{Rhizomatica}\\
-%        \mbox{}\\ %
-%        rafael@rhizomatica.org\\
-%        \mbox{Rhizomatica} \\ %
+       \large
+       \mbox{Rhizomatica} \\
+       \mbox{}\\ 
+       \textsc{Rafael Diniz}
+        rafael@rhizomatica.org\\
 %        \normalsize
 %        we want the airwaves
 %        \texttt{Brasília - Brasil}\\
@@ -124,25 +124,42 @@ HERMES provides a web interface which can be accessed through a local WiFi netwo
     \item Password: amazonia
 \end{itemize}
 
-Be aware that on some mobile phones a browser will automatically open with the the main HERMES web page, while in others, to access the HERMES web interface, you must open the browser and access \url{http://ac1.hermes.radio} or \url{http://10.0.0.1}.
+Be aware that on some mobile phones a browser will automatically open with the the main HERMES web page, while in others, to access the HERMES web interface, you must open the browser and access \url{http://ac1.hermes.radio} or \url{http://10.0.0.1}. 
+\linebreak
+\linebreak
+O navegador chrome / chromium é o navegador padrão para utilização da interface HERMES, para garantir uma melhor experiência faça preferência pelos navegadores informados.
 
-   \begin{figure}[!ht]
-    \includegraphics[width=1\columnwidth]{screenshots/frontend/pt_kn/landing.png}
-    \caption{Hermes Home page and elements}
-    \label{fig:interface}
-    \end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/en/landing.png}
+    \caption{Hermes home}
+    \label{fig:messagesindex}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\columnwidth]{screenshots/frontend/en/messagesindex_enUS.png}
+    \caption{Hermes public messages and elements}
+    \label{fig:messagesindex}
+\end{figure}
     
-On the main page \ref{fig:interface} you will find the following links:
+On the public messages page \ref{fig:messagesindex} you will find the following links:
 
 \begin{enumerate}
-    \item Domain name of your current station;
-    \item Main menu;
-    \item Welcome message;
-    \item Link to Public Messages;
-     \item Login and logout link and info;
-     \item Dark/light mode activator tab;
     \item Station information and status;
+    \item Main menu;
+    \item Welcome message (page title);
+    \item Link to sent messages and new message;
+    \item Dark/light mode activator tab;
+    \item Login and logout link and info;
 \end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/en/darkmode.png}
+    \caption{Hermes Dark Mode}
+    \label{fig:darkmode}
+\end{figure}
     
 The web interface allows admin users to manage e-mail accounts, to perform radio configurations (like setting frequency and SSB mode) and exchange direct messages between stations (BBS). The interface also contains its own administrative section, for defining and managing users and their privileges. 
 
@@ -153,7 +170,7 @@ It is important to note that same user name created for the administrative inter
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/es/admin.png}
+    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/en/admin.png}
     \caption{Admin interface}
     \label{fig:admin}
 \end{figure}
@@ -170,7 +187,7 @@ Allows the creation of new users, updating data of registered users and to delet
     
     \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/es/createuser.png}
+    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/en/createuser.png}
     \caption{Create user interface}
     \label{fig:createuser}
     \end{figure}
@@ -184,7 +201,7 @@ From this page, an admin can determine who will be able to send public messages 
    
     \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/es/messageadm.png}
+    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/en/messageadm.png}
     \caption{Messages administration Interface}
     \label{fig:messageadm}
    
@@ -196,10 +213,10 @@ From this page, an admin can determine who will be able to send public messages 
 
 All data exchange in the HERMES system is done through UUCP. Being an asynchronous protocol, all the data is first queued before being transmitted. The elements of the UUCP queue are called "jobs", and each job in the HERMES system can be an e-mail, a public message, or special remote command execution message (for example, to inform of a new e-mail user creation). A system administrator can cancel a job before it is sent. Administrators can also erase the public messages for any reason, including the case when the equipment storage space is reaching its limit. The storage space available is shown in the web interface footer.
 
-The queues of all Host stations are transmitted periodically when the Gateway station connects to each remote station based on whatever schedule has been configured. In an emergency, a system administrator can force message transmission and bypass the queue by clicking on the "force transmission" link. This could interrupt receiving messages from other stations for a while and should be avoided unless absolutely necessary.   
+The queues of all Host stations are transmitted periodically when the Gateway station connects to each remote station based on whatever schedule has been configured. In an emergency, a system administrator can force message transmission and bypass the queue by clicking on the "force" link. This could interrupt receiving messages from other stations for a while and should be avoided unless absolutely necessary.   
     \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/es/transmission.png}
+    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/en/transmission.png}
     \caption{Transmission list interface}
     \label{fig:transmission}
    
@@ -213,7 +230,7 @@ Provides a direct interface to change various radio settings like frequency, tra
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{screenshots/frontend/es/radioconfig.png}
+    \includegraphics[width=0.5\textwidth]{screenshots/frontend/en/radioconfig.png}
     \caption{Radio configuration interface}
 	\vspace{-10pt}
     \label{fig:radioconf}
@@ -221,24 +238,11 @@ Provides a direct interface to change various radio settings like frequency, tra
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{screenshots/frontend/es/radioconfig2.png}
+    \includegraphics[width=0.5\textwidth]{screenshots/frontend/en/radioconfig2.png}
     \caption{Radio configuration interface}
 	\vspace{-10pt}
     \label{fig:radioconf2}
 \end{figure}
-
-\subsubsection{Stations} 
-\label{gui_stations}
-
-Provides a list of the available stations on the system. If the station is a gateway station, you can choose which stations will be enabled to transmit and receive messages.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.5\textwidth]{screenshots/frontend/es/stations.png}
-    \caption{Stations interface}
-	\vspace{-10pt}
-    \label{fig:stations}
-\end{figure} 
 
 \subsubsection{Central Station} 
 \label{gui_central_station}
@@ -247,19 +251,20 @@ The central station is a special station that keeps connected to the internet. I
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{screenshots/frontend/es/central.png}
-    \caption{Stations interface}
+    \includegraphics[width=0.5\textwidth]{screenshots/frontend/en/central.png}
+    \caption{Transmission schedule}
 	\vspace{-10pt}
     \label{fig:central}
 \end{figure} 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{screenshots/frontend/es/central2.png}
-    \caption{Stations interface}
+    \includegraphics[width=0.5\textwidth]{screenshots/frontend/en/central2.png}
+    \caption{Transmission schedule}
 	\vspace{-10pt}
     \label{fig:central2}
 \end{figure} 
+
 
 \subsubsection{Network info} 
 \label{gui_net_info}
@@ -268,12 +273,25 @@ Displays some information about the system, such as network addresses, callsign,
      \begin{figure}[H]
      \vspace{-10pt}
     \centering
-    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/es/networkinfo.png}
+    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/en/networkinfo.png}
     \caption{Network information page}
     \label{fig:netinfo}
   
     \end{figure}
     
+\subsubsection{Stations} 
+\label{gui_stations}
+
+Provides a list of the available stations on the system. 
+% If the station is a gateway station, you can choose which stations will be enabled to transmit and receive messages.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{screenshots/frontend/en/stations.png}
+    \caption{Stations interface}
+	\vspace{-10pt}
+    \label{fig:stations}
+\end{figure} 
  
 
 
@@ -283,7 +301,7 @@ Provides access to system logs, such as email logs and UUCP logs, that register 
     
     \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/es/logs.png}
+    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/en/logs.png}
     \caption{Logs page on the web interface}
     \label{fig:logs}
 \end{figure}
@@ -299,14 +317,14 @@ Direct messages can be sent between stations with support for cryptography and m
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{screenshots/frontend/es/publicas.png}
+    \includegraphics[width=0.5\textwidth]{screenshots/frontend/en/publicas.png}
     \caption{Interface to compose messages}
     \label{fig:compose}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{screenshots/frontend/es/publicas2.png}
+    \includegraphics[width=0.5\textwidth]{screenshots/frontend/en/publicas2.png}
     \caption{Interface to compose messages}
     \label{fig:compose}
 \end{figure}
@@ -330,7 +348,7 @@ The HERMES interface is also available in Portuguese and Spanish, and these vers
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{screenshots/frontend/es/languages.png}
+    \includegraphics[width=0.5\textwidth]{screenshots/frontend/en/languages.png}
     \caption{Page to access translations}
 	\vspace{-10pt}
     \label{fig:languages}
@@ -338,7 +356,7 @@ The HERMES interface is also available in Portuguese and Spanish, and these vers
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\textwidth]{screenshots/frontend/es/languages2.png}
+    \includegraphics[width=0.5\textwidth]{screenshots/frontend/en/languages2.png}
     \caption{Page to access translations}
 	\vspace{-10pt}
     \label{fig:languages2}
@@ -349,7 +367,7 @@ The HERMES interface is also available in Portuguese and Spanish, and these vers
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/es/email.png}
+    \includegraphics[width=0.5\columnwidth]{screenshots/frontend/en/email.png}
     	\caption{Page to access webmail interface}
 	\vspace{-10pt}
     \label{fig:webmail2}
@@ -395,7 +413,7 @@ The steps to find this feature in Deltachat are: Burger Menu (\includegraphics[h
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.3\columnwidth]{screenshots/deltachat/es/adv_p2pe_es.jpeg}
+    \includegraphics[width=0.3\columnwidth]{screenshots/deltachat/en/adv_p2pe.jpg}
     	\caption{Deltachat Advanced settings}
 	\vspace{-10pt}
     \label{fig:deltachat-adv_p2pe}
@@ -406,7 +424,7 @@ The steps to find this feature in Deltachat are:  Burger Menu (\includegraphics[
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.3\columnwidth]{screenshots/deltachat/es/allemails_es.jpeg}
+    \includegraphics[width=0.3\columnwidth]{screenshots/deltachat/en/allemails.jpg}
     	\caption{Deltachat Setup all emails}
 	\vspace{-10pt}
     \label{fig:deltachat-allemails}
@@ -418,7 +436,7 @@ In order to configure DeltaChat, first an e-mail account should be created, as d
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.3\columnwidth]{screenshots/deltachat/es/login_es.jpeg}
+    \includegraphics[width=0.3\columnwidth]{screenshots/deltachat/en/login.jpg}
     	\caption{Deltachat Login example}
 	\vspace{-10pt}
     \label{fig:deltachat-login}
@@ -475,7 +493,7 @@ The e-mail settings are the following:
     \item SMTPS (Secure Simple Mail Transfer Protocol): port \texttt{465}, with SSL support 
     (used for DeltaChat, the certificates are valid until 2031)
     \item IMAP (Internet Message Access Protocol): port \texttt{143}
-    \item Webmail URL acessible: \url{http://hermes/mail} or \url{http://10.0.0.1/mail}
+    \item Webmail URL acessible: \url{http://hermen/mail} or \url{http://10.0.0.1/mail}
 \end{itemize}
 
 These settings should not be needed by most users as DeltaChat automatically identifies all the settings by entering just the e-mail address and password at the login prompt.
@@ -558,15 +576,15 @@ WiFi Network & hermes & amazonia \\ \hline
 \subsection{Source Code}
 \label{apx_src}
 
-    Source code is available inside the folders /home/hermes/install with the latest git versions before the deployment and is also available online at:
+    Source code is available inside the folders /home/hermen/install with the latest git versions before the deployment and is also available online at:
 \begin{itemize}
-    \item Web Front-end Interface, written using the Angular framework: \url{https://github.com/DigitalHermes/angular};
-    \item Web Back-end Interface, written in PHP: \url{https://github.com/DigitalHERMES/station-api}; 
-    \item HF transceiver description and schematics: \url{https://github.com/DigitalHERMES/rhizo-transceiver};
+    \item Web Front-end Interface, written using the Angular framework: \url{https://github.com/Rhizomatica/hermes-gui};
+    \item Web Back-end Interface, written in PHP: \url{https://github.com/Rhizomatica/hermes-api}; 
+    \item HF transceiver description and schematics: \url{https://github.com/DigitalHERMen/rhizo-transceiver};
     \item HF transceiver firmware and userland tools, written in C:
-    \url{https://github.com/DigitalHermes/ubitxv6};
+    \url{https://github.com/Rhizomatica/hermes-net};
     \item Network management software for UUCP and the HF modem (VARA or Ardop) integration, written in C:
-    \url{https://github.com/DigitalHERMES/rhizo-uuardop}
+    \url{https://github.com/DigitalHERMen/rhizo-uuardop}
 \end{itemize}
 
 
@@ -593,6 +611,6 @@ WiFi Network & hermes & amazonia \\ \hline
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    along with this program.  If not, see <https://www.gnu.org/licensen/>.
     
 \end{document}    
