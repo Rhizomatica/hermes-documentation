@@ -151,13 +151,16 @@ O Sitema Hermes oferece uma interface web que pode ser acessada através da rede
 \end{itemize}
 
 Saiba que ao acessar a rede Hermes através de alguns dispositivos, o navegador vai abrir automaticamente a página principal do sistema Hermes, enquanto em outros é preciso acessá-la através do endereço \url{http://hermes.radio} ou \url{http://10.0.0.1} pelo navegador.
+O navegador chrome / chromium é o navegador padrão para utilização da interface HERMES, para garantir uma melhor experiência faça preferência pelos navegadores informados.
 %Be aware that on some mobile phones a browser will automatically open with the the main HERMES web page, while in others, to access the HERMES web interface, you must open the browser and access \url{http://ac1.hermes.radio} or \url{http://10.0.0.1}.
 
    \begin{figure}[H]
+    \centering
     \includegraphics[width=0.5\columnwidth]{screenshots/frontend/pt_kn/landing.png}
     \caption{Hermes Home page and elements}
     \label{fig:interface}
     \end{figure}
+    %TODO - Marcar imagem landing%
     
 Na página principal (figura \ref{fig:interface}) você vai encontrar os seguintes recursos:
 
@@ -203,7 +206,7 @@ Dentro da seção de administração, um administrador vai encontrar as seguinte
 \subsubsection{Gerenciamento de Usuários} 
 
 Permite a criação de novos usuários, atualização dos dados de usuários registrados e deletar usuários do sistema. Cada nome de usuário corresponde a uma conta de email com o mesmo nome, como no exemplo acima (ex: amelia@ac2.hermes.radio).
-Allows the creation of new users, updating data of registered users and to delete users of the system. Every username corresponds to an email account with the same name as in the example above (e.g. amelia@ac2.hermes.radio). 
+%Allows the creation of new users, updating data of registered users and to delete users of the system. Every username corresponds to an email account with the same name as in the example above (e.g. amelia@ac2.hermes.radio).%
     
     \begin{figure}[H]
     \centering
@@ -235,11 +238,11 @@ A partir desta página, um administrador pode determinar quem pode enviar mensag
 \subsection{Lista de transmissão}
 \label{gui_trans_list}
 
-Todos troca de dados do sistema HERMES acontece através do protocolo UUCP, um sistema assíncrono, uma vez que os dados vão para uma fila antes de serem transmitidos. Os elementos da fila do UUCP são chamados de "trabalhos, cada trabalho do sistema HERMES pode ser um e-mail, uma mensagem, ou um comando especial para execução remota (por exemplo, para informar a criação de um novo usuário). Um administrador do sistema pode cancelar um trabalho antes que ele seja enviado. Administradores podem também apagar as mensagens públicas por qualquer razão, incluindo o caso quando o espaço de armazenamento do equipamento estiver atingindo o seu limite. O espaço de armazenamento disponível é mostrado no rodapé da interface. 
+Toda troca de dados do sistema HERMES acontece através do protocolo UUCP, um sistema assíncrono, uma vez que os dados vão para uma fila antes de serem transmitidos. Os elementos da fila do UUCP são chamados de "trabalhos, cada trabalho do sistema HERMES pode ser um e-mail, uma mensagem, ou um comando especial para execução remota (por exemplo, para informar a criação de um novo usuário). Um administrador do sistema pode cancelar um trabalho antes que ele seja enviado. Administradores podem também apagar as mensagens públicas por qualquer razão, incluindo o caso quando o espaço de armazenamento do equipamento estiver atingindo o seu limite. O espaço de armazenamento disponível é mostrado no rodapé da interface. 
 
 %All data exchange in the HERMES system is done through UUCP. Being an asynchronous protocol, all the data is first queued before being transmitted. The elements of the UUCP queue are called "jobs", and each job in the HERMES system can be an e-mail, a public message, or special remote command execution message (for example, to inform of a new e-mail user creation). A system administrator can cancel a job before it is sent. Administrators can also erase the public messages for any reason, including the case when the equipment storage space is reaching its limit. The storage space available is shown in the web interface footer.
 
-A filas de todas estações são transmitidas periodicamente quando a estação central conecta com cada estação remota baseada nos horários de agendamento que estiverem configurados. em uma emergência, um administrador do sistema pode forçar a transmissão de mensagens entre estações, clicando no botão "forçar transmissão". Isto pode interromper a recepção de mensagens de outras estações por um tempo e deve ser evitado a não ser que seja absolutamente necessário.
+A filas de todas estações são transmitidas periodicamente quando a estação central conecta com cada estação remota baseada nos horários de agendamento que estiverem configurados. em uma emergência, um administrador do sistema pode forçar a transmissão de mensagens entre estações, clicando no botão "forçar". Isto pode interromper a recepção de mensagens de outras estações por um tempo e deve ser evitado a não ser que seja absolutamente necessário.
 
 %The queues of all Host stations are transmitted periodically when the Gateway station connects to each remote station based on whatever schedule has been configured. In an emergency, a system administrator can force message transmission and bypass the queue by clicking on the "transmit now" link. This could interrupt receiving messages from other stations for a while and should be avoided unless absolutely necessary.   
     \begin{figure}[H]
@@ -268,20 +271,13 @@ Apresenta uma interface direta para mudar várias configurações do rádio como
     \label{fig:radioconf}
 \end{figure}    
 
-
-\subsubsection{Estações} 
-\label{gui_stations}
-
-Apresenta uma lista das estações disponíveis no sistema. Se a estação for uma estação central pode-se escolher quais estações estarão habilitadas para transmitir e receber mensagens. 
-%Provides a list of the available stations on the system. If the station is a gateway station, you can choose which stations will be enabled to transmit and receive messages.
-
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.4\textwidth]{screenshots/frontend/pt_kn/stations.png}
-    \caption{Interface da Lista de Estações}
+    \includegraphics[width=0.5\textwidth]{screenshots/frontend/pt_kn/radioconfig2.png}
+    \caption{Interface de configuração do rádio}
 	\vspace{-10pt}
-    \label{fig:stations}
-\end{figure} 
+    \label{fig:radioconf2}
+\end{figure}   
 
 \subsubsection{Estação central} 
 \label{gui_central_station}
@@ -297,7 +293,15 @@ A estação central é uma estação especial que se mantém conectada à intern
 	\vspace{-10pt}
     \label{fig:central}
 \end{figure} 
-    
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{screenshots/frontend/pt_kn/central2.png}
+    \caption{Stations interface}
+	\vspace{-10pt}
+    \label{fig:central2}
+\end{figure}
+
 \subsubsection{Informações de rede} 
 \label{gui_net_info}
 
@@ -309,10 +313,23 @@ Mostra algumas informações sobre o sistema como endereços de rede, callsign, 
     \includegraphics[width=0.5\columnwidth]{screenshots/frontend/pt_kn/networkinfo.png}
     \caption{Página de Informações de rede}
     \label{fig:netinfo}
-  
-    \end{figure}
+\end{figure}
     
- 
+
+\subsubsection{Estações} 
+\label{gui_stations}
+
+Apresenta uma lista das estações disponíveis no sistema. 
+% Se a estação for uma estação central pode-se escolher quais estações estarão habilitadas para transmitir e receber mensagens. 
+%Provides a list of the available stations on the system. If the station is a gateway station, you can choose which stations will be enabled to transmit and receive messages.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\textwidth]{screenshots/frontend/pt_kn/stations.png}
+    \caption{Interface da Lista de Estações}
+    \vspace{-10pt}
+    \label{fig:stations}
+\end{figure} 
 
 
     
@@ -352,7 +369,9 @@ Mensagens diretas com suporte à criptografia e compressão de imagens podem ser
     \label{fig:compose2}
 \end{figure}
 
-Ao clicar no ícone de escrever mensagens (\includegraphics[height=0.8\baselineskip]{pictures/edit.png}) é possível escrever uma mensagem nova e adicionar a ela arquivos como imagens ou áudios. O ícone só irá aparecer se for permitido aos usuários compor mensagens naquela estação. Um administrador pode determinar quem pode enviar mensagens públicas entre estações e quem pode anexar arquivos a estas mensagens, alterando as permissões na seção de administração do sistema.
+Ao clicar no botão de "escrever mensagens"
+% (\includegraphics[height=0.8\baselineskip]{pictures/edit.png}) 
+é possível escrever uma mensagem nova e adicionar a ela arquivos como imagens ou áudios. O ícone só irá aparecer se for permitido aos usuários compor mensagens naquela estação. Um administrador pode determinar quem pode enviar mensagens públicas entre estações e quem pode anexar arquivos a estas mensagens, alterando as permissões na seção de administração do sistema.
 
 
 %By clicking on the compose (\includegraphics[height=0.8\baselineskip]{pictures/edit.png})icon, it's possible to write a new message and to attach files such as images or audio files. The icon will only show up if it's allowed for the user to compose messages on the station. An admin can determine who can send public messages between stations and who can attach files to public messages by setting permissions in the admin tab. 
@@ -368,7 +387,7 @@ No link de configuração de mensagens na seção de administração do sistema,
 
 %On the message administration link in the admin section, a system administrator can change who can attach files to messages between stations: everyone with access to the network, only registered users, or only administrators. 
 
-Devido à taxa de transmissão de dados por HF ser relativamente lenta, arquivos de anexo são limitados a 20kB. O sistema aceitará entrada de arquivos de imagens e de som de até 30MB e para outros formatos de arquivo atá 2 MB, e vai tentar comprimi-las até que cheguem ao tamanho máximo de 20kB, utilizando técnicas de compressão de ponta. Obviamente, isto pode afetar a qualidade tanto de imagens como de áudios. Para outros formatos, um compressor simples será aplicado, e caso os anexos ainda tenham mais de 20kb depois disso, serão cancelados.
+Devido à taxa de transmissão de dados por HF ser relativamente lenta, arquivos de anexo são limitados a 20kB. O sistema aceitará entrada de arquivos de imagens e de som de até 30MB e para outros formatos de arquivo até 2 MB, e vai tentar comprimi-las até que cheguem ao tamanho máximo de 20kB, utilizando técnicas de compressão de ponta. Obviamente, isto pode afetar a qualidade tanto de imagens como de áudios. Para outros formatos, um compressor simples será aplicado, e caso os anexos ainda tenham mais de 20kb depois disso, serão cancelados.
 
 %Because the data throughput over HF is relatively low, file attachments are limited to 20KB. The system will accept inputs for image and sound up to 30 MB and for other files up to 2 MB, and will try to compress them to fit the maximum size of 20KB using state-of-the-art compression techniques. Obviously, this can have an effect on both image and sound file quality. For other file formats, a simple compressor will be applied, and messages with attachment size greater than 20 KB will be cancelled.%does this mean that if you try to send a file larger than 20KB it will automatically cancel, or does it mean that if the compression happens and it is unable to get under 20KB it will cancel?
 
@@ -377,7 +396,8 @@ Devido à taxa de transmissão de dados por HF ser relativamente lenta, arquivos
 \subsection{Linguagens suportadas}
 \label{langs}
 
-A interface do sistema HERMES também está disponível em inglês e espanhol, e estas versões podem ser acessadas na aba de linguagens do menu principal.
+A interface do sistema HERMES também está disponível em inglês e espanhol, e estas versões podem ser acessadas na opção ajuda > linguagem
+% aba de linguagens do menu principal.
 
 %The HERMES interface is also available in Portuguese and Spanish, and these versions can be accessed on the Language tab of the main menu.
 
@@ -408,7 +428,9 @@ A interface do sistema HERMES também está disponível em inglês e espanhol, e
     \label{fig:webmail2}
 \end{figure}
 
-Um serviço chave ofertado pelo sistema HERMES é a comunicação por e-mail. O e-mail é um protocolo de comunicação que atribui a cada usuário um endereço eletrônico no formato "nome\_de\_usuário@servidor". NO caso do sistema HERMES, a parte "nome\_de\_usuário" do e-mail corresponde ao nome de usuário definido quando um usuário é criado através da interface web, enquanto o "servidor" (também chamado de domínio) é pré-definido pelo sistema, e tipicamente terá o formato "id\_da\_comunidade.hermes.radio" . Desta forma, um e-mail HERMES poderá parecer com algo do tipo "amelia@ac1.hermes.radio". O nome de domínio da sua estação está escrito em laranja no cabeçalho do sistema web, enquanto o nome do email escolhido será o nome de usuário escolhido na página de criação de usuário do sistema. 
+Um serviço chave ofertado pelo sistema HERMES é a comunicação por e-mail. O e-mail é um protocolo de comunicação que atribui a cada usuário um endereço eletrônico no formato "nome\_de\_usuário@servidor". NO caso do sistema HERMES, a parte "nome\_de\_usuário" do e-mail corresponde ao nome de usuário definido quando um usuário é criado através da interface web, enquanto o "servidor" (também chamado de domínio) é pré-definido pelo sistema, e tipicamente terá o formato "id\_da\_comunidade.hermes.radio" . Desta forma, um e-mail HERMES poderá parecer com algo do tipo "amelia@ac1.hermes.radio". O nome de domínio da sua estação está escrito no rodapé do sistema web,
+% em laranja no cabeçalho do sistema web, 
+enquanto o nome do email escolhido será o nome de usuário escolhido na página de criação de usuário do sistema. 
 
 %A key service provided by the HERMES is E-mail. The E-mail is communication protocol attributes to each e-mail bearer an address in the format "username@host". In the case of HERMES, the "username" part of the email is created by a HERMES user in the web interface, while the host (also called domain) is already set in the system, and typically has the format "community\_id.hermes.radio". So a typical HERMES emails looks like, for example, "amelia@ac4.hermes.radio". The "username" is the same username as created in the user creation page in the HERMES administration interface.
 
@@ -499,7 +521,6 @@ Para configurar o Deltachat, primeiro é necessária a criação de uma conta de
     \label{fig:deltachat-login}
 \end{figure}
 
-% TODO: put DC pictures here
 \subsection{Outros clientes de e-mail}
 
 Outros clientes de e-mail também podem ser utilizados. Nós não podemos cobrir todos os casos, mas o sistema HERMES utiliza serviços padrão como IMAP para sincronizar pastas de e-mail e SMTP para enviar as mensagens. Informações mais específicas sobre as portas podem ser encontradas no apêncide: \ref{apx_net_email}
@@ -668,14 +689,17 @@ O modem adaptativo começa a comunicação a velocidades muito baixas, mas se a 
 O código fonte está disponível dentro das pastas /home/hermes/install com as últimas versões baixadas pelo Git antes da implementação e também está disponível online em: 
 
     %Source code is available inside the folders /home/hermes/install with the latest git versions before the deployment and is also available online at:
+
 \begin{itemize}
-    \item Interface Web Front-end, escrita utilizando o framework Angular: \url{https://github.com/DigitalHermes/angular};
-    \item Interface Web Back-end, escrita em PHP: \url{https://github.com/DigitalHERMES/station-api}; 
-    \item Esquema e descriçoes do transceptor HF: \url{https://github.com/DigitalHERMES/rhizo-transceiver};
+    \item Interface Web Front-end, escrita utilizando o framework Angular: \url{https://github.com/Rhizomatica/hermes-gui};
+    \item Interface Web Back-end, escrita em PHP: \url{https://github.com/Rhizomatica/hermes-api}; 
+    \item Esquema e descriçoes do transceptor HF: \url{https://github.com/DigitalHERMES/rhizo-transceiver};    
+    % TODO - Verificar repositorio
     \item Firmware e ferramentas para usuários do transceptor HF, escritas em C:
-    \url{https://github.com/DigitalHermes/ubitxv6};
+    \url{https://github.com/Rhizomatica/hermes-net};
     \item Software de gerenciamento de rede para integração entre UUCP e o modem HF (VARA ou Ardop), escrita em C:
     \url{https://github.com/DigitalHERMES/rhizo-uuardop}
+    % TODO - Verificar repositorio
 \end{itemize}
 
 
