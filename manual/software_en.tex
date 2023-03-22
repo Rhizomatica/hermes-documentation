@@ -118,7 +118,8 @@ Specific HERMES network stack source code, radio firmware and other system compo
 
 \section{HERMES Software Stack}
 
-HERMES uses ARDOP (Amateur Radio Digital Open Protocol) or VARA for modem. ARDOP and VARA are
+HERMES uses VARA for modem in the current version. Previously it used ARDOP(Amateur Radio Digital Open Protocol).
+ARDOP and VARA are
 SDR (software defined radio) modems which use modern modulation techniques (OFDM) and support
 standard HF transceiver specification (up to 3 kHz bandwidth).
 
@@ -157,7 +158,38 @@ Add to ``/etc/asound.conf'':
 pcm.ARDOP {type rate slave {pcm "hw:1,0" rate 48000}}
 \end{verbatim}
 
-Where ``hw:1,0'' is the HF transceiver's audio device.
+Where ``hw:1,0'' is the HF transceiver's audio \\
+
+Find your soundcard model(Chip) with the command:
+\begin{verbatim}
+alsamixer
+\end{verbatim}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[scale=0.36]{screenshots/software_stack/alsamixer.png}
+  \label{fig3}
+\end{figure}
+  
+Set the model on the config file for each station under /stations:
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[scale=0.67]{screenshots/software_stack/set_system_soundcard.png}
+  \label{fig4}
+\end{figure}
+
+\subsection{VARA (Modem configuration)}
+
+The VARA modem is the only piece of private software in the stack.
+It's developed by WinLink. HERMES uses Vara HF 4.3 or newer.
+
+Please refer to the developer's website for download and instructions on installation and use: \\
+\url{https://rosmodem.wordpress.com/}
+
+Edit /opt/VARA/VARA.ini.default to include your license key and callsign.
+
+
 
 \subsection{ARDOP (Modem configuration)}
 
@@ -220,7 +252,9 @@ journalctl -f -u ardop
 
 \subsection{UUCP (Network configuration)}
 
-UUCP Debian package version 1.07-27 or higher should be used, for example,
+Since HERMES uses Debian GNU/Linux release Bullseye, UUCP packages are installed by default.
+
+If you are not using Debian Bullseye, UUCP Debian package version 1.07-27 or higher should be used, for example,
 the version from Debian Bullseye (11):
 \url{https://packages.debian.org/bullseye/uucp}. Packages for Raspberry OS
 Buster can be installed using our repository. Example for installation in a
@@ -234,6 +268,7 @@ apt-key add rafaeldiniz.gpg.key
 apt-get update
 apt-get install uucp
 \end{verbatim}
+
 
 
 UUCP command line examples follow. To copy a file to a remote host,
@@ -266,7 +301,7 @@ uulog
 \end{verbatim}
 
 
-\subsection{Rhizo-uuardopd (UUCP / ARDOP connection tools)}
+\subsection{UUCPD (UUCP / ARDOP / VARA connection tools)}
 
 %TODO: It seems everything uucico wrote in the end of a reception, don't get
 %to the other side - connection closes and buffer get clean fast!
