@@ -19,9 +19,6 @@
 
 \author{
        \large
-        \textsc{Rafael Diniz}
-        \mbox{}\\ %
-        rafael@rhizomatica.org\\
         \mbox{Rhizomatica} \\ %
 %        \normalsize
 %        \texttt{Brasília - Brasil}\\
@@ -132,24 +129,12 @@ integration between UUCP and the HF modem.
 
 The HERMES network stack is made of:
 \begin{itemize}
-\item HF Radio Transceiver
 \item ALSA (Audio/Signal configuration)
 \item HF Modem (Modem configuration)
 \item UUCP (Network configuration)
 \item UUCPD (UUCP / HF Modem connection tools)
-\item Email (Email stack configuration)
 \item Graphical Web-based User Interface
 \end{itemize}
-
-\subsection{HF Radio Transceiver}
-
-TODO (what follows is old text... prior to HERMES hardware development)
-
-Different setups require different configuration. In the case of using a USB
-(Universal Serial Bus) interface (e.g. Signalink), the delay must be set to
-0. In the case of radios with USB connection exposed an embedded sound
-card and transmit/receive control (eg. ICOM IC-7100) set the bandpass
-filter to at least 2.8kHz (or wider) for digital operation (SSB/Data).
 
 \subsection{ALSA (Audio configuration)}
 
@@ -167,7 +152,7 @@ alsamixer
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[scale=0.36]{screenshots/software_stack/alsamixer.png}
+  \includegraphics[scale=0.23]{screenshots/software_stack/alsamixer.png}
   \label{fig3}
 \end{figure}
   
@@ -175,28 +160,36 @@ Set the model on the config file for each station under /stations:
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[scale=0.67]{screenshots/software_stack/set_system_soundcard.png}
+  \includegraphics[scale=0.45]{screenshots/software_stack/set_system_soundcard.png}
   \label{fig4}
 \end{figure}
 
-\subsection{VARA (Modem configuration)}
-
-The VARA modem is the only piece of private software in the stack.
-It's developed by WinLink. HERMES uses Vara HF 4.3 or newer.
+\subsection{Modem configuration}
+\subsubsection{VARA}
+VARA is a High Performance HF modem based on OFDM modulation.
+VARA modem is the only piece of private software in the stack.
+It's developed by WinLink.\\
+Currently, HERMES uses VARA HF 4.3 or newer as it's standard modem.
+Use this protocol with your HERMES if you are looking for best performance available.\\
 
 Please refer to the developer's website for download and instructions on installation and use: \\
-\url{https://rosmodem.wordpress.com/}
+\url{https://rosmodem.wordpress.com/}\\
 
+\textbf{Configuration}\\
 Edit /opt/VARA/VARA.ini.default to include your license key and callsign.
 
+\subsubsection{ARDOP}
 
+ARDOP is a SDR(software defined radio) modem compatible with both HF and VHF radio transmissions.
+The protocol can operate over a wide range of data rates by automatically adjusting for optimized performance under poor multi-path conditions.
+Use this protocol with your HERMES if you are looking for a completely open-source and free option.
 
-\subsection{ARDOP (Modem configuration)}
+Download link: \url{https://github.com/DigitalHERMES/ardopc}\\
 
-Download link: \url{https://github.com/DigitalHERMES/ardopc}
+\textbf{Configuration}\\
 
 The ardop binary should be in /usr/bin/ardop, which can be a
-symbolic link to /usr/bin/{ardop1ofdm, ardop2, ardopofdm}.
+symbolic link to /usr/bin/{ardop1ofdm, ardop2, ardopofdm}.\\
 
 ARDOP service file for the ICOM IC-7100 (USB connection, PTT done over serial):
 \begin{verbatim}
@@ -238,38 +231,34 @@ WantedBy=multi-user.target
 \end{verbatim}
 
 
-Start/stop ARDOP service:
+\textbf{Start/stop ARDOP service:}
 \begin{verbatim}
 systemctl start ardop.service
 systemctl stop ardop.service
 \end{verbatim}
 
 
-See the log:
+\textbf{See the log:}
 \begin{verbatim}
 journalctl -f -u ardop
 \end{verbatim}
 
+\subsubsection{Mercury}
+Rhizomatica is developing Mercury, a new modem using the latest modulation techniques. It is open-source and currently in development stage. \\
+Source code is located at:
+\url{https://github.com/Rhizomatica/mercury/}
+
+In the future, HERMES will use Mercury as its standard modem.
+
 \subsection{UUCP (Network configuration)}
+UUCP is an acronym of Unix-to-Unix Copy.
+It's a protocol for remote execution of commands and transfer of files, email and netnews between computers.
 
 Since HERMES uses Debian GNU/Linux release Bullseye, UUCP packages are installed by default.
 
 If you are not using Debian Bullseye, UUCP Debian package version 1.07-27 or higher should be used, for example,
 the version from Debian Bullseye (11):
-\url{https://packages.debian.org/bullseye/uucp}. Packages for Raspberry OS
-Buster can be installed using our repository. Example for installation in a
-Raspberry Zero or 1 (32bit armv6l Raspberry devices) root terminal:
-
-\begin{verbatim}
-echo deb http://www.telemidia.puc-rio.br/~rafaeldiniz/public_files/hermes-repo/ buster main \
-     >> /etc/apt/sources.list
-wget http://www.telemidia.puc-rio.br/~rafaeldiniz/public_files/hermes-repo/rafaeldiniz.gpg.key
-apt-key add rafaeldiniz.gpg.key
-apt-get update
-apt-get install uucp
-\end{verbatim}
-
-
+\url{https://packages.debian.org/bullseye/uucp}
 
 UUCP command line examples follow. To copy a file to a remote host,
 the following command adds a copy job to the uucp queue (``-r'' is used to
@@ -301,48 +290,131 @@ uulog
 \end{verbatim}
 
 
-\subsection{UUCPD (UUCP / ARDOP / VARA connection tools)}
+\subsection{UUCPD(UUCP to Modem configuration)}
 
-%TODO: It seems everything uucico wrote in the end of a reception, don't get
-%to the other side - connection closes and buffer get clean fast!
+UUCPD is a set of tools which allow UUCP to use ARDOP or VARA as modem. With this integration, UUCP is fully functional over HF links.
 
-Two binaries should be installed: uuport (to be called by uucp) and uuardopd
-which is the daemon software that connects to the ARDOP modem to start
-or stop a connection. Rhizo-uuardopd manages the connection with UUCP
-through uucico or uuport.
+UUCPD comes with two tools: uuardopd and uuport.
 
-Download link: \url{http://github.com/DigitalHERMES/rhizo-uuardop}
+UUARDOPD is the daemon which keeps connected to ARDOP or VARA modem and properly receive calls (calling uucico) and initiate calls (uucico calls thought UUPORT connection).
 
-Start/stop UUARDOPD service:
+UUPORT is the command invoked by UUCICO (using port type = pipe) when initiating a call (uucico master mode). Communication between uuport and uuardopd is done over shared memory. \\
+
+Download link: \url{https://github.com/Rhizomatica/hermes-net/tree/main/uucpd} \\
+
+\textbf{Install} \\
+\\
+To compile and install, type:
+\begin{verbatim}
+  $ make
+  $ make install    
+\end{verbatim}
+
+\textbf{Configuration} \\
+\\
+Port configuration example at "/etc/uucp/port":
+\begin{verbatim}
+  port HFP
+  type pipe
+  command /usr/bin/uuport    
+\end{verbatim}
+
+An alternative Port configuration if you use a patched uucp ( for "\textbackslash Z" support, available in "improved-pipe.patch" which was added to uucp debian package version 1.07-27 ), where uuport pass the callsign of the station to be called to uuardopd with the uucp remote station name (allowing a single uuardopd instance to be used for different remote station callsigns):
+\begin{verbatim}
+  port HFP
+  type pipe
+  command /usr/bin/uuport -c \Z
+\end{verbatim}
+
+Sys protocol example (tested and works fine) at "/etc/uucp/sys":
+\begin{verbatim}
+  protocol y
+  protocol-parameter y packet-size 512
+  protocol-parameter y timeout 540
+  chat-timeout 200
+\end{verbatim}
+
+Sys configuration example of remote system at "/etc/uucp/sys" (without login prompt):
+\begin{verbatim}
+  system remote
+  call-login *
+  call-password *
+  time any
+  port HFP
+  chat "" \r
+\end{verbatim}
+
+Sys configuration example of remote system at "/etc/uucp/sys" (with login prompt - should call uuardopd with "-l"):
+\begin{verbatim}
+  system remote
+  call-login *
+  call-password *
+  time any
+  port HFP
+  chat "" \r\c ogin: \L word: \P
+\end{verbatim}
+
+\textbf{Start/stop UUARDOPD service}
 \begin{verbatim}
 systemctl start uuardopd.service
 systemctl stop uuardopd.service
 \end{verbatim}
 
+\textbf{Running uuardopd}\\
 
-See the log:
+Examples of uuardopd invocation:
+
+\begin{verbatim}
+$ uuardopd -a 127.0.0.1 -c PU2BBB -p 8515 -t 60 -r ardop
+$ uuardopd -a 127.0.0.1 -p 8300 -r vara -o icom -s /dev/ttyUSB0 -f 2750  
+\end{verbatim}
+
+
+\textbf{See the log}
 \begin{verbatim}
 journalctl -f -u uuardopd
 \end{verbatim}
 
-%\subsection{DHCP}
+\textbf{UUARDOP Usage}
+\begin{verbatim}
+-c callsign:         Station Callsign (Eg: PU2HFF)
+-d remote_callsign:  Remote Station Callsign (optional)
+-r [ardop,vara]:     Choose modem/radio type
+-a tnc_ip_address:   IP address of the TNC
+-p tcp_base_port:    TCP base port of the TNC. ARDOP uses ports tcp_base_port and tcp_base_port+1
+-t timeout:          Time to wait before disconnect when idling (ARDOP ONLY)
+-f features:         Enable/Disable features.
+    Supported features ARDOP: ofdm, noofdm (default: ofdm)
+    Supported features VARA, BW mode: 500, 2300 or 2750 (default: 2300)
+-s serial_device:    Set the serial device file path for keying the radio (VARA ONLY)
+-l:                  Tell UUCICO to ask login prompt (default: disabled)
+-o [icom,ubitx,shm]: Sets radio type (supported: icom, ubitx or shm).
+-h:                  Prints this help
+\end{verbatim}
 
-%\subsection{DNS}
-
-%\subsection{Apache + PHP}
-
-
+\textbf{UUPORT Usage}
+\begin{verbatim}
+-c system_name:      Name of the remote system (default is don't change).
+-e logfile.txt:      Log file (default is stderr).
+-h:                  Prints this help
+\end{verbatim}
 \subsection{User Web Interface}
 
-HERMES provides a web-based interface which uses Angular. Source
-code is located at:
-(\url{https://github.com/Rhizomatica/hermes-gui/}). Current
-implementation supports symmetric cryptography and audio/image compression.
+HERMES provides a web-based interface for sending messages, files and emails. It also allows for user management and radio configuration, among other features.
+Current implementation also supports symmetric cryptography and audio/image compression.
 
-% We use ``/var/www/html/arquivos'' as the default UUCP path to send
-% files through the web interface.
+The web app is composed of the front-end interface and a REST API.
 
-Requirements of the user interface:
+\subsubsection{Hermes-GUI}
+Hermes-GUI is the front-end interface built with Angular.js.
+
+Source code is located at:
+(\url{https://github.com/Rhizomatica/hermes-gui/}).\\
+
+The project was generated with Angular CLI version 13.2.6.
+Angular: 13.2.6 Angular CLI: 13.2.6 Node: 12.22.5 Package Manager: npm 8.5.2\\
+
+\textbf{Requirements of the user interface:}
 
 \begin{itemize}
 \item ImageMagic: for image manipulation
@@ -354,15 +426,93 @@ Requirements of the user interface:
 \end{itemize}
 
 The Web interface can be accessed by typing any address in a browser
-connected to the WiFi (set the DNS accordingly) or simply 10.0.0.1.
+connected to the WiFi (set the DNS accordingly) or simply 10.0.0.1.\\
 
-\subsection{Email}
 
-Please refer to:
-\url{https://www.linuxbabe.com/mail-server/setup-basic-postfix-mail-sever-ubuntu}
+\textbf{Install node, npm}\\
+Install node preferably(V12.22.5) and npm (node package manager) in your distro
 
-And (for DeltaChat connection):
-\url{https://www.linuxbabe.com/mail-server/enable-smtps-port-465-postfix}
+Run 'npm install' inside the project path\\
+
+\textbf{Development server}\\
+Configure .env file with your parameters and run npx ts-node setEnv.ts to set .env values in enviroment.ts.
+
+Run ng serve --configuration=en for a dev server in english, you can change the language to spanish (ng serve --configuration=es) or portuguese (ng serve --configuration=pt) if you wish. Navigate to http://localhost:4200/. The app will automatically reload if you change any of the source files.\\
+
+\textbf{Code scaffolding}\\
+Run ng generate component component-name to generate a new component. You can also use ng generate directive|pipe|service|class|guard|interface|enum|module.\\
+
+%\textbf{Build & Publish}
+%Access remotly machine in port 22 with ssh -p 22 hermes@[my_host_ip] type sudo su to admin verification Set origin main branch git checkout main Update project git pull Create an .env file like a .env.example in root directory Check and configure .env file with your parameters DEV/PROD and run npx ts-node setEnv.ts to set .env values in enviroment.ts. Remove all files in dist folder rm -r dist/ Run npm run build / ng build to build the project. The build artifacts will be stored in the dist directory. Copy them in /var/www/html/ directory cp -a dist/hermes/pt /var/www/html/ cp -a dist/hermes/es /var/www/html/ cp -a dist/hermes/en-US/ /var/www/html/ Done Navigate to HERMES
+
+\textbf{Running unit tests}\\
+Run ng test to execute the unit tests via Karma.\\
+
+\textbf{Running end-to-end tests}\\
+Run ng e2e to execute the end-to-end tests via Protractor.\\
+
+\textbf{Further help}\\
+To get more help on the Angular CLI use ng help or go check out the Angular CLI README.\\
+
+\textbf{Interface Contents}\\
+Inside the folder src you will find the angular templates for the system's interface.
+
+On style.less there are the styling code, writen in less.
+
+Inside the app folder, you will find the template components. The app-routing module.ts file is responsible for linking the templates to url adressess. and the app.component, the aplication root template.
+
+For every system component, there will be a folder with the component.html, component.less, and component.ts. On the .html file there is the html angular template, and on the component.ts you will find typescript code related to that component.
+
+Also inside the app folder, there is the \_services foder, where you can find common services shared between the components to access the [station-api] (https://github.com/DigitalHERMES/station-api).
+
+On assets folder you find links to svgs and image files used on the interface design.
+
+On the locale folder there are the xlf files for translation. For the translations, we are using i18n angular module. To generate translations, you need to use ng extract-i18n --output-path src/locale/ to generate the messages,xlf file and then xliffmerge --profile xliffmerge.json pt es to transpose the new data to both messages.es.xlf and messages.pt.xlf, where you can input the new tranlation tokens.
+
+\subsubsection{Hermes-API}
+Hermes-API is a REST api for use on Hermes stations to exchange messages between them.
+It uses Lumen PHP Framework and composer to manage its own dependencies.\\
+
+Source code is located at:
+(\url{https://github.com/Rhizomatica/hermes-api/}).\\
+
+\textbf{Server Requirements:}
+\begin{itemize}
+  \item web server
+  \item PHP >= 7.3
+  \item OpenSSL PHP Extension
+  \item PDO PHP Extension
+  \item Mbstring PHP Extension
+  \item SQLite DataBase\\
+\end{itemize}
+
+\textbf{Configuration}\\
+Setup your settings creating a .env file from .env.example
+
+Setup public folders inbox / outbox to uucp public
+
+set enebled in php.ini extension=pdo\_sqlite extension=mbstring extension=odbc extension=openssl\\
+
+Run: composer install
+
+create database.sqlite file in database folder
+
+To start a fresh database: php artisan migrate:refresh --seed\\
+
+\textbf{Running on port 8000:}\\
+> php -S localhost:8000 -t public\\
+
+\textbf{Hermes Message Pack}\\
+Hermes Message Pack is a tar gziped file named .hmp\\
+
+\textbf{storage local file structure paths (storage/app/)}\\
+/uploads (Files of outgoing messages)
+/downloads (Files generated from the inbox received messages)
+/inbox (incoming hermes message packs)
+/outbox (hermes message pack for deliver)
+/tmp (tmp files)
+% We use ``/var/www/html/arquivos'' as the default UUCP path to send
+% files through the web interface.
 
 %ps: WORK IN PROGRESS
 
