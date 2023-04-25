@@ -167,8 +167,7 @@ Set the model on the config file for each station under /stations:
 \subsection{Modem configuration}
 \subsubsection{VARA}
 VARA is a High Performance HF modem based on OFDM modulation.
-VARA modem is the only piece of private software in the stack.
-It's developed by WinLink.\\
+VARA modem is the only piece of private software in the stack.\\
 Currently, HERMES uses VARA HF 4.3 or newer as it's standard modem.
 Use this protocol with your HERMES if you are looking for best performance available.\\
 
@@ -375,7 +374,7 @@ $ uuardopd -a 127.0.0.1 -p 8300 -r vara -o icom -s /dev/ttyUSB0 -f 2750
 journalctl -f -u uuardopd
 \end{verbatim}
 
-\textbf{UUARDOP Usage}
+\textbf{UUARDOPD Usage}
 \begin{verbatim}
 -c callsign:         Station Callsign (Eg: PU2HFF)
 -d remote_callsign:  Remote Station Callsign (optional)
@@ -478,7 +477,7 @@ Source code is located at:
 
 \textbf{Server Requirements:}
 \begin{itemize}
-  \item web server
+  \item Web server
   \item PHP >= 7.3
   \item OpenSSL PHP Extension
   \item PDO PHP Extension
@@ -486,31 +485,100 @@ Source code is located at:
   \item SQLite DataBase\\
 \end{itemize}
 
-\textbf{Configuration}\\
-Setup your settings creating a .env file from .env.example
+\textbf{Installation settings}\\
 
-Setup public folders inbox / outbox to uucp public
+Setup your installation settings creating a .env file from .env.example\\
 
-set enebled in php.ini extension=pdo\_sqlite extension=mbstring extension=odbc extension=openssl\\
+\textbf{Run Composer}\\
 
-Run: composer install
+Composer is a dependency manager for PHP.
+
+Run composer in your folder to install the dependencies and update relevant packages:
+\begin{verbatim}
+COMPOSER_ALLOW_SUPERUSER=1 composer install
+COMPOSER_ALLOW_SUPERUSER=1 composer update
+
+\end{verbatim}
+
+\textbf{Copy hermes-api to /var/www/station-api/}\\
+
+Go to your hermes-api folder and run:
+\begin{verbatim}
+  cp -rT . /var/www/station-api/
+\end{verbatim}
+
+\textbf{GNU Privacy Guard}\\
+
+Create the folder for GNU Privacy Guard and change owner:
+\begin{verbatim}
+mkdir -p /var/www/.gnupg
+chmod 700 /var/www/.gnupg
+chown www-data:www-data /var/www/.gnupg
+\end{verbatim}
+
+\textbf{Setup public folders for UUCP}\\
+
+Create and give permissions to inbox/outbox, downloads and temp folders to uucp public:
+\begin{verbatim}
+mkdir -p /var/www/station-api/storage/app/inbox
+chmod 777 /var/www/station-api/storage/app/inbox
+mkdir -p /var/www/station-api/storage/app/outbox
+chmod 777 /var/www/station-api/storage/app/outbox
+mkdir -p /var/www/station-api/storage/app/downloads
+chmod 777 /var/www/station-api/storage/app/downloads
+mkdir -p /var/www/station-api/storage/app/tmp
+chmod 777 /var/www/station-api/storage/app/tmp
+mkdir -p /var/www/station-api/storage/app/uploads
+chmod 777 /var/www/station-api/storage/app/uploads
+\end{verbatim}
+
+The structure created is used by the app as follows:
+/uploads (Files of outgoing messages)
+/downloads (Files generated from the inbox received messages)
+/inbox (incoming hermes message packs)
+/outbox (hermes message pack for deliver)
+/tmp (tmp files)\\
+
+\textbf{Link folders}
+\begin{verbatim}
+ln -sf /var/www/station-api/public/ /var/www/html/api
+\end{verbatim}
+
+\textbf{Change owner of the app folder}
+\begin{verbatim}
+chown -R www-data:www-data /var/www/station-api/ 
+\end{verbatim}
 
 create database.sqlite file in database folder
 
 To start a fresh database: php artisan migrate:refresh --seed\\
 
+\textbf{Database setup}\\
+
+Create a database named hermes and user with all privileges:
+
+\begin{verbatim}
+  echo "CREATE USER hermes IDENTIFIED BY 'db_hermes'; " > sql_commands.sql
+  echo "CREATE DATABASE hermes;" >> sql_commands.sql
+  echo "GRANT ALL PRIVILEGES ON hermes.* TO hermes;" >> sql_commands.sql
+  
+  mysql < sql_commands.sql
+\end{verbatim}
+
+Then go to your hermes-api folder and run Artisan for the migrations:
+\begin{verbatim}
+  cd /var/www/station-api/
+  php artisan migrate
+  php artisan db:seed    
+\end{verbatim}
+
 \textbf{Running on port 8000:}\\
+
 > php -S localhost:8000 -t public\\
 
 \textbf{Hermes Message Pack}\\
 Hermes Message Pack is a tar gziped file named .hmp\\
 
-\textbf{storage local file structure paths (storage/app/)}\\
-/uploads (Files of outgoing messages)
-/downloads (Files generated from the inbox received messages)
-/inbox (incoming hermes message packs)
-/outbox (hermes message pack for deliver)
-/tmp (tmp files)
 % We use ``/var/www/html/arquivos'' as the default UUCP path to send
 % files through the web interface.
 
