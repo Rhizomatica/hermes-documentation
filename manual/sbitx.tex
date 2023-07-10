@@ -1,0 +1,84 @@
+\documentclass[11pt,a4paper]{article}
+% \usepackage[brazil]{babel} % carrega portugues brasileiro
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry} %margens menores!
+\usepackage{graphicx} % incluir figuras .eps
+\usepackage{tabularx}
+\usepackage{color} % colorir texto
+\usepackage{indentfirst}
+\usepackage{textcomp}
+\usepackage[colorlinks=true]{hyperref}
+\usepackage{amssymb,amsmath}
+\usepackage{float}
+% \usepackage{siunitx}
+% \usepackage[ampersand]{easylist}
+
+\title{HERMES Hardware Description}
+
+\author{
+       \large
+        \textsc{Rafael Diniz}
+        \mbox{}\\ %
+        rafael@rhizomatica.org\\
+        \mbox{Rhizomatica} \\ %
+%        \normalsize
+%        \texttt{Brasília - Brasil}\\
+}
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  This document describes the software setup of the sBitx v2 HF transceiver.
+  The sBitx v2 radio is an ahead-of-its-time wide-band HF transceiver, fully
+  controlled by software. The radio is composed by the analog radio-frequency circuitry,
+  Raspberry Pi 4 (RPi 4), ATTiny85 microcontroller (for lambda bridge FWD and REF readings), battery-backed
+  Real-Time-Clock, Wolfson wm8731 audio codec, 7 inches high-def touch screen and two knobs with `` button'',
+\end{abstract}
+
+\newpage
+
+\tableofcontents
+
+\section{Introduction}
+
+This document address all the software details needed for the sBitx v2 hardware bringup.
+
+
+
+\section{sBitx v2 Hardware}
+
+
+\subsection{Power consumption}
+
+
+\section{Hardware interfaces to the computer (RPi 4)}
+
+
+\subsection {Control I/O}
+
+\subsubsection{I2C RTC}
+
+\subsubsection{I2C Si5351}
+
+\subsubsection{I2C ATtiny85 (FWD and REF)}
+
+\subsubsection{Digital pins setup for knobs control}
+
+\subsection{Signal I/O}
+
+\subsubsection{I2S Wolfson wm8371}
+
+\section{Linux setup for sBitx operation}
+
+\subsection{Pin attribution setup for the RPi 4}
+
+\subsection{Audio - ALSA subsystem}
+
+\subsection{Ashhar's sbitx reference implementation}
+
+\end{document}

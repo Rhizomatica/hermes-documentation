@@ -11,6 +11,8 @@ all:
 	pdflatex hardware_en.tex
 	pdflatex software_en.tex
 	pdflatex software_en.tex
+	pdflatex sbitx.tex
+	pdflatex sbitx.tex
 
 .PHONY:
 clean:
@@ -20,3 +22,4 @@ clean:
 	rm -f manual_pt.aux manual_pt.out manual_pt.log manual_pt.toc manual_pt.pdf
 	rm -f manual_en.aux manual_en.out manual_en.log manual_en.toc manual_en.pdf
 	rm -f manual_es.aux manual_es.out manual_es.log manual_es.toc manual_es.pdf
+	rm -f sbitx.aux sbitx.out sbitx.log sbitx.toc sbitx.pdf
