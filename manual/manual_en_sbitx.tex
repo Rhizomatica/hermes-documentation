@@ -18,7 +18,7 @@
 % \usepackage{siunitx}
 % \usepackage[ampersand]{easylist}
 
-\title{User Manual}
+\title{HERMES System Installation Guide}
 
 
 \author{
@@ -56,15 +56,7 @@
 
 \section{Introduction}
 
-Steps for testing:
-
-\begin{itemize}
-\item Initial setup for boot over USB
-\item HERMES USB installer preparation
-\item HERMES installation
-\item Connecting RF (Radio Frequency) test equipment
-\item Connecting to power supply
-\end{itemize}
+This guide goes through the steps need for HERMES system installation.
 
 %\begin{figure*}[!ht]
 %\includegraphics[width=1\textwidth]{pictures/hermes.png}
@@ -104,10 +96,10 @@ At this point the screen shown in Figure~\ref{fig:screen3} should appear.
 
 Choose the options of the menu in the following order using the keyboard arrow and Tab keys (as shows in Figures):
 \begin{itemize}
-\item Option 6 (Advanced Options)
-\item Option A6 (Boot Order)
-\item Option B2 (USB Boot)
-\item Finish
+\item Step 1: Option 6 (Advanced Options)
+\item Step 2: Option A6 (Boot Order)
+\item Step 3: Option B2 (USB Boot)
+\item Step 4: Finish
 \end{itemize}
 
 \begin{figure}[H]
@@ -140,7 +132,6 @@ Now the radio is ready to run the HERMES installer. To turn off the radio, type 
 
 And after some seconds, when the screen goes black, turn off the radio (using the power key below the power socket).
 
-
 \section{HERMES USB installer preparation}
 
 A USB pendrive of at least 8 GB is needed. A computer is needed to prepare the USB pendrive.
@@ -153,32 +144,32 @@ The extracted file should have the name: ``installer-image.img''.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/extract-1-ed.jpg}
+  \includegraphics[width=0.6\textwidth]{pictures/extract-1-ed.jpg}
   \caption{Unzipping the installer file.}
   \label{fig:extract1}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/extract-2-ed.jpg}
+  \includegraphics[width=0.6\textwidth]{pictures/extract-2-ed.jpg}
   \caption{Setting the installer file name.}
   \label{fig:extract2}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/extract-3-ed.jpg}
+  \includegraphics[width=0.6\textwidth]{pictures/extract-3-ed.jpg}
   \caption{Installer file after unzip.}
   \label{fig:extract3}
 \end{figure}
 
 Then, for copying the installer to the USB pendrive, use the following sofware (or other raw image writter or flasher), called
 Etcher (supported on Windows, MacOS and Linux), available in \url{https://etcher.balena.io/}. The download is available in its website,
-as shown in Figure \ref{fig:balena1}.
+as shown in Figure \ref{fig:balena1} (eg: for Windows choose the first option).
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/balena-1.png}
+  \includegraphics[width=0.6\textwidth]{pictures/balena-1.png}
   \caption{Download options for Etcher software.}
   \label{fig:balena1}
 \end{figure}
@@ -187,22 +178,22 @@ Run the software Etcher, choose the option ``Flash from file'' and select the fi
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/balena-2-ed.jpg}
-  \caption{Download options for image writing software, which writes the HERMES installer to the USB pendrive.}
+  \includegraphics[width=0.6\textwidth]{pictures/balena-2-ed.jpg}
+  \caption{First screen of Etcher, ``Flash from file'' selected.}
   \label{fig:balena2}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/balena-3-ed.jpg}
-  \caption{Download options for image writing software, which writes the HERMES installer to the USB pendrive.}
+  \includegraphics[width=0.6\textwidth]{pictures/balena-3-ed.jpg}
+  \caption{Choose the file ``installer-image''.}
   \label{fig:balena3}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/balena-4-ed.jpg}
-  \caption{Download options for image writing software, which writes the HERMES installer to the USB pendrive.}
+  \includegraphics[width=0.6\textwidth]{pictures/balena-4-ed.jpg}
+  \caption{Select the USB pendrive to be used as installer.}
   \label{fig:balena4}
 \end{figure}
 
@@ -231,7 +222,7 @@ When asked if you want to proceed with the installation, anwser ``y'' and press 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.5\textwidth]{pictures/inst-1.jpg}
-  \caption{e.}
+  \caption{HERMES interactive installer starting.}
   \label{fig:inst1}
 \end{figure}
 
@@ -240,15 +231,31 @@ When asked if you want to write HERMES, anwser ``y'' and press ENTER, as shown i
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.5\textwidth]{pictures/inst-2.jpg}
-  \caption{e.}
+  \caption{HERMES installer question to start writing to internal radio memory.}
   \label{fig:inst2}
 \end{figure}
 
-Then the installer will copy all the HERMES system, which will take some time.
+Then the installer will copy the HERMES system (Figure~\ref{fig:inst3}) to the internal radio SD card, which will take some time, most likely more than one hour.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/inst-3.jpg}
+  \caption{HERMES installer in process of copying data to internal radio memory.}
+  \label{fig:inst3}
+\end{figure}
+
+After the copying is done (shown in Figure~\ref{fig:inst4}), REMOVE the pendrive from the radio and reboot (just press any key)
+for the second step of the installation. Also make sure the network cable (Internet) is connected to the radio.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/inst-4.jpg}
+  \caption{HERMES installer finished copy of the system to internal radio memory.}
+  \label{fig:inst4}
+\end{figure}
 
 
-
-When asked about the station name to use, choose one of these:
+After the radio restarts, you will be asked about the station name to use, as shown in Figure~\ref{fig:inst5}. Choose one of these:
 \begin{itemize}
 \item bakouma.aco-connexion.org
 \item bangassouhub.aco-connexion.org
@@ -257,6 +264,16 @@ When asked about the station name to use, choose one of these:
 \item irabanda.aco-connexion.org
 \end{itemize}
 
+The station ``bangassouhub.aco-connexion.org'' has the gateway station setup. The gateway station should be deployed
+in a place with Internet connection.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/inst-5.jpg}
+  \caption{HERMES installed station name prompt.}.
+  \label{fig:inst5}
+\end{figure}
+
 
 % \section{WiFi}
 
@@ -264,6 +281,26 @@ When asked about the station name to use, choose one of these:
 
 % default password... root /
 
+\section{Power supply and consumption}
+
+In order to connect the radio to the power source, a power cable is provided. One side of the
+cable comes with a XT60 connector (Figure~\ref{fig:psu2}) and connects to the radio, and the other end is bare ended,
+and should be connected to the positive (Red) and negative (Black) of a 12V battery system, or power
+supply. Power consumption is not more than 1.5 A in receive mode, and 9 A in transmit mode.
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/psu1.jpeg}
+  \caption{The radio-side of the power cables where the XT60 connector is located.}
+  \label{fig:psu1}
+\end{figure}
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/psu2.jpeg}
+  \caption{Red (+) and black (-) cables connected to appropriate power supply terminals.}
+  \label{fig:psu2}
+\end{figure}
 
 \section{Connecting RF test equipment}
 
@@ -293,7 +330,7 @@ should be connected to the ``ANT'' or ``Antenna'' port.
 
 \begin{figure}[!ht]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/wattmeter_2.jpeg}
+  \includegraphics[width=0.7\textwidth]{pictures/wattmeter_2.jpeg}
   \caption{Back of the power meter in which the ANT and TX writings can be seen.}
   \label{fig:backview2}
 \end{figure}
@@ -313,27 +350,6 @@ is in a visible position.
   \includegraphics[width=0.5\textwidth]{pictures/wattmeter_5.jpeg}
   \caption{Front view of a power meter}
   \label{fig:frontview1}
-\end{figure}
-
-\section{Connecting to power supply}
-
-In order to connect the radio to the power source, a power cable is provided. One side of the
-cable comes with a XT60 connector (Figure~\ref{fig:psu2}) and connects to the radio, and the other end is bare ended,
-and should be connected to the positive (Red) and negative (Black) of a 12V battery system, or power
-supply.
-
-\begin{figure}[!ht]
-  \centering
-  \includegraphics[width=0.5\textwidth]{pictures/psu1.jpeg}
-  \caption{The radio-side of the power cables where the XT60 connector is located.}
-  \label{fig:psu1}
-\end{figure}
-
-\begin{figure}[!ht]
-  \centering
-  \includegraphics[width=0.5\textwidth]{pictures/psu2.jpeg}
-  \caption{Red (+) and black (-) cables connected to appropriate power supply terminals.}
-  \label{fig:psu2}
 \end{figure}
 
 
