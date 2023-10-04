@@ -56,7 +56,7 @@
 
 \section{Introduction}
 
-This guide goes through the steps need for HERMES system installation.
+This guide goes through the steps needed for HERMES system installation.
 
 %\begin{figure*}[!ht]
 %\includegraphics[width=1\textwidth]{pictures/hermes.png}
@@ -64,9 +64,9 @@ This guide goes through the steps need for HERMES system installation.
 
 \section{Initial setup to allow boot from USB pendrive}
 
-This is step is needed it order to enable the HERMES installer to run from a USB pendrive.
+This step is needed in order to enable the HERMES installer to run from a USB pendrive.
 
-First connect a USB keyboard to the radio, and to the network (RJ45) cable with appropriate Internet connection.
+First connect a USB keyboard to the radio, and then connect the radio to the network (RJ45) cable with appropriate Internet connection.
 Then click in the Terminal icon shown in Figure~\ref{fig:terminal}.
 
 \begin{figure}[!ht]
@@ -123,8 +123,8 @@ Choose the options of the menu in the following order using the keyboard arrow a
   \label{fig:screen6}
 \end{figure}
 
-Then just accept the option to reboot the radio or select the ``Finish'' option to exit the software.
-Now the radio is ready to run the HERMES installer. To turn off the radio, type the following in the Terminal windows (just after raspi-config):
+Then just accept the option to reboot the radio.
+Now the radio is ready to run the HERMES installer. If needed, in order to turn off the radio, type the following in the terminal window (just after raspi-config):
 
 \begin{itemize}
 \item halt
@@ -163,8 +163,8 @@ The extracted file should have the name: ``installer-image.img''.
   \label{fig:extract3}
 \end{figure}
 
-Then, for copying the installer to the USB pendrive, use the following sofware (or other raw image writter or flasher), called
-Etcher (supported on Windows, MacOS and Linux), available in \url{https://etcher.balena.io/}. The download is available in its website,
+Then, for copying the installer to the USB pendrive, use the following software (or other raw image writer or flasher), called
+Etcher (supported on Windows, MacOS and Linux), available in \url{https://etcher.balena.io/}. The download is available on this website,
 as shown in Figure \ref{fig:balena1} (eg: for Windows choose the first option).
 
 \begin{figure}[H]
@@ -174,7 +174,7 @@ as shown in Figure \ref{fig:balena1} (eg: for Windows choose the first option).
   \label{fig:balena1}
 \end{figure}
 
-Run the software Etcher, choose the option ``Flash from file'' and select the file ``installer-image.img'', as show in Figures \ref{fig:balena2}, \ref{fig:balena3} and \ref{fig:balena4}.
+Run the software Etcher, choose the option ``Flash from file'' and select the file ``installer-image.img'', as shown in Figures \ref{fig:balena2}, \ref{fig:balena3} and \ref{fig:balena4}.
 
 \begin{figure}[H]
   \centering
@@ -198,6 +198,8 @@ Run the software Etcher, choose the option ``Flash from file'' and select the fi
 \end{figure}
 
 After the copy is finished, insert the USB pendrive with the HERMES installer in the radio, as shown in Figure~\ref{fig:pen1}.
+Make sure the radio is turned OFF before inserting the USB pendrive.
+
 
 \begin{figure}[H]
   \centering
@@ -215,9 +217,9 @@ and perform the station-specific setup.
 The installation is done in two steps. The first one with the
 pendrive inserted in the radio, and the second without the pendrive.
 
-After preparing the USB pendrive and pluging it to the radio. Turn on the radio.
+After preparing the USB pendrive and plugging it to the radio, turn on the radio.
 
-When asked if you want to proceed with the installation, anwser ``y'' and press ENTER, as shown in Figure~\ref{fig:inst1}.
+When asked if you want to proceed with the installation, answer ``y'' and press ENTER, as shown in Figure~\ref{fig:inst1}.
 
 \begin{figure}[H]
   \centering
@@ -226,7 +228,7 @@ When asked if you want to proceed with the installation, anwser ``y'' and press 
   \label{fig:inst1}
 \end{figure}
 
-When asked if you want to write HERMES, anwser ``y'' and press ENTER, as shown in Figure~\ref{fig:inst2}.
+When asked if you want to write HERMES (copy the system), anwser ``y'' and press ENTER, as shown in Figure~\ref{fig:inst2}.
 
 \begin{figure}[H]
   \centering
@@ -244,7 +246,7 @@ Then the installer will copy the HERMES system (Figure~\ref{fig:inst3}) to the i
   \label{fig:inst3}
 \end{figure}
 
-After the copying is done (shown in Figure~\ref{fig:inst4}), REMOVE the pendrive from the radio and reboot (just press any key)
+After the copying is done (shown in Figure~\ref{fig:inst4}), reboot the radio (just press any key) and REMOVE the pendrive from the radio
 for the second step of the installation. Also make sure the network cable (Internet) is connected to the radio.
 
 \begin{figure}[H]
@@ -255,7 +257,8 @@ for the second step of the installation. Also make sure the network cable (Inter
 \end{figure}
 
 
-After the radio restarts, you will be asked about the station name to use, as shown in Figure~\ref{fig:inst5} and \ref{fig:inst6}. Choose one of these:
+After the radio restarts, you will be asked about the station name to use, as shown in Figure~\ref{fig:inst5} and \ref{fig:inst6}. Choose one of station
+names below, by typing the full station name in the installed prompt.
 \begin{itemize}
 \item bakouma.aco-connexion.org
 \item bangassouhub.aco-connexion.org
