@@ -62,6 +62,28 @@ This guide goes through the steps needed for HERMES system installation.
 %\includegraphics[width=1\textwidth]{pictures/hermes.png}
 %\end{figure*}
 
+\section{Power supply and consumption}
+
+In order to connect the radio to the power source, a power cable is provided. One side of the
+cable comes with a XT60 connector (Figure~\ref{fig:psu2}) and connects to the radio, and the other end is bare ended,
+and should be connected to the positive (Red) and negative (Black) of a 12V battery system, or power
+supply. Power consumption is not more than 1.5 A in receive mode, and 9 A in transmit mode.
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/psu1.jpeg}
+  \caption{The radio-side of the power cables where the XT60 connector is located.}
+  \label{fig:psu1}
+\end{figure}
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/psu2.jpeg}
+  \caption{Red (+) and black (-) cables connected to appropriate power supply terminals.}
+  \label{fig:psu2}
+\end{figure}
+
+
 \section{Initial setup to allow boot from USB pendrive}
 
 This step is needed in order to enable the HERMES installer to run from a USB pendrive.
@@ -311,28 +333,8 @@ The radio will restart, and the HERMES interface will show up, as shown in Figur
 
 % default password... root /
 
-\section{Power supply and consumption}
 
-In order to connect the radio to the power source, a power cable is provided. One side of the
-cable comes with a XT60 connector (Figure~\ref{fig:psu2}) and connects to the radio, and the other end is bare ended,
-and should be connected to the positive (Red) and negative (Black) of a 12V battery system, or power
-supply. Power consumption is not more than 1.5 A in receive mode, and 9 A in transmit mode.
-
-\begin{figure}[!ht]
-  \centering
-  \includegraphics[width=0.5\textwidth]{pictures/psu1.jpeg}
-  \caption{The radio-side of the power cables where the XT60 connector is located.}
-  \label{fig:psu1}
-\end{figure}
-
-\begin{figure}[!ht]
-  \centering
-  \includegraphics[width=0.5\textwidth]{pictures/psu2.jpeg}
-  \caption{Red (+) and black (-) cables connected to appropriate power supply terminals.}
-  \label{fig:psu2}
-\end{figure}
-
-\section{Connecting RF test equipment}
+\section{Radio Frequency (RF) connections assembly}
 
 For proper testing, the radio needs to be connected, ideally, to a power meter (also called wattmeter), which should be connected to a dummy load, as shown in Figures \ref{fig:backview1} and \ref{fig:backview3}.
 
@@ -382,5 +384,57 @@ is in a visible position.
   \label{fig:frontview1}
 \end{figure}
 
+\section{RF test}
+After all the RF connections ready, a transmit test needs to be made. First, set a frequency
+in the band you will operate most the radio (Eg. 6200 kHz). Then two tests should be carried:
+\begin{itemize}
+\item Voice test with the microphone, for microphone and its button operation check
+\item Single tone test, for establishing the power level of the radio
+\end{itemize}
+
+The expected result of the voice test, when talking with normal voice level, should be the wattmeter having a oscilating power level,
+ranging from 0 to 40W.
+
+
+% TODO: add pic of the mic/ptt
+
+The expected result of the single tone test, should be a power reading of approximatelly 20 W.
+
+% TODO: add pic of the single tone test
+
+\section{WiFi Setup}
+\label{sec:wifi}
+
+Default wireless information is:
+\begin{itemize}
+\item Network Name (SSID): hermes
+\item password: amazonia
+\end{itemize}
+
+In case the system connecting to the wifi of the radio shows a question saying that there is not internet,
+questioning if you want to stay connected anyway, select the option to continue connected anyway ``always'' (in
+case there is also an option to take this action ``only once'').
+
+The Wifi settings can be changed through the HERMES interface, as shown in Figure ....
+
+% add screenshot here...
+
+\section{E-mail setup and test}
+
+In this section the process of creating one or more users in the HERMES system is address. Also the process
+of connecting a device (eg. tablet or cellphone) to the radio over WiFi and using the software DeltaChat (an email client)
+for messages exchange.
+
+In the HERMES interface, create one or more users, to be used for the email access. Then connect the companion
+device to the radio WiFi network, and install the software DeltaChat (an email client). Follow the steps
+shown in Figures ... in order to create users in the HERMES UI.
+
+% HERMES UI screenshots...
+
+The in the device, first connect it to the WiFi radio network, as described in section~\ref{sec:wifi}. Then open
+the DeltaChat application (available in any app store, or locally in the radio, as shown in Figure ...). Use the
+same login information created in the HERMES system in the DeltaChat app, and Deltachat should connect, as shown in Figures...
+
+% DC screeshots
 
 \end{document}
