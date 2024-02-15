@@ -93,7 +93,7 @@ Then click in the Terminal icon shown in Figure~\ref{fig:terminal}.
 
 \begin{figure}[!ht]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/screen1-edited.jpeg}
+  \includegraphics[width=0.6\textwidth]{pictures/screen1-edited.jpeg}
   \caption{Screen of the radio and the ``Terminal'' icon pointed by a red arrow.}
   \label{fig:terminal}
 \end{figure}
@@ -245,7 +245,7 @@ When asked if you want to proceed with the installation, answer ``y'' and press 
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/inst-1.jpg}
+  \includegraphics[width=0.6\textwidth]{pictures/inst-1.jpg}
   \caption{HERMES interactive installer starting.}
   \label{fig:inst1}
 \end{figure}
@@ -254,7 +254,7 @@ When asked if you want to write HERMES (copy the system), anwser ``y'' and press
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/inst-2.jpg}
+  \includegraphics[width=0.6\textwidth]{pictures/inst-2.jpg}
   \caption{HERMES installer question to start writing to internal radio memory.}
   \label{fig:inst2}
 \end{figure}
@@ -263,7 +263,7 @@ Then the installer will copy the HERMES system (Figure~\ref{fig:inst3}) to the i
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/inst-3.jpg}
+  \includegraphics[width=0.6\textwidth]{pictures/inst-3.jpg}
   \caption{HERMES installer in process of copying data to internal radio memory.}
   \label{fig:inst3}
 \end{figure}
@@ -273,7 +273,7 @@ for the second step of the installation. Also make sure the network cable (Inter
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/inst-4.jpg}
+  \includegraphics[width=0.6\textwidth]{pictures/inst-4.jpg}
   \caption{HERMES installer finished copy of the system to internal radio memory.}
   \label{fig:inst4}
 \end{figure}
@@ -294,14 +294,14 @@ in a place with Internet connection.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/inst-5.jpg}
+  \includegraphics[width=0.6\textwidth]{pictures/inst-5.jpg}
   \caption{HERMES installer station name prompt.}.
   \label{fig:inst5}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/inst-6.jpg}
+  \includegraphics[width=0.6\textwidth]{pictures/inst-6.jpg}
   \caption{Station name field filled with ``irabanda.aco-connexion.org''.}.
   \label{fig:inst6}
 \end{figure}
@@ -311,7 +311,7 @@ After the setup is finished, you should see the following message ``Press any ke
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/inst-7.jpg}
+  \includegraphics[width=0.6\textwidth]{pictures/inst-7.jpg}
   \caption{Message that marks the end of installation.}
   \label{fig:inst7}
 \end{figure}
@@ -320,19 +320,42 @@ The radio will restart, and the HERMES interface will show up, as shown in Figur
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.5\textwidth]{pictures/inst-8.jpg}
+  \includegraphics[width=0.6\textwidth]{pictures/inst-8.jpg}
   \caption{HERMES system screen.}
   \label{fig:inst8}
 \end{figure}
 
+\section{WiFi Setup}
+\label{sec:wifi}
 
+Default radio's wireless information is:
+\begin{itemize}
+\item Network Name (SSID): hermes
+\item password: amazonia
+\end{itemize}
 
-% \section{WiFi}
+In case the system connecting to the wifi of the radio shows a question saying that there is no internet,
+questioning if you want to stay connected anyway, select the option to continue connected anyway ``always'' (in
+case there is also an option to take this action ``only once'').
 
+The Wifi settings can be changed through the HERMES interface, as shown in Figures~\ref{fig:hermes1wifi} and \ref{fig:hermes3}. Choose a network
+name only with lower case letters and numbers. The password needs to be at least 8 characters, and it is not
+allowed the use of special characters or spaces - use just lower case letter ands numbers. Wifi channel also needs to be chosen, being the allowed channel numbers the
+range from 1 to 11. Any channel can be chosen. In case two or more HERMES radio are in the same room, choose a different channel and network name for each radio.
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/hermes1-wifi.jpg}
+  \caption{WiFi administrative interface icon pointed by red arrow.}
+  \label{fig:hermes1wifi}
+\end{figure}
 
-% default password... root /
-
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/hermes3.jpg}
+  \caption{WiFi administrative interface.}
+  \label{fig:hermes3}
+\end{figure}
 
 \section{Radio Frequency (RF) connections assembly}
 
@@ -360,14 +383,14 @@ and the dummy load simulates an antenna without radiating the signal.
 The radio needs to be connected (see Figure \ref{fig:backview4}) to the ``TX'' or ``Transmitter'' (see Figure \ref{fig:backview2}) port of the power meter, while the dummy load
 should be connected to the ``ANT'' or ``Antenna'' port.
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{pictures/wattmeter_2.jpeg}
   \caption{Back of the power meter in which the ANT and TX writings can be seen.}
   \label{fig:backview2}
 \end{figure}
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.5\textwidth]{pictures/wattmeter_4-edited.jpeg}
   \caption{The power meter (left) and radio with the connected cable (top right).}
@@ -377,7 +400,7 @@ should be connected to the ``ANT'' or ``Antenna'' port.
 Make sure the cables are properly connected and the front of the power meter (Figure \ref{fig:frontview1})
 is in a visible position.
 
-\begin{figure}[!ht]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.5\textwidth]{pictures/wattmeter_5.jpeg}
   \caption{Front view of a power meter}
@@ -385,6 +408,7 @@ is in a visible position.
 \end{figure}
 
 \section{RF test}
+
 After all the RF connections ready, a transmit test needs to be made. First, set a frequency
 in the band you will operate most the radio (Eg. 6200 kHz). Then two tests should be carried:
 \begin{itemize}
@@ -392,32 +416,70 @@ in the band you will operate most the radio (Eg. 6200 kHz). Then two tests shoul
 \item Single tone test, for establishing the power level of the radio
 \end{itemize}
 
+In order to log-in to the HERMES User Interface (UI), a default password is set (that can be changed), and it is:
+\begin{itemize}
+\item user name: root
+\item password: caduceu
+\end{itemize}
+
+To enter the voice screen in HERMES UI, follow the Figures~\ref{fig:ptt1} and \ref{fig:ptt2}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/ptt1.jpg}
+  \caption{HERMES UI with a finger pointing to the voice functionality icon.}
+  \label{fig:ptt1}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/ptt2.jpg}
+  \caption{HERMES UI in the voice screen.}
+  \label{fig:ptt2}
+\end{figure}
+
+
 The expected result of the voice test, when talking with normal voice level, should be the wattmeter having a oscilating power level,
 ranging from 0 to 40W.
 
+In order to carry the single tone test, enter the radio configuration screen, as shown in Figure~\ref{fig:hermes1}. The single tone functionality
+is enabled using the ``PTT'' button in the radio configuration page, as shown in Figure~\ref{fig:hermes2}.
 
-% TODO: add pic of the mic/ptt
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/hermes1-radio.jpg}
+  \caption{HERMES UI with an arrow pointing to the radio configuration icon.}
+  \label{fig:hermes1}
+\end{figure}
 
-The expected result of the single tone test, should be a power reading of approximatelly 20 W.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/hermes2ptt.jpg}
+  \caption{HERMES UI in the radio configuration page, an arrow points to the ``PTT'' button.}
+  \label{fig:hermes2}
+\end{figure}
+
+The expected result of the single tone test, should be a power reading of approximatelly 20 W, as shown
+in Figures~\ref{fig:ptt3} and \ref{fig:ptt4}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/ptt3.jpg}
+  \caption{Confirmation question shown after clicking to enable the PTT. No power.}
+  \label{fig:ptt3}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/ptt4.jpg}
+  \caption{Wattmeter showing 20W of power.}
+  \label{fig:ptt4}
+\end{figure}
+
+
 
 % TODO: add pic of the single tone test
 
-\section{WiFi Setup}
-\label{sec:wifi}
-
-Default wireless information is:
-\begin{itemize}
-\item Network Name (SSID): hermes
-\item password: amazonia
-\end{itemize}
-
-In case the system connecting to the wifi of the radio shows a question saying that there is not internet,
-questioning if you want to stay connected anyway, select the option to continue connected anyway ``always'' (in
-case there is also an option to take this action ``only once'').
-
-The Wifi settings can be changed through the HERMES interface, as shown in Figure ....
-
-% add screenshot here...
 
 \section{E-mail setup and test}
 
@@ -427,13 +489,49 @@ for messages exchange.
 
 In the HERMES interface, create one or more users, to be used for the email access. Then connect the companion
 device to the radio WiFi network, and install the software DeltaChat (an email client). Follow the steps
-shown in Figures ... in order to create users in the HERMES UI.
+shown in Figures~\ref{fig:hermes1users} and ~\ref{fig:hermes4}  in order to create users in the HERMES UI.
 
-% HERMES UI screenshots...
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/hermes1-users.jpg}
+  \caption{User management icon in main HERMES page.}
+  \label{fig:hermes1users}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/hermes4.jpg}
+  \caption{User management icon in main HERMES page.}
+  \label{fig:hermes4}
+\end{figure}
 
 The in the device, first connect it to the WiFi radio network, as described in section~\ref{sec:wifi}. Then open
-the DeltaChat application (available in any app store, or locally in the radio, as shown in Figure ...). Use the
-same login information created in the HERMES system in the DeltaChat app, and Deltachat should connect, as shown in Figures...
+the DeltaChat application, which available in any app store, or locally in the radio, as shown in Figure~\ref{fig:hermes1mail} and the, by clicking the DeltaChat icon, download links will appear,
+as shown in Figure~\ref{fig:hermes5}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/hermes1-mail.jpg}
+  \caption{User management icon in main HERMES page.}
+  \label{fig:hermes1mail}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/hermes5.jpg}
+  \caption{User management icon in main HERMES page.}
+  \label{fig:hermes5}
+\end{figure}
+
+In DeltaChat, go in ``Access your server'' and put the email and password created in HERMES system (see Figure~\ref{fig:dc1}). The email should look like
+``operateur@irabanda.aco-connexion.org'', and is composed by the HERMES username, an ``@'', and the name of the station.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.5\textwidth]{pictures/dc1.png}
+  \caption{DeltaChat login screen, with email and password fields shown.}
+  \label{fig:dc1}
+\end{figure}
 
 % DC screeshots
 
