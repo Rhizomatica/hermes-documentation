@@ -237,6 +237,7 @@ For proper testing, the radio needs to be connected, ideally, to a power meter (
 |Figure 29: Both the dummy load (left) and the power meter (right).
 
 The radio (sBitx) has a BNC female connector, and needs the appropriate cables and adapters to be connected to the Wattmeter and dummy load (eg. by using BNC Male to UHF/SO239 Female). The wattmeter measures the forward and reflected power of the radio, and the dummy load simulates an antenna without radiating the signal.
+
 The radio needs to be connected (see Figure 31) to the "TX" or "Transmitter" (see Figure 30) port of the power meter, while the dummy load should be connected to the "ANT" or "Antenna" port.
 
 |![Font](./pictures/figure30.jpg)|

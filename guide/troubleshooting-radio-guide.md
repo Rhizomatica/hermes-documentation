@@ -10,7 +10,6 @@
 
 5. If the SWR is higher than 2.0, follow the following checks
 
-
 In order to transmit a test signal, go to “Radio configuration”:
 
 |![Font](./pictures/figure01.png)|
@@ -49,6 +48,7 @@ Assure that the measurement equipment is working previously.
  - Test the buttons and see if everything seems correct (volume, frequency) 
  - Check if the radio is too hot, and if it is, there can be a problem in the radio. Turn off the radio and contact support.
  - Check that it doesn't smell burnt, if yes, there is a problem in radio, turn it off immediately
+
 ## Check the antenna:
  - Check the radio to antenna connections
  - Check if the antenna is well installed and hanging properly in the poles
@@ -61,7 +61,6 @@ Assure that the measurement equipment is working previously.
     - - if higher than 2.0, then most likely there is a problem with the cables (or its connectors) or even the dummy load.
 
  - When the SWR is higher than 2.5 (value set by default in the radio, but can be changed), the radio will cut the transmission and will enter "protected mode", in which the radio will not transmit again until the protection is reset (button available in radio config in the UI). So if the protection is activated at any point, it can be assumed that the SWR is higher than 2.5. Go to the top of the checklist and begin again by checking everything. SWR problems are almost always related to either the antenna, the coaxial cable between the antenna and the radio or the cable connectors.
-
 
 &nbsp;
 
@@ -108,8 +107,3 @@ UHF Connector: Common radio frequency connector.
 
 
 UI: Stands for User Interface. This is what appears on the screen of the radio with which the radio operator interacts to set parameters and operate the radio.
-
-
-
-
-
