@@ -35,8 +35,17 @@ Assure that the measurement equipment is working previously.
 
 ## Initial Equipment Checks
 
-Check the cable:
+# Check the cable:
  - Test the continuity of the cable (both center pin and outside conductor) and if the outside and center conductors are not short-circuited with a multimeter 
  - Analyze the overall cable situation 
-  - check for visibly broken parts of the cable
+   - - check for visibly broken parts of the cable
 
+# Check the radio:
+ - Check that the radio has all the necessary cables for connection 
+ - Check the voltage in the input of the radio (should be between 12 and 14V) 
+ - Test the continuity of the power cable
+ - Connect the power cable to the radio
+ - Check that the radio turns on correctly 
+ - Test the buttons and see if everything seems correct (volume, frequency) 
+ - Check if the radio is too hot, and if it is, there can be a problem in the radio. Turn off the radio and contact support.
+ - Check that it doesn't smell burnt, if yes, there is a problem in radio, turn it off immediately
