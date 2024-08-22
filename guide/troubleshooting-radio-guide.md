@@ -60,5 +60,56 @@ Assure that the measurement equipment is working previously.
     - - if lower than 2.0 (typically it should be 1.0 or 1.1 in the dummy load), the radio is working fine, and if there is a problem when transmitting with the antenna, the problem is likely to be in the coaxial cable, or in the antenna itself;
     - - if higher than 2.0, then most likely there is a problem with the cables (or its connectors) or even the dummy load.
 
+ - When the SWR is higher than 2.5 (value set by default in the radio, but can be changed), the radio will cut the transmission and will enter "protected mode", in which the radio will not transmit again until the protection is reset (button available in radio config in the UI). So if the protection is activated at any point, it can be assumed that the SWR is higher than 2.5. Go to the top of the checklist and begin again by checking everything. SWR problems are almost always related to either the antenna, the coaxial cable between the antenna and the radio or the cable connectors.
+
+
+&nbsp;
+
+## GLOSSARY
+
+BNC CONNECTOR: Common radio frequency connector.
+|![Font](./pictures/figure03.png)|
+|:---------------------------------------------------------------------------------------------:|
+|BNC male
+
+|![Font](./pictures/figure04.png)|
+|:---------------------------------------------------------------------------------------------:|
+|BNC female
+
+DUMMY LOAD: A dummy load or termination load, is a device used in electronics to simulate the electrical load that a piece of equipment would encounter under normal operating conditions. Dummy loads are typically resistors or other types of load elements designed to dissipate electrical energy in the form of heat. They are commonly used in testing and troubleshooting electronic circuits, amplifiers, transmitters, and other equipment to ensure proper operation and prevent damage to sensitive components, without the need to connect it to a real load, such as an antenna. 
+|![Font](./pictures/figure05.png)|
+|:---------------------------------------------------------------------------------------------:|
+ 
+
+WATT METER: Measures the power coming out of the radio and also the reflected power or SWR. Ensure use of a watt meter that is compatible with HF frequencies between 3 and 30MHz as well as up to 20 Watts of power output minimum.
+
+|![Font](./pictures/figure06.png)|
+|:---------------------------------------------------------------------------------------------:|
+ 
+
+MULTIMETER: Short for "multiple meter," it is an electronic instrument used to measure various electrical quantities such as voltage, current, and resistance. It is an essential tool for electricians, electronics technicians, and hobbyists working with electrical circuits and systems.
+
+|![Font](./pictures/figure07.png)|
+|:---------------------------------------------------------------------------------------------:|
+ 
+PTT: Stands for "Push-to-Talk." It is a communication method commonly used in two-way radio systems, walkie-talkies, and similar devices. With PTT, users activate their microphone by pressing a button or switch (usually located on the side of the device) while speaking and release it when they finish speaking.
+
+SWR: Stands for Standing Wave Ratio. It is a measure used in radio frequency (RF) engineering and telecommunications to assess the impedance matching between transmission lines (such as coaxial cables) and the load (such as antennas) connected to them. High SWR values can lead to decreased efficiency, increased power losses, and potential damage to the radio transmitter or other equipment. An SWR of 1:1 indicates perfect impedance matching, with no reflections. An SWR greater than 1:1 indicates that there are reflections occurring along the transmission line due to impedance mismatch. Above 1:1.5 radio equipment should be turned off and an analysis should be done of the cable and antenna.
+
+UHF Connector: Common radio frequency connector.
+
+|![Font](./pictures/figure08.png)|
+|:---------------------------------------------------------------------------------------------:|
+| Male or PL type UHF Connector
+
+|![Font](./pictures/figure09.png)|
+|:---------------------------------------------------------------------------------------------:|
+| female or SO type UHF Connector
+
+
+UI: Stands for User Interface. This is what appears on the screen of the radio with which the radio operator interacts to set parameters and operate the radio.
+
+
+
 
 
