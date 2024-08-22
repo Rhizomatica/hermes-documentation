@@ -49,3 +49,16 @@ Assure that the measurement equipment is working previously.
  - Test the buttons and see if everything seems correct (volume, frequency) 
  - Check if the radio is too hot, and if it is, there can be a problem in the radio. Turn off the radio and contact support.
  - Check that it doesn't smell burnt, if yes, there is a problem in radio, turn it off immediately
+# Check the antenna:
+ - Check the radio to antenna connections
+ - Check if the antenna is well installed and hanging properly in the poles
+ - Check for any broken parts and avoid any elements touching the antenna
+ If all the above checks are completed without identifying the problem, and when transmitting through an antenna, the SWR is still high, proceed to the following steps:
+ 
+  - Connect the radio to the watt meter and dummy load
+  - Check the SWR:
+    - - if lower than 2.0 (typically it should be 1.0 or 1.1 in the dummy load), the radio is working fine, and if there is a problem when transmitting with the antenna, the problem is likely to be in the coaxial cable, or in the antenna itself;
+    - - if higher than 2.0, then most likely there is a problem with the cables (or its connectors) or even the dummy load.
+
+
+
