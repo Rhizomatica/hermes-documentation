@@ -12,3 +12,12 @@
 
 
 In order to transmit a test signal, go to “Radio configuration”:
+
+|![Font](./pictures/figure01.png)|
+|:---------------------------------------------------------------------------------------------:|
+
+
+Then click to turn ON the “PTT” button. Check the “Power” level, which should be between 15W and 30W. Check the SWR, which should be less than 2.0. Check the “Protection”, which should be “OFF”. After the readings, click to turn OFF the “PTT” button. 
+
+|![Font](./pictures/figure01.png)|
+|:---------------------------------------------------------------------------------------------:|
