@@ -205,18 +205,18 @@ postbreak=\mbox{{\smaller\color{gray}$\hookrightarrow$}}
 
 
 \author[Rafael Diniz]{\texorpdfstring{\textcolor{blue}{Rafael Diniz} \\
-{Rhizomatica} \\
-{HERMES - High-frequency Emergency and Rural Multimedia Exchange System}\\
+%{Rhizomatica} \\
+%{Digital Telecommunication in HF band - WWWAN - World-Wide Wireless Area Network}\\
 \url{rafael@rhizomatica.org}}{Rafael Diniz}}
-\title{Long-range Telecommunication in the HF band}
+\title{Building an Autonomous World-Wide HF Band Wireless Network}
 \subtitle{
 \texorpdfstring{ %(\textsc{UT--Dallas})\\%
 \hrulefill\ \adforn{57}\thickspace\wb{.}\thickspace\adforn{29}\ \hrulefill}
-%{First Presented at MOSC 2011; some modifications since}
+%{}
 }
 
 \titlegraphic{\includegraphics[width=.4\textwidth]{logo.png} \ \ \ \ \ \  \\}
-\date[7-Dec-2023]{SplinterCon, December, 2023}
+\date[2024]{}
 \hypersetup{%
 pdfauthor={Rafael Diniz}, %% the "author" field from above includes garbage code...
 %pdfkeywords={latex,features,publicity,preview}
@@ -308,7 +308,7 @@ pdfauthor={Rafael Diniz}, %% the "author" field from above includes garbage code
 
   \begin{itemize}
   \item Frequencies: between 3 MHz and 10 MHz typical for regional coverage
-  \item Antennas: dipole or folded dipole typical, in horizontal or inverted V layout
+  \item Antennas (Example): dipole or folded dipole typical, in horizontal or inverted V layout
   \end{itemize}
 
 
@@ -318,7 +318,6 @@ pdfauthor={Rafael Diniz}, %% the "author" field from above includes garbage code
   \end{center}
 
 \end{frame}
-
 
 \begin{frame}{HERMES History}
 
@@ -393,7 +392,22 @@ pdfauthor={Rafael Diniz}, %% the "author" field from above includes garbage code
 
 \end{frame}
 
+\begin{frame}{HF Telecommunication}
 
+\begin{block}{HF Network Stack}
+    \begin{itemize}
+    \item Channelization: ``old'' analog-world framework (3 kHz bw), plus support to wider channels, channel aggregation and smart channel allocation
+    \item Wideband HF transceicer
+    \item Layer 1 (modem): all waveform, modes and bandwidths.
+    \item Layer 2 (datalink): framing, Automatic Repeat reQuest (ARQ), Media Access Control (MAC)
+    \item UUCP, IP, other network / transport layer
+    \item Store-and-forward services (eg. email, sensors data)
+    \item Voice (mobile telephony) and messaging services
+    \item A tutorial on frequency adaptive communication systems in the HF bands, ITU-R, 2022 https://www.itu.int/pub/R-HDB-64-2022
+    \end{itemize}
+  \end{block}
+
+\end{frame}
 
 \begin{frame}{Real-world network example}
 
@@ -414,7 +428,7 @@ pdfauthor={Rafael Diniz}, %% the "author" field from above includes garbage code
     \item Station equipment (sBitx) contains a HF transceiver and a Raspberry Pi 4
     \item UUCP based telecommunication over HF
     \item Users access HERMES services over WiFi (AP exposed by the equipment)
-    \item BBS like direct ``station-to-station'' messages (audio and image too!)
+    \item BBS-like direct ``station-to-station'' messages (audio and image supported!)
 %    \item Email is the main service, but any kind of digital data can be exchanged, as remote command execution, sensors data, etc.
     \item Email is the main service. Emails are highly compressed before going over the air
     \item Emails are synchronized to a ``gateway'' node over HF, which routes emails among HF nodes or the Internet
@@ -596,10 +610,7 @@ command /usr/bin/uuport -c \textbackslash Z
 \end{frame}
 
 
-
-
-\begin{frame}{(software-defined) Modem}
-
+\begin{frame}{SDR Modem}
 \begin{block}{Currently using VARA HF}
     \begin{itemize}
     \item 2300 Hz BW, ARQ, Adaptive Modulation
@@ -611,22 +622,23 @@ command /usr/bin/uuport -c \textbackslash Z
 \begin{center}
   \vspace{-0.15cm}\includegraphics[width=.42\columnwidth]{vara.png}
 \end{center}
-
 \end{frame}
 
 
-\begin{frame}{In Development - Mercury}
 
-\begin{block}{https://github.com/Rhizomatica/mercury}
+\begin{frame}{SDR Modem}
+
+\begin{block}{Mercury https://github.com/Rhizomatica/mercury}
     \begin{itemize}
-    \item Open source configurable software-defined modem (layers 0 and 1)
+    \item Open source configurable software-defined modem (layers 1 and 2)
     \item Modulation BPSK, QPSK, 8QAM, 16QAM, 32QAM and 64QAM
     \item LDPC code rate 2/16, 8/16 and 14/16
+    \item ARQ and adaptive modulation to address different propagation conditions
     \end{itemize}
-  \end{block}
-
+\end{block}
+\vspace{-0.25cm}
   \begin{center}
-    \includegraphics[width=.55\columnwidth]{image_modems.png}
+    \includegraphics[width=.54\columnwidth]{image_modems.png}
   \end{center}
 
 \end{frame}
@@ -657,41 +669,54 @@ command /usr/bin/uuport -c \textbackslash Z
 \end{frame}
 
 
-\begin{frame}{Current work}
+\begin{frame}{Other characteristics}
 
   \begin{itemize}
-  \item Substitute VARA by Mercury - HERMES will be 100\% Free Software!
   \item Robust (and stealth!) operation with 0db or less of SNR for signal reception
   \item Integration to SMS and other messaging services (https://github.com/Rhizomatica/hermes-messaging/)
   \item Sensors data acquisition and transmission - binary data using paq8px compression (https://github.com/Rhizomatica/hermes-sensors/)
-  \item Supporting large scale deployment in Central Africa
+  \item Support for large scale and affordable deployments
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Possible future works}
+\begin{frame}{Steps for the realization of the WWWAN}
 
   \begin{itemize}
+  \item Antenna miniaturization (nano tubes, micro strips?)
   \item Develop more advanced ML-based audio and image codecs
-  \item NNCP instead of UUCP for improved security
-  \item Multiple users capability (beyond P2P) MAC
+  \item NNCP instead of UUCP for improved security?
+  \item Reticulum?
+  \item Multiple users capability MAC
   \item Adaptive bandwidth and channels selection
-  \item Support real-time messaging
-  \item Digital Telephony
+  \item Support for real-time messaging
+  \item Digital Mobile Telephony for HF
   \item DRM reception
   \item DRM broadcast
   \end{itemize}
 
 \end{frame}
 
-\begin{frame}{HF Mobile Telephony}
+\begin{frame}{Let's Build a Global Autonomous World-Wide Area Network?}
 
 \begin{center}
   \includegraphics[width=.2\columnwidth]{mobile.png}
   \includegraphics[width=.79\columnwidth]{mobile2.png}
+
 \end{center}
 
 
 \end{frame}
+
+
+% \begin{frame}{Let's Build a Global Autonomous World-Wide Area Network?}
+
+%\begin{center}
+%  \includegraphics[width=.85\columnwidth]{picosmo.png}
+%  \includegraphics[width=.79\columnwidth]{mobile2.png}
+%\end{center}
+
+
+%\end{frame}
 
 
 % Thank you
