@@ -1,0 +1,596 @@
+<!DOCTYPE HTML>
+
+<!--Converted with LaTeX2HTML 2025 (Released January 1, 2025) -->
+<HTML lang="en">
+<HEAD>
+<TITLE>Web Interface</TITLE>
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<META NAME="viewport" CONTENT="width=device-width, initial-scale=1.0">
+<META NAME="Generator" CONTENT="LaTeX2HTML v2025">
+
+<LINK REL="STYLESHEET" HREF="manual_en_complete.css">
+
+<LINK REL="next" HREF="node5.html">
+<LINK REL="previous" HREF="node3.html">
+<LINK REL="next" HREF="node5.html">
+</HEAD>
+
+<BODY >
+
+<DIV CLASS="navigation"><!--Navigation Panel-->
+<A
+ HREF="node5.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node2.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node3.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html324"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node5.html">E-mail</A>
+<B> Up:</B> <A
+ HREF="node2.html">User manual</A>
+<B> Previous:</B> <A
+ HREF="node3.html">Introduction</A>
+ &nbsp; <B>  <A ID="tex2html325"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR></DIV>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A ID="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL CLASS="ChildLinks">
+<LI><A ID="tex2html326"
+  HREF="node4.html#SECTION00221000000000000000">Administrative Interface</A>
+<UL>
+<LI><A ID="tex2html327"
+  HREF="node4.html#SECTION00221100000000000000">User management</A>
+<LI><A ID="tex2html328"
+  HREF="node4.html#SECTION00221200000000000000">Messages administration</A>
+</UL>
+<BR>
+<LI><A ID="tex2html329"
+  HREF="node4.html#SECTION00222000000000000000">Transmission List</A>
+<UL>
+<LI><A ID="tex2html330"
+  HREF="node4.html#SECTION00222100000000000000">Radio configuration</A>
+<LI><A ID="tex2html331"
+  HREF="node4.html#SECTION00222200000000000000">Central Station</A>
+<LI><A ID="tex2html332"
+  HREF="node4.html#SECTION00222300000000000000">Network info</A>
+<LI><A ID="tex2html333"
+  HREF="node4.html#SECTION00222400000000000000">Stations</A>
+<LI><A ID="tex2html334"
+  HREF="node4.html#SECTION00222500000000000000">Detailed Log</A>
+</UL>
+<BR>
+<LI><A ID="tex2html335"
+  HREF="node4.html#SECTION00223000000000000000">Public Messages  (BBS)</A>
+<UL>
+<LI><A ID="tex2html336"
+  HREF="node4.html#SECTION00223100000000000000">How to write public messages</A>
+</UL>
+<BR>
+<LI><A ID="tex2html337"
+  HREF="node4.html#SECTION00224000000000000000">Languages supported</A>
+</UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H1><A ID="SECTION00220000000000000000">
+Web Interface</A>
+</H1><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">HERMES provides a web interface which can be accessed through a local WiFi network. When accessing the HERMES WiFi network, the following information applies:
+</SPAN>
+<UL>
+<LI>Network Name (ESSID): HERMES
+</LI>
+<LI>Password: amazonia
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Be aware that on some mobile phones a browser will automatically open with the the main HERMES web page, while in others, to access the HERMES web interface, you must open the browser and access <kbd><A ID="tex2html5"
+  HREF="http://ac1.hermes.radio">http://ac1.hermes.radio</A></kbd> or <kbd><A ID="tex2html6"
+  HREF="http://10.0.0.1">http://10.0.0.1</A></kbd>. 
+<BR>
+<BR>
+O navegador chrome / chromium é o navegador padrão para utilização da interface HERMES, para garantir uma melhor experiência faça preferência pelos navegadores informados.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:messagesindex"></A><A ID="62"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.3:</STRONG>
+Hermes home</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./landing.png"
+ ALT="Image landing">
+    </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:messagesindex"></A><A ID="67"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.4:</STRONG>
+Hermes public messages and elements</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="621" HEIGHT="571" STYLE=""
+ SRC="./messagesindex_enUS.png"
+ ALT="Image messagesindex_enUS">
+    </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">On the public messages page <A HREF="#fig:messagesindex">1.4</A> you will find the following links:
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<OL>
+<LI>Station information and status;
+</LI>
+<LI>Main menu;
+</LI>
+<LI>Welcome message (page title);
+</LI>
+<LI>Link to sent messages and new message;
+</LI>
+<LI>Dark/light mode activator tab;
+</LI>
+<LI>Login and logout link and info;
+</LI>
+</OL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:darkmode"></A><A ID="75"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.5:</STRONG>
+Hermes Dark Mode</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="547" STYLE=""
+ SRC="./darkmode.png"
+ ALT="Image darkmode">
+    </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The web interface allows admin users to manage e-mail accounts, to perform radio configurations (like setting frequency and SSB mode) and exchange direct messages between stations (BBS). The interface also contains its own administrative section, for defining and managing users and their privileges. 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">It is important to note that same user name created for the administrative interface will be used for the e-mail address assigned to that user.  For example, user "amelia" in the local interface will have the email "amelia@ac2.hermes.radio". Note that the email address is composed of the user name @ the name of the station, which corresponds to its internet domain name, in this example, "ac2.hermes.radio". Each station domain name is written in the header on the Hermes web interface. If the domain begins with "ga" then it is a Gateway station.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00221000000000000000"></A>
+<A ID="admininterface"></A>
+<BR>
+Administrative Interface
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:admin"></A><A ID="82"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.6:</STRONG>
+Admin interface</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./admin.png"
+ ALT="Image admin">
+    </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">To access admin features, you need an admin password. While anyone can create a user account, only a system admin can create new administrator user and give admin power to other users. To login, click on the login icon on the top right of the web interface. 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The default administrator login username is: "root" and the password is: "caduceu".
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Inside the administration section, an admin user will find the following options: user management, messages administration, network information, stations, detailed log and radio configuration.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00221100000000000000">
+User management</A>
+</H3><SPAN CLASS="LARGE"> 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Allows the creation of new users, updating data of registered users and to delete users of the system. Every username corresponds to an email account with the same name as in the example above (e.g. amelia@ac2.hermes.radio). 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:createuser"></A><A ID="88"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.7:</STRONG>
+Create user interface</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./createuser.png"
+ ALT="Image createuser">
+    </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Administrators can also give admin powers to regular users, by clicking on the "is admin" checkbox at the bottom of the Create User page.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00221200000000000000"></A>  
+<A ID="gui_msg_admin"></A>
+<BR>
+Messages administration
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">From this page, an admin can determine who will be able to send public messages between stations and who can attach files to this messages: everyone; only registered users or only administrators. It is worth thinking this through with the users as attachments can slow the system down considerably.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:messageadm"></A><A ID="95"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.8:</STRONG>
+Messages administration Interface</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./messageadm.png"
+ ALT="Image messageadm">
+    
+</DIV>
+<P>
+<DIV class="CENTER"></DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00222000000000000000"></A>
+<A ID="gui_trans_list"></A>
+<BR>
+Transmission List
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">All data exchange in the HERMES system is done through UUCP. Being an asynchronous protocol, all the data is first queued before being transmitted. The elements of the UUCP queue are called "jobs", and each job in the HERMES system can be an e-mail, a public message, or special remote command execution message (for example, to inform of a new e-mail user creation). A system administrator can cancel a job before it is sent. Administrators can also erase the public messages for any reason, including the case when the equipment storage space is reaching its limit. The storage space available is shown in the web interface footer.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The queues of all Host stations are transmitted periodically when the Gateway station connects to each remote station based on whatever schedule has been configured. In an emergency, a system administrator can force message transmission and bypass the queue by clicking on the "force" link. This could interrupt receiving messages from other stations for a while and should be avoided unless absolutely necessary.   
+    </SPAN>
+<DIV class="CENTER"><A ID="fig:transmission"></A><A ID="102"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.9:</STRONG>
+Transmission list interface</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./transmission.png"
+ ALT="Image transmission">
+    
+</DIV>
+<P>
+<DIV class="CENTER"></DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">    
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00222100000000000000"></A>
+<A ID="gui_radio_config"></A>
+<BR>
+Radio configuration
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Provides a direct interface to change various radio settings like frequency, transmission mode, restore factory configuration and it also allows one to view sensor readings about the HF antenna of the system. </SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:radioconf"></A><A ID="109"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.10:</STRONG>
+Radio configuration interface</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./radioconfig.png"
+ ALT="Image radioconfig"></DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">    
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:radioconf2"></A><A ID="115"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.11:</STRONG>
+Radio configuration interface</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./radioconfig2.png"
+ ALT="Image radioconfig2"></DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00222200000000000000"></A> 
+<A ID="gui_central_station"></A>
+<BR>
+Central Station
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The central station is a special station that keeps connected to the internet. If you are in the central station, this option will be shown in the menu. From there is possible to create schedules for transmission to other stations, that are the time slots when the transmission will happen between all the stations connected to the network. It's possible also to enable or disable schedules or change their times from this menu.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:central"></A><A ID="123"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.12:</STRONG>
+Transmission schedule</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./central.png"
+ ALT="Image central"></DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE"> 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:central2"></A><A ID="129"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.13:</STRONG>
+Transmission schedule</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./central2.png"
+ ALT="Image central2"></DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE"> 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00222300000000000000"></A> 
+<A ID="gui_net_info"></A>
+<BR>
+Network info
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Displays some information about the system, such as network addresses, callsign, servername etc
+     </SPAN>
+<DIV class="CENTER"><A ID="fig:netinfo"></A><A ID="138"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.14:</STRONG>
+Network information page</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./networkinfo.png"
+ ALT="Image networkinfo">
+    
+</DIV>
+<P>
+<DIV class="CENTER"></DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00222400000000000000"></A> 
+<A ID="gui_stations"></A>
+<BR>
+Stations
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Provides a list of the available stations on the system. 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:stations"></A><A ID="145"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.15:</STRONG>
+Stations interface</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./stations.png"
+ ALT="Image stations"></DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE"> 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00222500000000000000">
+Detailed Log</A>
+</H3><SPAN CLASS="LARGE">
+Provides access to system logs, such as email logs and UUCP logs, that register every activity on the system.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:logs"></A><A ID="152"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.16:</STRONG>
+Logs page on the web interface</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./logs.png"
+ ALT="Image logs">
+    </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00223000000000000000">
+Public Messages  (BBS)</A>
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Direct messages can be sent between stations with support for cryptography and multimedia compression. Sent and received messages can be found in the Messages tab of the web interface. One Admin of the system can select who will be able to send public messages to other or tho it's own station.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00223100000000000000">
+How to write public messages</A>
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:compose"></A><A ID="159"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.17:</STRONG>
+Interface to compose messages</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./publicas.png"
+ ALT="Image publicas">
+    </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:compose"></A><A ID="164"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.18:</STRONG>
+Interface to compose messages</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./publicas2.png"
+ ALT="Image publicas2">
+    </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">By clicking on the compose (<IMG
+  WIDTH="643" HEIGHT="517" STYLE=""
+ SRC="./edit.png"
+ ALT="Image edit">)icon, it's possible to write a new message and to attach files such as images or audio files. The icon will only show up if it's allowed for the user to compose messages on the station. An admin can determine who can send public messages between stations and who can attach files to public messages by setting permissions in the admin tab. 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Public messages can also be sent to your own station, which is an easy way to publicize news inside your own community.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Public messages can also be password protected, which means that only recipients that know the password will be able to read their content, while the message description will still be readable by everyone. Have in mind that once a password for the message (has to be at least 4 characters) is defined, there is no way to recover it, nor to change it.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">On the message administration link in the admin section, a system administrator can change who can attach files to messages between stations: everyone with access to the network, only registered users, or only administrators. 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Because the data throughput over HF is relatively low, file attachments are limited to 20KB. The system will accept inputs for image and sound up to 30 MB and for other files up to 2 MB, and will try to compress them to fit the maximum size of 20KB using state-of-the-art compression techniques. Obviously, this can have an effect on both image and sound file quality. For other file formats, a simple compressor will be applied, and messages with attachment size greater than 20 KB will be cancelled.</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00224000000000000000"></A>
+<A ID="langs"></A>
+<BR>
+Languages supported
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The HERMES interface is also available in Portuguese and Spanish, and these versions can be accessed on the Language tab of the main menu.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:languages"></A><A ID="172"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.19:</STRONG>
+Page to access translations</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./languages.png"
+ ALT="Image languages"></DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:languages2"></A><A ID="178"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 1.20:</STRONG>
+Page to access translations</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="544" STYLE=""
+ SRC="./languages2.png"
+ ALT="Image languages2"></DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV CLASS="navigation"><HR>
+<!--Navigation Panel-->
+<A
+ HREF="node5.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node2.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node3.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html324"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node5.html">E-mail</A>
+<B> Up:</B> <A
+ HREF="node2.html">User manual</A>
+<B> Previous:</B> <A
+ HREF="node3.html">Introduction</A>
+ &nbsp; <B>  <A ID="tex2html325"
+  HREF="node1.html">Contents</A></B> </DIV>
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

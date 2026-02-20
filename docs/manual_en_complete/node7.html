@@ -1,0 +1,237 @@
+<!DOCTYPE HTML>
+
+<!--Converted with LaTeX2HTML 2025 (Released January 1, 2025) -->
+<HTML lang="en">
+<HEAD>
+<TITLE>Appendix - technical information</TITLE>
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<META NAME="viewport" CONTENT="width=device-width, initial-scale=1.0">
+<META NAME="Generator" CONTENT="LaTeX2HTML v2025">
+
+<LINK REL="STYLESHEET" HREF="manual_en_complete.css">
+
+<LINK REL="next" HREF="node8.html">
+<LINK REL="previous" HREF="node6.html">
+<LINK REL="next" HREF="node8.html">
+</HEAD>
+
+<BODY >
+
+<DIV CLASS="navigation"><!--Navigation Panel-->
+<A
+ HREF="node8.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node2.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node6.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html347"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node8.html">Additional information</A>
+<B> Up:</B> <A
+ HREF="node2.html">User manual</A>
+<B> Previous:</B> <A
+ HREF="node6.html">Troubleshooting</A>
+ &nbsp; <B>  <A ID="tex2html348"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR></DIV>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A ID="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL CLASS="ChildLinks">
+<LI><A ID="tex2html349"
+  HREF="node7.html#SECTION00251000000000000000">Network Information</A>
+<LI><A ID="tex2html350"
+  HREF="node7.html#SECTION00252000000000000000">Network Services</A>
+<UL>
+<LI><A ID="tex2html351"
+  HREF="node7.html#SECTION00252100000000000000">E-mail services</A>
+<LI><A ID="tex2html352"
+  HREF="node7.html#SECTION00252200000000000000">Web services</A>
+</UL>
+<BR>
+<LI><A ID="tex2html353"
+  HREF="node7.html#SECTION00253000000000000000">Other network Services </A>
+</UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H1><A ID="SECTION00250000000000000000">
+Appendix - technical information</A>
+</H1><SPAN CLASS="LARGE">
+<SPAN  CLASS="textit">Maintainers note:</SPAN> this user manual focuses on station operation and the web interface.
+For a detailed HERMES system architecture and software stack description (e.g. <SPAN  CLASS="texttt">uucpd</SPAN>/<SPAN  CLASS="texttt">uuport</SPAN>, <SPAN  CLASS="texttt">sbitx_controller</SPAN>,
+modem/TNC integration, and systemd service orchestration), see the document <SPAN  CLASS="textbf">&ldquo;HERMES Software Description&rdquo;</SPAN> (<SPAN  CLASS="texttt">software_en.pdf</SPAN>)
+in the HERMES documentation repository.
+</SPAN>
+<H2><A ID="SECTION00251000000000000000"></A>
+<A ID="apx_net_info"></A>
+<BR>
+Network Information
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Each HERMES system provides a WiFi access point. The configuration is:
+</SPAN>
+<UL>
+<LI>WiFi Network Name: <SPAN  CLASS="texttt">HERMES</SPAN>
+</LI>
+<LI>WiFi Password: <SPAN  CLASS="texttt">amazonia</SPAN>
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The IP of the HERMES station (in the wireless interface) is <SPAN  CLASS="textbf">10.0.0.1</SPAN> and the ethernet connection will connect as a dhcp client to an already existing network. 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00252000000000000000"></A> 
+<A ID="apx_net_services"></A>
+<BR>
+Network Services
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00252100000000000000"></A>
+<A ID="apx_net_email"></A>
+<BR>
+E-mail services
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The e-mail settings are the following:
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<UL>
+<LI>Server address: <kbd><A ID="tex2html32"
+  HREF="hermes">hermes</A></kbd> (IP <kbd><A ID="tex2html33"
+  HREF="10.0.0.1">10.0.0.1</A></kbd>)
+</LI>
+<LI>SMTP (Simple Mail Transfer Protocol): port <SPAN  CLASS="texttt">25</SPAN>
+</LI>
+<LI>SMTPS (Secure Simple Mail Transfer Protocol): port <SPAN  CLASS="texttt">465</SPAN>, with SSL support 
+    (used for DeltaChat, the certificates are valid until 2031)
+</LI>
+<LI>IMAP (Internet Message Access Protocol): port <SPAN  CLASS="texttt">143</SPAN>
+</LI>
+<LI>Webmail URL acessible: <kbd><A ID="tex2html34"
+  HREF="http://hermen/mail">http://hermen/mail</A></kbd> or <kbd><A ID="tex2html35"
+  HREF="http://10.0.0.1/mail">http://10.0.0.1/mail</A></kbd>
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">These settings should not be needed by most users as DeltaChat automatically identifies all the settings by entering just the e-mail address and password at the login prompt.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00252200000000000000"></A>
+<A ID="apx_net_web"></A>
+<BR>
+Web services
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The HERMES web interface runs on port 80 on http, and provides these capabilities:
+</SPAN>
+<UL>
+<LI>BBS P2P public messaging capability (over UUCP);
+</LI>
+<LI>E-mail user administration;
+</LI>
+<LI>UUCP queue management;
+</LI>
+<LI>HF radio transceiver management tools;
+</LI>
+<LI>Customized permissions for users send multimedia messages;
+</LI>
+<LI>Page for radio service tasks (like test tone generation and PTT control);
+</LI>
+<LI>A network information page (for cases in which the HERMES system connects to a larger IP network);
+</LI>
+<LI>DeltaChat client downloads for Android, MacOS, Windows and Linux.
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00253000000000000000"></A>
+<A ID="apx_other_net"></A>
+<BR>
+Other network Services 
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<UL>
+<LI>SSH Secure Shell - for special system administration: port 22
+<BR>
+user: "hermes", password: hermes
+<BR>
+user: "root" password: "caduceu"
+</LI>
+<LI>VPN -  Virtual Private Network client ready for remote access
+    </LI>
+<LI>ISPCONFIG admin web interface
+<BR>
+port 8080 / credentials: "admin" "caduceu"
+</LI>
+<LI>mariaDB, the Database server for storing messages and users on station-api and ISPconfig
+</LI>
+<LI>E-mail services with transports connected to UUCP
+<BR>
+Postfix, dovecot, spamassin, postgrey, amavis, clamav (hold) and ISPconfig as a manager 
+</LI>
+<LI>iwatch: handles inbox HMP folder and triggers UUCP spool compression
+</LI>
+<LI>hostapd: sets the wireless interface into Access Point mode
+</LI>
+<LI>dnsmasq: provides a domain name server and aliases 
+</LI>
+<LI>uucp: accessible via network with credentials user/pass
+</LI>
+<LI>VNC: Virtual X session environment with VARA monitor
+        port: <SPAN  CLASS="texttt">5901</SPAN> (Eg. in the local wifi network: vncviewer 10.0.0.1:5901) 
+        user: "hermes", password: "hermes"
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV CLASS="navigation"><HR>
+<!--Navigation Panel-->
+<A
+ HREF="node8.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node2.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node6.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html347"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node8.html">Additional information</A>
+<B> Up:</B> <A
+ HREF="node2.html">User manual</A>
+<B> Previous:</B> <A
+ HREF="node6.html">Troubleshooting</A>
+ &nbsp; <B>  <A ID="tex2html348"
+  HREF="node1.html">Contents</A></B> </DIV>
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

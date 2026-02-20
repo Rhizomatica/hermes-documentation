@@ -1,0 +1,60 @@
+\documentclass[11pt,a4paper]{report}
+
+% Combined manual: keep it standard LaTeX (latex2html-friendly) and compose via \input.
+\def\HERMESCOMBINED{}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{color}
+\usepackage{indentfirst}
+\usepackage{textcomp}
+\usepackage[colorlinks=true]{hyperref}
+\usepackage{amssymb,amsmath}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage[skip=2pt]{caption}
+
+\title{HERMES HF Telecommunications Manual (Combined)}
+
+\author{
+       \large
+        \mbox{Rhizomatica}
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{figure*}[!ht]
+\centering
+\includegraphics[width=0.9\textwidth]{pictures/logoh.png}
+\end{figure*}
+
+\begin{abstract}
+This document is intended to be the primary documentation of the HERMES project. It aggregates the main HERMES manuals into a single,
+standard LaTeX source, so it remains easy to compile as PDF (pdflatex) and to convert to HTML with tools such as \texttt{latex2html}.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\chapter{User manual}
+\input{manual_en_body.tex}
+
+\chapter{sBitx installation guide}
+\input{manual_en_sbitx_body.tex}
+
+\chapter{Software description (architecture and stack)}
+\input{software_en_body.tex}
+
+\chapter{Hardware description}
+\input{hardware_en_body.tex}
+
+\chapter{sBitx notes}
+\input{sbitx_body.tex}
+
+\end{document}

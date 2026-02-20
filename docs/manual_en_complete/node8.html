@@ -1,0 +1,172 @@
+<!DOCTYPE HTML>
+
+<!--Converted with LaTeX2HTML 2025 (Released January 1, 2025) -->
+<HTML lang="en">
+<HEAD>
+<TITLE>Additional information</TITLE>
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<META NAME="viewport" CONTENT="width=device-width, initial-scale=1.0">
+<META NAME="Generator" CONTENT="LaTeX2HTML v2025">
+
+<LINK REL="STYLESHEET" HREF="manual_en_complete.css">
+
+<LINK REL="next" HREF="node9.html">
+<LINK REL="previous" HREF="node7.html">
+<LINK REL="next" HREF="node9.html">
+</HEAD>
+
+<BODY >
+
+<DIV CLASS="navigation"><!--Navigation Panel-->
+<A
+ HREF="node9.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node2.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node7.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html354"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node9.html">Licensing</A>
+<B> Up:</B> <A
+ HREF="node2.html">User manual</A>
+<B> Previous:</B> <A
+ HREF="node7.html">Appendix - technical information</A>
+ &nbsp; <B>  <A ID="tex2html355"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR></DIV>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A ID="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL CLASS="ChildLinks">
+<LI><A ID="tex2html356"
+  HREF="node8.html#SECTION00261000000000000000">Password Cheat Sheet</A>
+<LI><A ID="tex2html357"
+  HREF="node8.html#SECTION00262000000000000000">Field trials</A>
+<LI><A ID="tex2html358"
+  HREF="node8.html#SECTION00263000000000000000">Source Code</A>
+</UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H1><A ID="SECTION00260000000000000000"></A>
+<A ID="apx_adit_info"></A>
+<BR>
+Additional information
+</H1><SPAN CLASS="LARGE">
+    The main system runs Debian GNU/Linux release Bullseye and we try to follow their guidelines.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00261000000000000000"></A>
+<A ID="passwords"></A>
+<BR>
+Password Cheat Sheet
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<BR><P></P>
+<DIV class="CENTER">
+
+<P>
+<DIV class="CENTER"><TABLE class="PAD  BORDER" style="">
+<TR><TD CLASS="LEFT">Description</TD>
+<TD CLASS="LEFT">User</TD>
+<TD CLASS="LEFT">Password</TD>
+</TR>
+<TR><TD CLASS="LEFT">Web Interface</TD>
+<TD CLASS="LEFT">root</TD>
+<TD CLASS="LEFT">caduceu</TD>
+</TR>
+<TR><TD CLASS="LEFT">WiFi Network</TD>
+<TD CLASS="LEFT">hermes</TD>
+<TD CLASS="LEFT">amazonia</TD>
+</TR>
+</TABLE></DIV>
+</DIV>
+<BR><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00262000000000000000"></A>
+<A ID="apx_field_trials"></A>
+<BR>
+Field trials
+</H2><SPAN CLASS="LARGE">
+    HERMES system prototypes were tested on a test bed with stations installed in three cities: Brasília/DF, Belo Horizonte/MG and Hortolândia/SP. Most of the tests happened between Brasília and Belo Horizonte, and Belo Horizonte and Hortolândia. The straight line distance between Brasília and Belo Horizonte is 620 km, while Belo Horizonte and Hortolândia straight line distance is 470 km. All the stations are equipped with simple dipole installed as inverted V, tuned to the 40m amateur radio band.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">In our internal tests, between Belo Horizonte and Hortolândia, the modem reached more than 1000 bps in an average propagation condition (0db of SNR in the receiver). A 10Kb message, which is the typical size of an email with a picture takes about 4 minutes to be exchanged. In poor propagation conditions, this time can go up to 10 minutes. 
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The adaptive modem starts the communication with slower speeds, but if propagation is good, it gears up and automatically and increases the speed, and on the other hand, if propagation deteriorates, the modem reduces the speed, increasing the signal robustness.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00263000000000000000"></A>
+<A ID="apx_src"></A>
+<BR>
+Source Code
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Source code is available inside the folders /home/hermen/install with the latest git versions before the deployment and is also available online at:
+</SPAN>
+<UL>
+<LI>Web Front-end Interface, written using the Angular framework: <kbd><A ID="tex2html36"
+  HREF="https://github.com/Rhizomatica/hermes-gui">https://github.com/Rhizomatica/hermes-gui</A></kbd>;
+</LI>
+<LI>Web Back-end Interface, written in PHP: <kbd><A ID="tex2html37"
+  HREF="https://github.com/Rhizomatica/hermes-api">https://github.com/Rhizomatica/hermes-api</A></kbd>; 
+</LI>
+<LI>HF transceiver description and schematics: <kbd><A ID="tex2html38"
+  HREF="https://github.com/DigitalHERMen/rhizo-transceiver">https://github.com/DigitalHERMen/rhizo-transceiver</A></kbd>;
+</LI>
+<LI>HF transceiver firmware and userland tools, written in C:
+    <kbd><A ID="tex2html39"
+  HREF="https://github.com/Rhizomatica/hermes-net">https://github.com/Rhizomatica/hermes-net</A></kbd>;
+</LI>
+<LI>UUCP-to-modem bridge (<SPAN  CLASS="texttt">uucpd</SPAN> + <SPAN  CLASS="texttt">uuport</SPAN>) for VARA-style TNC integration, written in C:
+    <kbd><A ID="tex2html40"
+  HREF="https://github.com/Rhizomatica/hermes-net/tree/main/uucpd">https://github.com/Rhizomatica/hermes-net/tree/main/uucpd</A></kbd>
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV CLASS="navigation"><HR>
+<!--Navigation Panel-->
+<A
+ HREF="node9.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node2.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node7.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html354"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node9.html">Licensing</A>
+<B> Up:</B> <A
+ HREF="node2.html">User manual</A>
+<B> Previous:</B> <A
+ HREF="node7.html">Appendix - technical information</A>
+ &nbsp; <B>  <A ID="tex2html355"
+  HREF="node1.html">Contents</A></B> </DIV>
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

@@ -1,0 +1,893 @@
+<!DOCTYPE HTML>
+
+<!--Converted with LaTeX2HTML 2025 (Released January 1, 2025) -->
+<HTML lang="en">
+<HEAD>
+<TITLE>HERMES Software Stack</TITLE>
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<META NAME="viewport" CONTENT="width=device-width, initial-scale=1.0">
+<META NAME="Generator" CONTENT="LaTeX2HTML v2025">
+
+<LINK REL="STYLESHEET" HREF="manual_en_complete.css">
+
+<LINK REL="previous" HREF="node24.html">
+<LINK REL="next" HREF="node26.html">
+</HEAD>
+
+<BODY >
+
+<DIV CLASS="navigation"><!--Navigation Panel-->
+<A
+ HREF="node26.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node21.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node24.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html438"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node26.html">Hardware description</A>
+<B> Up:</B> <A
+ HREF="node21.html">Software description (architecture and</A>
+<B> Previous:</B> <A
+ HREF="node24.html">HERMES System Architecture</A>
+ &nbsp; <B>  <A ID="tex2html439"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR></DIV>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A ID="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL CLASS="ChildLinks">
+<LI><A ID="tex2html440"
+  HREF="node25.html#SECTION00441000000000000000">ALSA (Audio configuration)</A>
+<LI><A ID="tex2html441"
+  HREF="node25.html#SECTION00442000000000000000">Radio control: trx_v2-userland (sbitx_controller)</A>
+<LI><A ID="tex2html442"
+  HREF="node25.html#SECTION00443000000000000000">Modem configuration</A>
+<UL>
+<LI><A ID="tex2html443"
+  HREF="node25.html#SECTION00443100000000000000">VARA</A>
+<LI><A ID="tex2html444"
+  HREF="node25.html#SECTION00443200000000000000">Open modem: hermes-modem (&ldquo;mercury&rdquo; binary)</A>
+<LI><A ID="tex2html445"
+  HREF="node25.html#SECTION00443300000000000000">ARDOP</A>
+<LI><A ID="tex2html446"
+  HREF="node25.html#SECTION00443400000000000000">Mercury (R&amp;D note)</A>
+</UL>
+<BR>
+<LI><A ID="tex2html447"
+  HREF="node25.html#SECTION00444000000000000000">UUCP (Network configuration)</A>
+<LI><A ID="tex2html448"
+  HREF="node25.html#SECTION00445000000000000000">UUCPD: uucpd + uuport (UUCP to modem bridge)</A>
+<LI><A ID="tex2html449"
+  HREF="node25.html#SECTION00446000000000000000">User Web Interface</A>
+<UL>
+<LI><A ID="tex2html450"
+  HREF="node25.html#SECTION00446100000000000000">Hermes-GUI</A>
+<LI><A ID="tex2html451"
+  HREF="node25.html#SECTION00446200000000000000">Hermes-API</A>
+</UL></UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H1><A ID="SECTION00440000000000000000">
+HERMES Software Stack</A>
+</H1><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">This section describes the main software components that implement the architecture described in
+Section&nbsp;<A HREF="node24.html#sec:hermes-architecture-reference">3.3.2</A>.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">HERMES deployments commonly use <SPAN  CLASS="textbf">VARA HF</SPAN> as modem/TNC, but the system architecture is intentionally based on a
+VARA-style TCP TNC interface, allowing <SPAN  CLASS="textbf">open modem</SPAN> implementations (such as <code>hermes-modem</code>) to be used as a drop-in
+replacement. ARDOP is supported mostly for legacy compatibility.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">For the network layer, UUCP is used. UUCP is a system for asynchronous
+store-and-forward communication first released in Bell Labs Unix V7 in
+the late 1970s, and still used today in niches, like communication over HF.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The <code>uucpd</code> project (historically also referred to as <code>uuardopd</code> / <code>rhizo-uuardop</code> in older documents and code comments)
+was developed to integrate UUCP with HF modems/TNCs.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">At a high level, the HERMES station stack is made of:
+</SPAN>
+<UL>
+<LI>Radio control (<code>sbitx_controller</code> and <code>sbitx_client</code>)
+</LI>
+<LI>Audio subsystem configuration (ALSA and related device plumbing)
+</LI>
+<LI>Modem/TNC (VARA HF or open modem with VARA-style TCP interface)
+</LI>
+<LI>UUCP (spool and <code>uucico</code> sessions)
+</LI>
+<LI><code>uucpd</code> bridge (<code>uucpd</code> daemon + <code>uuport</code> helper)
+</LI>
+<LI>Upper services (web UI/API + email infrastructure)
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00441000000000000000">
+ALSA (Audio configuration)</A>
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">HERMES relies on a modem/TNC that exchanges baseband audio with the HF transceiver. On Linux, ALSA configuration is commonly used
+to provide stable capture/playback device mapping for the modem process (including Wine-based VARA deployments).
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The reference configuration shipped in <code>hermes-net</code> is installed as <code>/etc/asound.conf</code> from
+<code>hermes-net/system_services/alsa/asound-sbitx-hermes.conf</code>:
+</SPAN><PRE>
+pcm.asymwine {
+        type asym
+        capture.pcm "hw:1,1"
+        playback.pcm "hw:2,0"
+}
+
+pcm.!default {
+        type plug
+        slave.pcm "asymwine"
+}
+
+pcm.dsp {
+        type plug
+        slave.pcm "asymwine"
+}
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The actual <code>hw:X,Y</code> indices depend on your hardware. To identify them, use for example:
+</SPAN><PRE>
+alsamixer
+arecord -l
+aplay -l
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER">
+
+<P><A ID="fig3"></A></P>  <DIV class="CENTER"><IMG
+  WIDTH="398" HEIGHT="202" STYLE=""
+ SRC="./alsamixer.png"
+ ALT="Image alsamixer">
+</DIV>
+</DIV><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00442000000000000000"></A>
+<A ID="sec:trx-v2-userland"></A>
+<BR>
+Radio control: trx_v2-userland (sbitx_controller)
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">HERMES v2 uses Rhizomatica's sBitx-based radio control stack from <code>hermes-net/trx_v2-userland</code>. It builds two main executables:
+</SPAN>
+<UL>
+<LI><code>sbitx_controller</code>: a daemon that controls the radio (RF control + GPIO + I2C devices + audio DSP).
+</LI>
+<LI><code>sbitx_client</code>: a CLI tool used for monitoring and setting radio parameters (frequency, mode, power, etc.).
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Shared memory interface (control plane).</SPAN> The controller exposes a System V shared memory segment (key <code>66650</code>, type
+<code>controller_conn</code>, see <code>hermes-net/include/sbitx_io.h</code>). This interface is used by <code>sbitx_client</code> and also by <code>uucpd</code>
+when configured with <code>-o shm</code>, allowing the modem/TNC integration to key PTT (and report status such as bitrate/SNR/bytes) without
+direct serial/CAT access.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Configuration files.</SPAN> The default configuration files are expected at:
+</SPAN>
+<UL>
+<LI><code>/etc/sbitx/core.ini</code>
+</LI>
+<LI><code>/etc/sbitx/user.ini</code>
+</LI>
+</UL><SPAN CLASS="LARGE">
+They are installed by <code>hermes-net</code> (<code>make install</code>) from the <code>trx_v2-userland/config/</code> directory.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Service unit.</SPAN> The reference systemd unit file shipped in <code>hermes-net</code> is:
+</SPAN><PRE>
+hermes-net/system_services/init/sbitx.service
+  ExecStart=/usr/bin/sbitx_controller
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Health checks.</SPAN> Typical checks include:
+</SPAN><PRE>
+sbitx_client -c get_frequency -p 0
+sbitx_client -c get_mode -p 0
+journalctl -f -u sbitx
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00443000000000000000">
+Modem configuration</A>
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<H3><A ID="SECTION00443100000000000000">
+VARA</A>
+</H3><SPAN CLASS="LARGE">
+VARA is a High Performance HF modem based on OFDM modulation.
+VARA modem is the only piece of private software in the stack.
+<BR>
+Currently, HERMES uses VARA HF 4.3 or newer as it's standard modem.
+Use this protocol with your HERMES if you are looking for best performance available.
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">Please refer to the developer's website for download and instructions on installation and use: 
+<BR><kbd><A ID="tex2html87"
+  HREF="https://rosmodem.wordpress.com/">https://rosmodem.wordpress.com/</A></kbd>
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Configuration</SPAN>
+<BR>
+Edit /opt/VARA/VARA.ini.default to include your license key and callsign.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Headless X/VNC services (Wine VARA).</SPAN> In the reference Debian images, VARA HF is run under Wine and requires an X server. For
+headless stations, <code>hermes-installer</code> ships a minimal Xvfb + x11vnc setup:
+</SPAN><PRE>
+hermes-installer/conf/x11vnc/x11.service
+  ExecStart=xvfb-run --server-args="-screen 0 1024x768x24" ... -n 69 -l xstartup
+
+hermes-installer/conf/x11vnc/vnc.service
+  ExecStart=x11vnc -display WAIT:69 ...
+</PRE><SPAN CLASS="LARGE">
+The <code>xstartup</code> script (<code>hermes-installer/conf/xstartup</code>) launches <code>wine /opt/VARA/VARA.exe</code> (via <code>xterm</code>) and starts
+the window manager used by this session.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Integration contract (VARA-style TCP TNC).</SPAN> The rest of the HERMES HF stack does not interact with VARA through audio directly.
+Instead, <code>uucpd</code> connects to VARA's TCP interface (control socket on <code>base_port</code>, data socket on <code>base_port+1</code>; typically
+<code>8300</code>/<code>8301</code>). VARA signals radio keying by sending <code>PTT ON</code>/<code>PTT OFF</code> on the control socket; <code>uucpd</code> translates
+that into actual PTT via serial or shared-memory radio control (<code>-o shm</code> for sBitx).
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00443200000000000000">
+Open modem: hermes-modem (&ldquo;mercury&rdquo; binary)</A>
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Rhizomatica's open modem implementation is available at:
+<kbd><A ID="tex2html88"
+  HREF="https://github.com/Rhizomatica/hermes-modem/">https://github.com/Rhizomatica/hermes-modem/</A></kbd>
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">It provides a VARA-style TCP TNC interface (separate control and data sockets) so it can be used with the same <code>uucpd</code> integration
+path described above (<code>uucpd -r vara ...</code>). In addition to ARQ links, it also provides a dedicated TCP port for broadcast data mode
+(default <code>8100</code>).
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The <code>hermes-modem</code> README documents its CLI options. In summary:
+</SPAN>
+<UL>
+<LI><code>-p</code> sets the ARQ TCP base port (control <code>base</code>, data <code>base+1</code>; default <code>8300</code>).
+</LI>
+<LI><code>-b</code> sets the broadcast TCP port (default <code>8100</code>).
+</LI>
+<LI><code>-x</code> selects the audio backend (<code>alsa</code>, <code>pulse</code>, <code>shm</code>, etc.).
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Systemd unit (open modem).</SPAN> A reference unit file is shipped as <code>modem.service</code> (see
+<code>hermes-net/system_services/init/modem.service</code>). It starts the modem directly via <code>/usr/bin/mercury</code> (installed from
+<code>hermes-modem</code> using <code>make install</code>). On Linux, <code>mercury</code> defaults to ALSA and uses the ALSA device <code>default</code> for
+capture/playback unless <code>-i</code>/<code>-o</code> are provided. When used, the corresponding <code>uucpd-mercury.service</code> unit depends on
+<code>modem.service</code>.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00443300000000000000">
+ARDOP</A>
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">ARDOP is a SDR(software defined radio) modem compatible with both HF and VHF radio transmissions. In HERMES it is mostly a legacy/optional
+choice; the preferred integration target is the VARA-style TCP TNC interface described above.
+The protocol can operate over a wide range of data rates by automatically adjusting for optimized performance under poor multi-path conditions.
+Use this protocol with your HERMES if you are looking for a completely open-source and free option.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Download link: <kbd><A ID="tex2html89"
+  HREF="https://github.com/DigitalHERMES/ardopc">https://github.com/DigitalHERMES/ardopc</A></kbd>
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Configuration</SPAN>
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">The ardop binary should be in /usr/bin/ardop, which can be a
+symbolic link to /usr/bin/ardop1ofdm, ardop2, ardopofdm.
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">ARDOP service file for the ICOM IC-7100 (USB connection, PTT done over serial):
+</SPAN><PRE>
+[Unit]
+Description=ARDOP daemon
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ardop 8515 -c /dev/ttyUSB0 ARDOP ARDOP -k FEFE88E01C0001FD -u FEFE88E01C0000FD
+ExecStop=/usr/bin/killall -s QUIT ardop
+IgnoreSIGPIPE=no
+#StandardOutput=null
+#StandardError=null
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Service file when using a VOX based setup (eg. when using an interface like
+the Signalink):
+</SPAN><PRE>
+[Unit]
+Description=ARDOP daemon
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ardop 8515 ARDOP ARDOP
+ExecStop=/usr/bin/killall -s QUIT ardop
+IgnoreSIGPIPE=no
+#StandardOutput=null
+#StandardError=null
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Start/stop ARDOP service:</SPAN>
+</SPAN><PRE>
+systemctl start ardop.service
+systemctl stop ardop.service
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">See the log:</SPAN>
+</SPAN><PRE>
+journalctl -f -u ardop
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00443400000000000000">
+Mercury (R&amp;D note)</A>
+</H3><SPAN CLASS="LARGE">
+The name &ldquo;Mercury&rdquo; is used historically in HERMES for ongoing modem R&amp;D work. In practice, the current open modem implementation used in
+HERMES deployments is <code>hermes-modem</code> (previous subsection), which exposes the VARA-style TCP TNC interface expected by <code>uucpd</code>.
+The standalone Mercury R&amp;D repository (when applicable) is:
+<kbd><A ID="tex2html90"
+  HREF="https://github.com/Rhizomatica/mercury/">https://github.com/Rhizomatica/mercury/</A></kbd>
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00444000000000000000">
+UUCP (Network configuration)</A>
+</H2><SPAN CLASS="LARGE">
+UUCP is an acronym of Unix-to-Unix Copy.
+It's a protocol for remote execution of commands and transfer of files, email and netnews between computers.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Since HERMES uses Debian GNU/Linux release Bullseye, UUCP packages are installed by default.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">If you are not using Debian Bullseye, UUCP Debian package version 1.07-27 or higher should be used, for example,
+the version from Debian Bullseye (11):
+<kbd><A ID="tex2html91"
+  HREF="https://packages.debian.org/bullseye/uucp">https://packages.debian.org/bullseye/uucp</A></kbd>
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">UUCP command line examples follow. To copy a file to a remote host,
+the following command adds a copy job to the uucp queue (&ldquo;-r&rdquo; is used to
+not start transmission after queuing):
+</SPAN><PRE>
+uucp -C -r -d source.xxx AM4AAB\!/var/www/html/arquivos/${nodename}/
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Trigger the transmission of all queued jobs for host
+AM4AAA:
+</SPAN><PRE>
+uucico -S AM4AAA
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">List the jobs:
+</SPAN><PRE>
+uustat -a
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Kill a job:
+</SPAN><PRE>
+uustat -k job
+uustat -K
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">See the log:
+</SPAN><PRE>
+uulog
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00445000000000000000"></A>
+<A ID="sec:uucpd"></A>
+<BR>
+UUCPD: uucpd + uuport (UUCP to modem bridge)
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">UUCPD is a set of tools that allow UUCP to operate over HF links by integrating <code>uucico</code> with an HF modem/TNC. In the HERMES v2
+reference architecture (Section&nbsp;<A HREF="node24.html#sec:hermes-architecture-reference">3.3.2</A>) the modem/TNC is accessed through a VARA-style TCP interface
+(control socket on <code>base_port</code>, data socket on <code>base_port+1</code>).
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The <code>hermes-net/uucpd</code> package provides two executables:
+</SPAN>
+<UL>
+<LI><code>uucpd</code>: the always-on bridge daemon that keeps the modem/TNC in listen mode, initiates outgoing connects when data is available,
+  and starts <code>uucico</code> in slave mode when an inbound call is received.
+</LI>
+<LI><code>uuport</code>: the helper invoked by <code>uucico</code> when calling out (UUCP port <code>type pipe</code>). It attaches to <code>uucpd</code>'s shared
+  memory buffers and provides a byte-stream interface to <code>uucico</code>.
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Communication between <code>uuport</code> and <code>uucpd</code> uses System V shared memory (connector struct + ring buffers). When configured with
+<code>uucpd -o shm</code>, radio keying/status is also done through the <code>sbitx_controller</code> shared-memory interface (Section&nbsp;<A HREF="#sec:trx-v2-userland">3.4.2</A>).
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Download link: <kbd><A ID="tex2html92"
+  HREF="https://github.com/Rhizomatica/hermes-net/tree/main/uucpd">https://github.com/Rhizomatica/hermes-net/tree/main/uucpd</A></kbd> 
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Install</SPAN> 
+<BR>
+<BR>
+To compile and install, type:
+</SPAN><PRE>
+  $ make
+  $ make install
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Configuration</SPAN> 
+<BR>
+<BR>
+Port configuration example at "/etc/uucp/port":
+</SPAN><PRE>
+  port HFP
+  type pipe
+  command /usr/bin/uuport
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">An alternative Port configuration if you use a patched uucp ( for "\Z" support, available in "improved-pipe.patch" which was added to uucp debian package version 1.07-27 ), where uuport passes the callsign of the station to be called to <code>uucpd</code> with the uucp remote station name (allowing a single <code>uucpd</code> instance to be used for different remote station callsigns):
+</SPAN><PRE>
+  port HFP
+  type pipe
+  command /usr/bin/uuport -c \Z
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Sys protocol example (tested and works fine) at "/etc/uucp/sys":
+</SPAN><PRE>
+  protocol y
+  protocol-parameter y packet-size 512
+  protocol-parameter y timeout 540
+  chat-timeout 200
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Sys configuration example of remote system at "/etc/uucp/sys" (without login prompt):
+</SPAN><PRE>
+  system remote
+  call-login *
+  call-password *
+  time any
+  port HFP
+  chat "" \r
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Sys configuration example of remote system at "/etc/uucp/sys" (with login prompt - should call <code>uucpd</code> with "-l"):
+</SPAN><PRE>
+  system remote
+  call-login *
+  call-password *
+  time any
+  port HFP
+  chat "" \r\c ogin: \L word: \P
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Systemd service</SPAN>
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The reference systemd unit files shipped with <code>hermes-net</code> include:
+</SPAN>
+<UL>
+<LI><code>hermes-net/system_services/init/sbitx.service</code>
+</LI>
+<LI><code>hermes-net/system_services/init/uucpd.service</code>
+</LI>
+<LI><code>hermes-net/system_services/init/caller.service</code> (gateway-only)
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">In the reference VARA deployment, the <code>uucpd.service</code> ExecStart is:
+</SPAN><PRE>
+ExecStart=/usr/bin/uucpd -a 127.0.0.1 -p 8300 -r vara -o shm -f 2750p -m
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Start/stop uucpd service</SPAN>
+</SPAN><PRE>
+systemctl start uucpd.service
+systemctl stop uucpd.service
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Running uucpd (examples)</SPAN>
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">Examples of <code>uucpd</code> invocation:
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN><PRE>
+$ uucpd -a 127.0.0.1 -c PU2BBB -p 8515 -t 60 -r ardop
+$ uucpd -a 127.0.0.1 -p 8300 -r vara -o icom -s /dev/ttyUSB0 -f 2750p
+$ uucpd -a 127.0.0.1 -p 8300 -r vara -o shm -f 2750p -m
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">See the log</SPAN>
+</SPAN><PRE>
+journalctl -f -u uucpd
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">uucpd usage</SPAN>
+</SPAN><PRE>
+ -c callsign:         Station Callsign (Eg: PU2HFF)
+ -d remote_callsign:  Remote Station Callsign (optional)
+ -r [ardop,vara]:     Choose modem/radio type
+ -a tnc_ip_address:   IP address of the TNC
+ -p tcp_base_port:    TCP base port of the TNC. ARDOP uses ports tcp_base_port and tcp_base_port+1
+ -t timeout:          Time to wait before disconnect when idling (ARDOP ONLY)
+ -f features:         Enable/Disable features.
+     Supported features ARDOP: ofdm, noofdm (default: ofdm)
+     Supported features VARA, BW mode: 500, 2300 or 2750 (default: 2300)
+     Supported features VARA, P2P mode: "p" to enable (eg. 2300p)
+ -s serial_device:    Set the serial device file path for keying the radio (VARA ONLY)
+ -l:                  Tell UUCICO to ask login prompt (default: disabled)
+ -F:                  Enable UUCP handshake fast-track (requires both ends; no-login chat)
+ -m:                  Enable shared memory messaging parameter to uucp (requires patched uucp)
+ -o [icom,ubitx,shm]: Sets radio type (supported: icom, ubitx or shm).
+ -h:                  Prints this help
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">UUPORT Usage</SPAN>
+</SPAN><PRE>
+-c system_name:      Name of the remote system (default is don't change).
+-e logfile.txt:      Log file (default is stderr).
+-h:                  Prints this help
+</PRE><SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00446000000000000000">
+User Web Interface</A>
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">HERMES provides a web-based interface for sending messages, files and emails. It also allows for user management and radio configuration, among other features.
+Current implementation also supports symmetric cryptography and audio/image compression.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The web app is composed of the front-end interface and a REST API.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00446100000000000000">
+Hermes-GUI</A>
+</H3><SPAN CLASS="LARGE">
+Hermes-GUI is the front-end interface built with Angular.js.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Source code is located at:
+(<kbd><A ID="tex2html93"
+  HREF="https://github.com/Rhizomatica/hermes-gui/">https://github.com/Rhizomatica/hermes-gui/</A></kbd>).
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">The project was generated with Angular CLI version 13.2.6.
+Angular: 13.2.6 Angular CLI: 13.2.6 Node: 12.22.5 Package Manager: npm 8.5.2
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Requirements of the user interface:</SPAN>
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<UL>
+<LI>ImageMagic: for image manipulation
+</LI>
+<LI>VVC: Best free software low bitrate visual content compression codec: <kbd><A ID="tex2html94"
+  HREF="https://github.com/fraunhoferhhi/">https://github.com/fraunhoferhhi/</A></kbd>
+</LI>
+<LI>LPCNet: Best free software audio compression codec: <kbd><A ID="tex2html95"
+  HREF="https://github.com/xiph/LPCNet">https://github.com/xiph/LPCNet</A></kbd>
+</LI>
+<LI>GnuPG: For cryptography
+</LI>
+<LI>hostapd: WiFi AP mode software
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The Web interface can be accessed by typing any address in a browser
+connected to the WiFi (set the DNS accordingly) or simply 10.0.0.1.
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Install node, npm</SPAN>
+<BR>
+Install node preferably(V12.22.5) and npm (node package manager) in your distro
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Run 'npm install' inside the project path
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Development server</SPAN>
+<BR>
+Configure .env file with your parameters and run npx ts-node setEnv.ts to set .env values in enviroment.ts.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Run ng serve &ndash;configuration=en for a dev server in english, you can change the language to spanish (ng serve &ndash;configuration=es) or portuguese (ng serve &ndash;configuration=pt) if you wish. Navigate to http://localhost:4200/. The app will automatically reload if you change any of the source files.
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Code scaffolding</SPAN>
+<BR>
+Run ng generate component component-name to generate a new component. You can also use ng generate directive|pipe|service|class|guard|interface|enum|module.
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Running unit tests</SPAN>
+<BR>
+Run ng test to execute the unit tests via Karma.
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Running end-to-end tests</SPAN>
+<BR>
+Run ng e2e to execute the end-to-end tests via Protractor.
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Further help</SPAN>
+<BR>
+To get more help on the Angular CLI use ng help or go check out the Angular CLI README.
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Interface Contents</SPAN>
+<BR>
+Inside the folder src you will find the angular templates for the system's interface.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">On style.less there are the styling code, writen in less.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Inside the app folder, you will find the template components. The app-routing module.ts file is responsible for linking the templates to url adressess. and the app.component, the aplication root template.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">For every system component, there will be a folder with the component.html, component.less, and component.ts. On the .html file there is the html angular template, and on the component.ts you will find typescript code related to that component.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Also inside the app folder, there is the _services foder, where you can find common services shared between the components to access the [station-api] (https://github.com/DigitalHERMES/station-api).
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">On assets folder you find links to svgs and image files used on the interface design.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">On the locale folder there are the xlf files for translation. For the translations, we are using i18n angular module. To generate translations, you need to use ng extract-i18n &ndash;output-path src/locale/ to generate the messages,xlf file and then xliffmerge &ndash;profile xliffmerge.json pt es to transpose the new data to both messages.es.xlf and messages.pt.xlf, where you can input the new tranlation tokens.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00446200000000000000">
+Hermes-API</A>
+</H3><SPAN CLASS="LARGE">
+Hermes-API is a REST api for use on Hermes stations to exchange messages between them.
+It uses Lumen PHP Framework and composer to manage its own dependencies.
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">Source code is located at:
+(<kbd><A ID="tex2html96"
+  HREF="https://github.com/Rhizomatica/hermes-api/">https://github.com/Rhizomatica/hermes-api/</A></kbd>).
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Server Requirements:</SPAN>
+</SPAN>
+<UL>
+<LI>Web server
+</LI>
+<LI>PHP &gt;= 7.3
+</LI>
+<LI>OpenSSL PHP Extension
+</LI>
+<LI>PDO PHP Extension
+</LI>
+<LI>Mbstring PHP Extension
+</LI>
+<LI>SQLite DataBase
+<BR></LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Installation settings</SPAN>
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">Setup your installation settings creating a .env file from .env.example
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Run Composer</SPAN>
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">Composer is a dependency manager for PHP.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Run composer in your folder to install the dependencies and update relevant packages:
+</SPAN><PRE>
+COMPOSER_ALLOW_SUPERUSER=1 composer install
+COMPOSER_ALLOW_SUPERUSER=1 composer update
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Copy hermes-api to /var/www/station-api/</SPAN>
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">Go to your hermes-api folder and run:
+</SPAN><PRE>
+  cp -rT . /var/www/station-api/
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">GNU Privacy Guard</SPAN>
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">Create the folder for GNU Privacy Guard and change owner:
+</SPAN><PRE>
+mkdir -p /var/www/.gnupg
+chmod 700 /var/www/.gnupg
+chown www-data:www-data /var/www/.gnupg
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Setup public folders for UUCP</SPAN>
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">Create and give permissions to inbox/outbox, downloads and temp folders to uucp public:
+</SPAN><PRE>
+mkdir -p /var/www/station-api/storage/app/inbox
+chmod 777 /var/www/station-api/storage/app/inbox
+mkdir -p /var/www/station-api/storage/app/outbox
+chmod 777 /var/www/station-api/storage/app/outbox
+mkdir -p /var/www/station-api/storage/app/downloads
+chmod 777 /var/www/station-api/storage/app/downloads
+mkdir -p /var/www/station-api/storage/app/tmp
+chmod 777 /var/www/station-api/storage/app/tmp
+mkdir -p /var/www/station-api/storage/app/uploads
+chmod 777 /var/www/station-api/storage/app/uploads
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The structure created is used by the app as follows:
+/uploads (Files of outgoing messages)
+/downloads (Files generated from the inbox received messages)
+/inbox (incoming hermes message packs)
+/outbox (hermes message pack for deliver)
+/tmp (tmp files)
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Link folders</SPAN>
+</SPAN><PRE>
+ln -sf /var/www/station-api/public/ /var/www/html/api
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Change owner of the app folder</SPAN>
+</SPAN><PRE>
+chown -R www-data:www-data /var/www/station-api/
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">create database.sqlite file in database folder
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">To start a fresh database: php artisan migrate:refresh &ndash;seed
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Database setup</SPAN>
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">Create a database named hermes and user with all privileges:
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN><PRE>
+  echo "CREATE USER hermes IDENTIFIED BY 'db_hermes'; " &gt; sql_commands.sql
+  echo "CREATE DATABASE hermes;" &gt;&gt; sql_commands.sql
+  echo "GRANT ALL PRIVILEGES ON hermes.* TO hermes;" &gt;&gt; sql_commands.sql
+  
+  mysql &lt; sql_commands.sql
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Then go to your hermes-api folder and run Artisan for the migrations:
+</SPAN><PRE>
+  cd /var/www/station-api/
+  php artisan migrate
+  php artisan db:seed
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Running on port 8000:</SPAN>
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE">&gt; php -S localhost:8000 -t public
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Hermes Message Pack</SPAN>
+<BR>
+Hermes Message Pack is a tar gziped file named .hmp
+<BR></SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV CLASS="navigation"><HR>
+<!--Navigation Panel-->
+<A
+ HREF="node26.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node21.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node24.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html438"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node26.html">Hardware description</A>
+<B> Up:</B> <A
+ HREF="node21.html">Software description (architecture and</A>
+<B> Previous:</B> <A
+ HREF="node24.html">HERMES System Architecture</A>
+ &nbsp; <B>  <A ID="tex2html439"
+  HREF="node1.html">Contents</A></B> </DIV>
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

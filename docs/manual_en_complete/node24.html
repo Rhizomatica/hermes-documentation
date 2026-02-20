@@ -1,0 +1,386 @@
+<!DOCTYPE HTML>
+
+<!--Converted with LaTeX2HTML 2025 (Released January 1, 2025) -->
+<HTML lang="en">
+<HEAD>
+<TITLE>HERMES System Architecture</TITLE>
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<META NAME="viewport" CONTENT="width=device-width, initial-scale=1.0">
+<META NAME="Generator" CONTENT="LaTeX2HTML v2025">
+
+<LINK REL="STYLESHEET" HREF="manual_en_complete.css">
+
+<LINK REL="next" HREF="node25.html">
+<LINK REL="previous" HREF="node23.html">
+<LINK REL="next" HREF="node25.html">
+</HEAD>
+
+<BODY >
+
+<DIV CLASS="navigation"><!--Navigation Panel-->
+<A
+ HREF="node25.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node21.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node23.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html426"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node25.html">HERMES Software Stack</A>
+<B> Up:</B> <A
+ HREF="node21.html">Software description (architecture and</A>
+<B> Previous:</B> <A
+ HREF="node23.html">HERMES Description</A>
+ &nbsp; <B>  <A ID="tex2html427"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR></DIV>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A ID="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL CLASS="ChildLinks">
+<LI><A ID="tex2html428"
+  HREF="node24.html#SECTION00431000000000000000">Topology and station roles</A>
+<LI><A ID="tex2html429"
+  HREF="node24.html#SECTION00432000000000000000">Reference architecture (v2 / sBitx + VARA-compatible TNC + UUCP)</A>
+<LI><A ID="tex2html430"
+  HREF="node24.html#SECTION00433000000000000000">Station component diagram</A>
+<LI><A ID="tex2html431"
+  HREF="node24.html#SECTION00434000000000000000">Service orchestration (systemd)</A>
+<LI><A ID="tex2html432"
+  HREF="node24.html#SECTION00435000000000000000">Interfaces: ports, paths and IPC</A>
+<LI><A ID="tex2html433"
+  HREF="node24.html#SECTION00436000000000000000">Dynamic behavior (message and call flows)</A>
+<UL>
+<LI><A ID="tex2html434"
+  HREF="node24.html#SECTION00436100000000000000">Outbound session (gateway calls a remote station)</A>
+<LI><A ID="tex2html435"
+  HREF="node24.html#SECTION00436200000000000000">Inbound session (remote answers an incoming call)</A>
+</UL>
+<BR>
+<LI><A ID="tex2html436"
+  HREF="node24.html#SECTION00437000000000000000">Variants</A>
+<LI><A ID="tex2html437"
+  HREF="node24.html#SECTION00438000000000000000">Architecture reference sources</A>
+</UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H1><A ID="SECTION00430000000000000000"></A>
+<A ID="sec:hermes-architecture"></A>
+<BR>
+HERMES System Architecture
+</H1><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">This section provides an architecture-level description of HERMES as implemented by the software components referenced in
+Section&nbsp;<A HREF="#sec:hermes-architecture-refs">3.3.8</A>. The focus is the HF data plane (store-and-forward payload transport over HF) and the
+radio/modem control plane that makes that possible on commodity HF transceivers.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00431000000000000000">
+Topology and station roles</A>
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">HERMES is commonly deployed as a star topology network with two roles:
+</SPAN>
+<UL>
+<LI><SPAN  CLASS="textbf">Gateway station</SPAN>: has Internet access and orchestrates synchronization with remote stations.
+</LI>
+<LI><SPAN  CLASS="textbf">Remote station</SPAN>: provides local services (WiFi + web UI + email) and exchanges data with the gateway over HF.
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Inter-station exchange is <SPAN  CLASS="textbf">asynchronous</SPAN> (store-and-forward): payloads are queued locally and later transported over an HF link
+during scheduled communication windows (often initiated by the gateway in round-robin fashion).
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00432000000000000000"></A>
+<A ID="sec:hermes-architecture-reference"></A>
+<BR>
+Reference architecture (v2 / sBitx + VARA-compatible TNC + UUCP)
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The reference implementation described in this document corresponds to HERMES v2 (sBitx-based radio control) and a
+<SPAN  CLASS="textbf">VARA-compatible TCP TNC interface</SPAN> on localhost. In this model the station is composed of the following main processes:
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<UL>
+<LI><SPAN  CLASS="textbf">Radio control daemon</SPAN>: <code>sbitx_controller</code> (from <code>hermes-net/trx_v2-userland</code>), started by systemd as
+  <code>sbitx.service</code>. It controls RF hardware and exposes a shared-memory control/status interface used by other services.
+</LI>
+<LI><SPAN  CLASS="textbf">Modem/TNC</SPAN>: either <SPAN  CLASS="textbf">VARA HF</SPAN> (proprietary) or an <SPAN  CLASS="textbf">open modem</SPAN> that implements the same VARA-style TCP TNC
+  control/data sockets (e.g. <code>hermes-modem</code>). The control socket is typically on TCP <code>8300</code> and the data socket on
+  <code>8301</code> (base port + 1).
+</LI>
+<LI><SPAN  CLASS="textbf">UUCP transport</SPAN>: GNU UUCP (<code>uucico</code> + spool under <code>/var/spool/uucp</code>), which provides store-and-forward job
+  management and email transport integration.
+</LI>
+<LI><SPAN  CLASS="textbf">UUCP-to-modem bridge</SPAN>: <code>uucpd</code> (daemon) + <code>uuport</code> (pipe helper) from <code>hermes-net/uucpd</code>. This is the key
+  component that turns the modem/TNC into an UUCP &ldquo;port&rdquo;.
+</LI>
+<LI><SPAN  CLASS="textbf">Gateway orchestration (gateway-only)</SPAN>: a scheduler such as <code>caller.sh</code> (installed as <code>caller.service</code>) that
+  triggers <code>uucico -S &lt;station&gt;</code> calls according to a schedule and station list.
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00433000000000000000">
+Station component diagram</A>
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN><PRE>
+User devices (WiFi/LAN)
+        |
+      HTTP(S)
+        v
+ +--------------------+         +-----------------------+
+ | Web UI / REST API  | &lt;-----&gt; | Mail stack (Postfix,  |
+ | (external repos)   |         | Dovecot, etc)         |
+ +--------------------+         +-----------+-----------+
+                                             |
+                                             v
+                                     +-------+-------+
+                                     | UUCP spool    |
+                                     | /var/spool/uucp|
+                                     +-------+-------+
+                                             |
+                                    uucico/uuport (per session)
+                                             |
+                               SysV SHM ring buffers (uucpd &lt;-&gt; uuport)
+                                             |
+                                             v
+                                    +--------+--------+
+                                    | uucpd (daemon)  |
+                                    | VARA-style TNC   |
+                                    +--------+--------+
+                                             |
+                 TCP control+data (8300/8301)|
+                                             v
+                                   +---------+---------+
+                                   | Modem / TNC        |
+                                   | (VARA or open)     |
+                                   +---------+---------+
+                                             |
+                                   PTT ON/OFF + audio I/O
+                                             |
+                           SysV SHM control API (sbitx_controller)
+                                             v
+                                   +---------+---------+
+                                   | sbitx_controller  |
+                                   +-------------------+
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00434000000000000000">
+Service orchestration (systemd)</A>
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">On Debian-based HERMES images these components are typically started by systemd. Reference unit files are shipped in
+<code>hermes-net/system_services/init/</code>. Some helper units for the Wine-based VARA modem are shipped by <code>hermes-installer</code> under
+<code>hermes-installer/conf/x11vnc/</code>. The most relevant ones for the HF data plane are:
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN><PRE>
+sbitx.service
+  ExecStart=/usr/bin/sbitx_controller
+
+# VARA HF (Wine + GUI): headless X server + VNC helper units
+x11.service
+  ExecStart=xvfb-run ... -n 69 -l xstartup
+
+vnc.service
+  ExecStart=x11vnc -display WAIT:69 ...
+
+uucpd.service
+  ExecStart=/usr/bin/uucpd -a 127.0.0.1 -p 8300 -r vara -o shm -f 2750p -m
+
+caller.service   (gateway-only scheduler)
+  ExecStart=/usr/bin/caller.sh
+
+# Open modem (hermes-modem) alternative:
+modem.service
+  ExecStart=/usr/bin/mercury -v
+
+uucpd-mercury.service   (typically installed as uucpd.service)
+  ExecStart=/usr/bin/uucpd -a 127.0.0.1 -p 8300 -r vara -o shm
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00435000000000000000">
+Interfaces: ports, paths and IPC</A>
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The HERMES reference architecture uses a small set of explicit interfaces. The most important ones are summarized below.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<BR><P></P>
+<DIV class="CENTER">
+<IMG
+ STYLE="height: 81.59ex; " SRC="img1.svg"
+ ALT="\begin{table}\centering\begin{tabularx}{\textwidth}{\vert l\vert l\vert X\vert}
+...
+...vert uucpd\vert and \verb\vert uuport\vert. \\
+\hline
+\end{tabularx}\end{table}">
+</DIV>
+<BR><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00436000000000000000">
+Dynamic behavior (message and call flows)</A>
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00436100000000000000">
+Outbound session (gateway calls a remote station)</A>
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<OL>
+<LI>Payloads (emails/messages/files) are queued locally and end up as UUCP jobs in the UUCP spool.
+</LI>
+<LI>The gateway scheduler (e.g. <code>caller.sh</code>) triggers an UUCP session: <code>uucico -S &lt;remote&gt;</code>.
+</LI>
+<LI><code>uucico</code> starts in master mode and invokes <code>uuport</code> (configured as a <code>type pipe</code> UUCP port).
+</LI>
+<LI><code>uuport</code> attaches to <code>uucpd</code>'s shared memory buffers and becomes <code>uucico</code>'s byte-stream &ldquo;modem&rdquo;.
+</LI>
+<LI><code>uucpd</code> maintains a persistent TCP connection to the modem/TNC. When it sees outgoing bytes and is not connected, it issues a
+  <code>CONNECT &lt;local&gt; &lt;remote&gt;</code> command on the TNC control socket.
+</LI>
+<LI>The modem/TNC drives the RF transmit/receive turn-taking and signals <code>PTT ON</code>/<code>PTT OFF</code> on the control socket. <code>uucpd</code>
+  translates these into actual radio keying (serial CAT or shared-memory keying via <code>sbitx_controller</code>).
+</LI>
+<LI>Once connected, bytes flow bidirectionally: <code>uucico</code> <!-- MATH
+ $\leftrightarrow$
+ -->
+<SPAN CLASS="MATH"><IMG
+ STYLE="height: 1.06ex; vertical-align: -0.11ex; " SRC="img2.svg"
+ ALT="$\leftrightarrow$"></SPAN> <code>uuport</code> <!-- MATH
+ $\leftrightarrow$
+ -->
+<SPAN CLASS="MATH"><IMG
+ STYLE="height: 1.06ex; vertical-align: -0.11ex; " SRC="img2.svg"
+ ALT="$\leftrightarrow$"></SPAN> <code>uucpd</code> <!-- MATH
+ $\leftrightarrow$
+ -->
+<SPAN CLASS="MATH"><IMG
+ STYLE="height: 1.06ex; vertical-align: -0.11ex; " SRC="img2.svg"
+ ALT="$\leftrightarrow$"></SPAN>
+  modem/TNC <!-- MATH
+ $\leftrightarrow$
+ -->
+<SPAN CLASS="MATH"><IMG
+ STYLE="height: 1.06ex; vertical-align: -0.11ex; " SRC="img2.svg"
+ ALT="$\leftrightarrow$"></SPAN> HF RF link.
+</LI>
+</OL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00436200000000000000">
+Inbound session (remote answers an incoming call)</A>
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<OL>
+<LI>The modem/TNC is kept in listen mode by <code>uucpd</code> (<code>LISTEN ON</code>).
+</LI>
+<LI>When a remote station calls in, the modem/TNC reports <code>CONNECTED ...</code> on the control socket.
+</LI>
+<LI><code>uucpd</code> detects this as an inbound connection and forks <code>/usr/sbin/uucico</code> in slave mode, wiring its stdin/stdout to the same
+  shared buffers used by <code>uuport</code>.
+</LI>
+<LI>The UUCP protocol runs and the spool is updated (receive jobs delivered; pending jobs may be sent back).
+</LI>
+</OL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00437000000000000000">
+Variants</A>
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<UL>
+<LI><SPAN  CLASS="textbf">Open modem (hermes-modem)</SPAN>: provides a VARA-style TCP TNC interface, so from <code>uucpd</code> perspective it behaves like VARA and
+  uses the same integration path (control/data sockets, <code>PTT ON/OFF</code> messages).
+</LI>
+<LI><SPAN  CLASS="textbf">ARDOP (legacy)</SPAN>: supported by <code>uucpd</code> using its <code>-r ardop</code> mode; kept mainly for compatibility with older deployments.
+</LI>
+<LI><SPAN  CLASS="textbf">HERMES v1 (uBitx)</SPAN>: legacy radio control uses <code>ubitx_controller</code> and different service units (see <code>hermes-net/system_services/init</code>).
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H2><A ID="SECTION00438000000000000000"></A>
+<A ID="sec:hermes-architecture-refs"></A>
+<BR>
+Architecture reference sources
+</H2><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The architecture above is grounded in the following source trees and artifacts:
+</SPAN>
+<UL>
+<LI><code>hermes-net/uucpd</code> (bridge daemon <code>uucpd</code> + port helper <code>uuport</code> + modem integration code)
+</LI>
+<LI><code>hermes-net/trx_v2-userland</code> (<code>sbitx_controller</code> shared-memory control API)
+</LI>
+<LI><code>hermes-net/system_services/init</code> (reference systemd unit files such as <code>sbitx.service</code>, <code>uucpd.service</code>, <code>caller.service</code>)
+</LI>
+<LI><code>hermes-modem</code> (open modem implementing VARA-style TCP TNC)
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV CLASS="navigation"><HR>
+<!--Navigation Panel-->
+<A
+ HREF="node25.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node21.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node23.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html426"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node25.html">HERMES Software Stack</A>
+<B> Up:</B> <A
+ HREF="node21.html">Software description (architecture and</A>
+<B> Previous:</B> <A
+ HREF="node23.html">HERMES Description</A>
+ &nbsp; <B>  <A ID="tex2html427"
+  HREF="node1.html">Contents</A></B> </DIV>
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>

@@ -15,3 +15,6 @@ manual/manual_pt.out
 manual/manual_pt.pdf
 manual/manual_pt.toc
 manual/texput.log
+
+# latex2html intermediate artifacts (not part of the published HTML manual)
+docs/manual_en_complete/images.*

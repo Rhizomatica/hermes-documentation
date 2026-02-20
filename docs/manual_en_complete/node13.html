@@ -1,0 +1,213 @@
+<!DOCTYPE HTML>
+
+<!--Converted with LaTeX2HTML 2025 (Released January 1, 2025) -->
+<HTML lang="en">
+<HEAD>
+<TITLE>Initial setup to allow boot from USB pendrive</TITLE>
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<META NAME="viewport" CONTENT="width=device-width, initial-scale=1.0">
+<META NAME="Generator" CONTENT="LaTeX2HTML v2025">
+
+<LINK REL="STYLESHEET" HREF="manual_en_complete.css">
+
+<LINK REL="next" HREF="node14.html">
+<LINK REL="previous" HREF="node12.html">
+<LINK REL="next" HREF="node14.html">
+</HEAD>
+
+<BODY >
+
+<DIV CLASS="navigation"><!--Navigation Panel-->
+<A
+ HREF="node14.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node10.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node12.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html378"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node14.html">HERMES USB installer preparation</A>
+<B> Up:</B> <A
+ HREF="node10.html">sBitx installation guide</A>
+<B> Previous:</B> <A
+ HREF="node12.html">Power supply and consumption</A>
+ &nbsp; <B>  <A ID="tex2html379"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR></DIV>
+<!--End of Navigation Panel-->
+
+<H1><A ID="SECTION00330000000000000000">
+Initial setup to allow boot from USB pendrive</A>
+</H1><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">This step is needed in order to enable the HERMES installer to run from a USB pendrive.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">First connect a USB keyboard to the radio, and then connect the radio to the network (RJ45) cable with appropriate Internet connection.
+Then click in the Terminal icon shown in Figure&nbsp;<A HREF="#fig:terminal">2.3</A>.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:terminal"></A><A ID="332"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 2.3:</STRONG>
+Screen of the radio and the &ldquo;Terminal&rdquo; icon pointed by a red arrow.</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="372" HEIGHT="210" STYLE=""
+ SRC="./screen1-edited.jpeg"
+ ALT="Image screen1-edited">
+  </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">After opening the terminal window, type:
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<UL>
+<LI>sudo su
+</LI>
+<LI>apt-get update
+</LI>
+<LI>apt-get install rpi-eeprom
+</LI>
+<LI>raspi-config
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">At this point the screen shown in Figure&nbsp;<A HREF="#fig:screen3">2.4</A> should appear.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:screen3"></A><A ID="340"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 2.4:</STRONG>
+Configuration software screen (raspi-config tool).</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="253" STYLE=""
+ SRC="./screen3.jpg"
+ ALT="Image screen3">
+  </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Choose the options of the menu in the following order using the keyboard arrow and Tab keys (as shows in Figures):
+</SPAN>
+<UL>
+<LI>Step 1: Option 6 (Advanced Options)
+</LI>
+<LI>Step 2: Option A6 (Boot Order)
+</LI>
+<LI>Step 3: Option B2 (USB Boot)
+</LI>
+<LI>Step 4: Finish
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:screen4"></A><A ID="347"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 2.5:</STRONG>
+Menu option to select (step 1).</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="253" STYLE=""
+ SRC="./screen4.jpg"
+ ALT="Image screen4">
+  </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:screen5"></A><A ID="352"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 2.6:</STRONG>
+Menu option to select (step 2).</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="256" STYLE=""
+ SRC="./screen5.jpg"
+ ALT="Image screen5">
+  </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV class="CENTER"><A ID="fig:screen6"></A><A ID="357"></A>
+<TABLE>
+<CAPTION class="BOTTOM"><STRONG>Figure 2.7:</STRONG>
+Menu option to select (step 3).</CAPTION>
+<TR><TD>
+<DIV class="CENTER"><IMG
+  WIDTH="311" HEIGHT="251" STYLE=""
+ SRC="./screen6.jpg"
+ ALT="Image screen6">
+  </DIV></TD></TR>
+</TABLE>
+</DIV>
+<SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">Then just accept the option to reboot the radio.
+Now the radio is ready to run the HERMES installer. If needed, in order to turn off the radio, type the following in the terminal window (just after raspi-config):
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<UL>
+<LI>halt
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">And after some seconds, when the screen goes black, turn off the radio (using the power key below the power socket).
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<DIV CLASS="navigation"><HR>
+<!--Navigation Panel-->
+<A
+ HREF="node14.html">
+<IMG WIDTH="37" HEIGHT="24" ALT="next" SRC="next.png"></A> 
+<A
+ HREF="node10.html">
+<IMG WIDTH="26" HEIGHT="24" ALT="up" SRC="up.png"></A> 
+<A
+ HREF="node12.html">
+<IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
+<A ID="tex2html378"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
+<BR>
+<B> Next:</B> <A
+ HREF="node14.html">HERMES USB installer preparation</A>
+<B> Up:</B> <A
+ HREF="node10.html">sBitx installation guide</A>
+<B> Previous:</B> <A
+ HREF="node12.html">Power supply and consumption</A>
+ &nbsp; <B>  <A ID="tex2html379"
+  HREF="node1.html">Contents</A></B> </DIV>
+<!--End of Navigation Panel-->
+
+</BODY>
+</HTML>
