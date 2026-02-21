@@ -27,7 +27,7 @@
 <A
  HREF="node24.html">
 <IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
-<A ID="tex2html448"
+<A ID="tex2html464"
   HREF="node1.html">
 <IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
 <BR>
@@ -37,7 +37,7 @@
  HREF="node21.html">Software description (architecture and</A>
 <B> Previous:</B> <A
  HREF="node24.html">HERMES System Architecture</A>
- &nbsp; <B>  <A ID="tex2html449"
+ &nbsp; <B>  <A ID="tex2html465"
   HREF="node1.html">Contents</A></B> 
 <BR>
 <BR></DIV>
@@ -46,46 +46,73 @@
 <A ID="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
 
 <UL CLASS="ChildLinks">
-<LI><A ID="tex2html450"
+<LI><A ID="tex2html466"
   HREF="node25.html#SECTION00441000000000000000">ALSA (Audio configuration)</A>
-<LI><A ID="tex2html451"
+<LI><A ID="tex2html467"
   HREF="node25.html#SECTION00442000000000000000">Radio control: trx_v2-userland (sbitx_controller)</A>
 <UL>
-<LI><A ID="tex2html452"
+<LI><A ID="tex2html468"
   HREF="node25.html#SECTION00442100000000000000">sbitx.service (systemd unit)</A>
-<LI><A ID="tex2html453"
+<LI><A ID="tex2html469"
   HREF="node25.html#SECTION00442200000000000000">Configuration files (/etc/sbitx)</A>
-<LI><A ID="tex2html454"
+<LI><A ID="tex2html470"
   HREF="node25.html#SECTION00442300000000000000">Shared memory control API (sbitx_client, uucpd)</A>
-<LI><A ID="tex2html455"
+<LI><A ID="tex2html471"
   HREF="node25.html#SECTION00442400000000000000">Websocket status API (optional)</A>
-<LI><A ID="tex2html456"
+<LI><A ID="tex2html472"
   HREF="node25.html#SECTION00442500000000000000">Health checks</A>
 </UL>
 <BR>
-<LI><A ID="tex2html457"
+<LI><A ID="tex2html473"
   HREF="node25.html#SECTION00443000000000000000">Modem configuration</A>
 <UL>
-<LI><A ID="tex2html458"
+<LI><A ID="tex2html474"
   HREF="node25.html#SECTION00443100000000000000">VARA</A>
-<LI><A ID="tex2html459"
+<UL>
+<LI><A ID="tex2html475"
+  HREF="node25.html#SECTION00443110000000000000">x11.service + vnc.service (headless VARA).</A>
+<LI><A ID="tex2html476"
+  HREF="node25.html#SECTION00443120000000000000">Health checks.</A>
+</UL>
+<LI><A ID="tex2html477"
   HREF="node25.html#SECTION00443200000000000000">Open modem: hermes-modem (&ldquo;mercury&rdquo; binary)</A>
-<LI><A ID="tex2html460"
+<UL>
+<LI><A ID="tex2html478"
+  HREF="node25.html#SECTION00443210000000000000">modem.service (systemd unit).</A>
+<LI><A ID="tex2html479"
+  HREF="node25.html#SECTION00443220000000000000">Health checks.</A>
+</UL>
+<LI><A ID="tex2html480"
   HREF="node25.html#SECTION00443300000000000000">ARDOP</A>
-<LI><A ID="tex2html461"
+<LI><A ID="tex2html481"
   HREF="node25.html#SECTION00443400000000000000">Mercury (R&amp;D note)</A>
 </UL>
 <BR>
-<LI><A ID="tex2html462"
+<LI><A ID="tex2html482"
   HREF="node25.html#SECTION00444000000000000000">UUCP (Network configuration)</A>
-<LI><A ID="tex2html463"
+<LI><A ID="tex2html483"
   HREF="node25.html#SECTION00445000000000000000">UUCPD: uucpd + uuport (UUCP to modem bridge)</A>
-<LI><A ID="tex2html464"
+<UL>
+<LI><A ID="tex2html484"
+  HREF="node25.html#SECTION00445100000000000000">Install</A>
+<LI><A ID="tex2html485"
+  HREF="node25.html#SECTION00445200000000000000">UUCP configuration (/etc/uucp)</A>
+<LI><A ID="tex2html486"
+  HREF="node25.html#SECTION00445300000000000000">uucpd.service (systemd unit)</A>
+<LI><A ID="tex2html487"
+  HREF="node25.html#SECTION00445400000000000000">Health checks</A>
+<LI><A ID="tex2html488"
+  HREF="node25.html#SECTION00445500000000000000">Running uucpd (examples)</A>
+<LI><A ID="tex2html489"
+  HREF="node25.html#SECTION00445600000000000000">Command-line usage (uucpd / uuport)</A>
+</UL>
+<BR>
+<LI><A ID="tex2html490"
   HREF="node25.html#SECTION00446000000000000000">User Web Interface</A>
 <UL>
-<LI><A ID="tex2html465"
+<LI><A ID="tex2html491"
   HREF="node25.html#SECTION00446100000000000000">Hermes-GUI</A>
-<LI><A ID="tex2html466"
+<LI><A ID="tex2html492"
   HREF="node25.html#SECTION00446200000000000000">Hermes-API</A>
 </UL></UL>
 <!--End of Table of Child-Links-->
@@ -324,7 +351,10 @@ Use this protocol with your HERMES if you are looking for best performance avail
 Edit /opt/VARA/VARA.ini.default to include your license key and callsign.
 </SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Headless X/VNC services (Wine VARA).</SPAN> In the reference Debian images, VARA HF is run under Wine and requires an X server. For
+<SPAN CLASS="LARGE"></SPAN>
+<H4><A ID="SECTION00443110000000000000">
+x11.service + vnc.service (headless VARA).</A>
+</H4><SPAN CLASS="LARGE"> In the reference Debian images, VARA HF is run under Wine and requires an X server. For
 headless stations, <code>hermes-installer</code> ships a minimal Xvfb + x11vnc setup:
 </SPAN><PRE>
 hermes-installer/conf/x11vnc/x11.service
@@ -335,6 +365,20 @@ hermes-installer/conf/x11vnc/vnc.service
 </PRE><SPAN CLASS="LARGE">
 The <code>xstartup</code> script (<code>hermes-installer/conf/xstartup</code>) launches <code>wine /opt/VARA/VARA.exe</code> (via <code>xterm</code>) and starts
 the window manager used by this session.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H4><A ID="SECTION00443120000000000000">
+Health checks.</A>
+</H4><SPAN CLASS="LARGE">
+</SPAN><PRE>
+systemctl status x11 vnc
+journalctl -f -u x11
+journalctl -f -u vnc
+
+# VARA-style TNC should listen on the TCP base port (default 8300):
+ss -lntp | grep 8300
+</PRE><SPAN CLASS="LARGE">
 </SPAN>
 <P>
 <SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Integration contract (VARA-style TCP TNC).</SPAN> The rest of the HERMES HF stack does not interact with VARA through audio directly.
@@ -371,11 +415,26 @@ path described above (<code>uucpd -r vara ...</code>). In addition to ARQ links,
 </UL><SPAN CLASS="LARGE">
 </SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Systemd unit (open modem).</SPAN> A reference unit file is shipped as <code>modem.service</code> (see
+<SPAN CLASS="LARGE"></SPAN>
+<H4><A ID="SECTION00443210000000000000">
+modem.service (systemd unit).</A>
+</H4><SPAN CLASS="LARGE"> A reference unit file is shipped as <code>modem.service</code> (see
 <code>hermes-net/system_services/init/modem.service</code>). It starts the modem directly via <code>/usr/bin/mercury</code> (installed from
 <code>hermes-modem</code> using <code>make install</code>). On Linux, <code>mercury</code> defaults to ALSA and uses the ALSA device <code>default</code> for
 capture/playback unless <code>-i</code>/<code>-o</code> are provided. When used, the corresponding <code>uucpd-mercury.service</code> unit depends on
 <code>modem.service</code>.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H4><A ID="SECTION00443220000000000000">
+Health checks.</A>
+</H4><SPAN CLASS="LARGE">
+</SPAN><PRE>
+systemctl status modem
+journalctl -f -u modem
+ss -lntp | grep 8300
+ss -lntp | grep 8100
+</PRE><SPAN CLASS="LARGE">
 </SPAN>
 <P>
 <SPAN CLASS="LARGE"></SPAN>
@@ -550,9 +609,10 @@ reference architecture (Section&nbsp;<A HREF="node24.html#sec:hermes-architectur
   HREF="https://github.com/Rhizomatica/hermes-net/tree/main/uucpd">https://github.com/Rhizomatica/hermes-net/tree/main/uucpd</A></kbd> 
 <BR></SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Install</SPAN> 
-<BR>
-<BR>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00445100000000000000">
+Install</A>
+</H3><SPAN CLASS="LARGE">
 To compile and install, type:
 </SPAN><PRE>
   $ make
@@ -560,9 +620,10 @@ To compile and install, type:
 </PRE><SPAN CLASS="LARGE">
 </SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Configuration</SPAN> 
-<BR>
-<BR>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00445200000000000000">
+UUCP configuration (/etc/uucp)</A>
+</H3><SPAN CLASS="LARGE">
 Port configuration example at "/etc/uucp/port":
 </SPAN><PRE>
   port HFP
@@ -606,11 +667,14 @@ Port configuration example at "/etc/uucp/port":
   call-password *
   time any
   port HFP
-  chat "" \r\c ogin: \L word: \P
+   chat "" \r\c ogin: \L word: \P
 </PRE><SPAN CLASS="LARGE">
 </SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Systemd service</SPAN>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00445300000000000000">
+uucpd.service (systemd unit)</A>
+</H3><SPAN CLASS="LARGE">
 </SPAN>
 <P>
 <SPAN CLASS="LARGE">The reference systemd unit files shipped with <code>hermes-net</code> include:
@@ -625,21 +689,40 @@ Port configuration example at "/etc/uucp/port":
 </UL><SPAN CLASS="LARGE">
 </SPAN>
 <P>
-<SPAN CLASS="LARGE">In the reference VARA deployment, the <code>uucpd.service</code> ExecStart is:
+<SPAN CLASS="LARGE">In the reference VARA deployment (Wine VARA + VNC), the <code>uucpd.service</code> unit is:
 </SPAN><PRE>
+After=vnc.service sbitx.service
 ExecStart=/usr/bin/uucpd -a 127.0.0.1 -p 8300 -r vara -o shm -f 2750p -m
 </PRE><SPAN CLASS="LARGE">
 </SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Start/stop uucpd service</SPAN>
+<SPAN CLASS="LARGE">In the open-modem (mercury) deployment, <code>hermes-net</code> ships <code>uucpd-mercury.service</code> and installs it as <code>uucpd.service</code>:
 </SPAN><PRE>
-systemctl start uucpd.service
-systemctl stop uucpd.service
+After=modem.service sbitx.service
+ExecStart=/usr/bin/uucpd -a 127.0.0.1 -p 8300 -r vara -o shm -m -F
 </PRE><SPAN CLASS="LARGE">
 </SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Running uucpd (examples)</SPAN>
-<BR></SPAN>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00445400000000000000">
+Health checks</A>
+</H3><SPAN CLASS="LARGE">
+</SPAN><PRE>
+systemctl status uucpd
+systemctl start uucpd.service
+systemctl stop uucpd.service
+journalctl -f -u uucpd
+
+# TNC base port (control) should be up (default 8300):
+ss -lntp | grep 8300
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00445500000000000000">
+Running uucpd (examples)</A>
+</H3><SPAN CLASS="LARGE">
+</SPAN>
 <P>
 <SPAN CLASS="LARGE">Examples of <code>uucpd</code> invocation:
 </SPAN>
@@ -651,13 +734,10 @@ $ uucpd -a 127.0.0.1 -p 8300 -r vara -o shm -f 2750p -m
 </PRE><SPAN CLASS="LARGE">
 </SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">See the log</SPAN>
-</SPAN><PRE>
-journalctl -f -u uucpd
-</PRE><SPAN CLASS="LARGE">
-</SPAN>
-<P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">uucpd usage</SPAN>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00445600000000000000">
+Command-line usage (uucpd / uuport)</A>
+</H3><SPAN CLASS="LARGE">
 </SPAN><PRE>
  -c callsign:         Station Callsign (Eg: PU2HFF)
  -d remote_callsign:  Remote Station Callsign (optional)
@@ -955,7 +1035,7 @@ Hermes Message Pack is a tar gziped file named .hmp
 <A
  HREF="node24.html">
 <IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
-<A ID="tex2html448"
+<A ID="tex2html464"
   HREF="node1.html">
 <IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
 <BR>
@@ -965,7 +1045,7 @@ Hermes Message Pack is a tar gziped file named .hmp
  HREF="node21.html">Software description (architecture and</A>
 <B> Previous:</B> <A
  HREF="node24.html">HERMES System Architecture</A>
- &nbsp; <B>  <A ID="tex2html449"
+ &nbsp; <B>  <A ID="tex2html465"
   HREF="node1.html">Contents</A></B> </DIV>
 <!--End of Navigation Panel-->
 

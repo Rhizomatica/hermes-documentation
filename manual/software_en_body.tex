@@ -176,7 +176,7 @@ modem.service
   ExecStart=/usr/bin/mercury -v
 
 uucpd-mercury.service   (typically installed as uucpd.service)
-  ExecStart=/usr/bin/uucpd -a 127.0.0.1 -p 8300 -r vara -o shm
+  ExecStart=/usr/bin/uucpd -a 127.0.0.1 -p 8300 -r vara -o shm -m -F
 \end{verbatim}
 
 \subsection{Interfaces: ports, paths and IPC}
@@ -394,7 +394,7 @@ Please refer to the developer's website for download and instructions on install
 \textbf{Configuration}\\
 Edit /opt/VARA/VARA.ini.default to include your license key and callsign.
 
-\textbf{Headless X/VNC services (Wine VARA).} In the reference Debian images, VARA HF is run under Wine and requires an X server. For
+\paragraph{x11.service + vnc.service (headless VARA).} In the reference Debian images, VARA HF is run under Wine and requires an X server. For
 headless stations, \verb|hermes-installer| ships a minimal Xvfb + x11vnc setup:
 \begin{verbatim}
 hermes-installer/conf/x11vnc/x11.service
@@ -405,6 +405,16 @@ hermes-installer/conf/x11vnc/vnc.service
 \end{verbatim}
 The \verb|xstartup| script (\verb|hermes-installer/conf/xstartup|) launches \verb|wine /opt/VARA/VARA.exe| (via \verb|xterm|) and starts
 the window manager used by this session.
+
+\paragraph{Health checks.}
+\begin{verbatim}
+systemctl status x11 vnc
+journalctl -f -u x11
+journalctl -f -u vnc
+
+# VARA-style TNC should listen on the TCP base port (default 8300):
+ss -lntp | grep 8300
+\end{verbatim}
 
 \textbf{Integration contract (VARA-style TCP TNC).} The rest of the HERMES HF stack does not interact with VARA through audio directly.
 Instead, \verb|uucpd| connects to VARA's TCP interface (control socket on \verb|base_port|, data socket on \verb|base_port+1|; typically
@@ -427,11 +437,19 @@ The \verb|hermes-modem| README documents its CLI options. In summary:
 \item \verb|-x| selects the audio backend (\verb|alsa|, \verb|pulse|, \verb|shm|, etc.).
 \end{itemize}
 
-\textbf{Systemd unit (open modem).} A reference unit file is shipped as \verb|modem.service| (see
+\paragraph{modem.service (systemd unit).} A reference unit file is shipped as \verb|modem.service| (see
 \verb|hermes-net/system_services/init/modem.service|). It starts the modem directly via \verb|/usr/bin/mercury| (installed from
 \verb|hermes-modem| using \verb|make install|). On Linux, \verb|mercury| defaults to ALSA and uses the ALSA device \verb|default| for
 capture/playback unless \verb|-i|/\verb|-o| are provided. When used, the corresponding \verb|uucpd-mercury.service| unit depends on
 \verb|modem.service|.
+
+\paragraph{Health checks.}
+\begin{verbatim}
+systemctl status modem
+journalctl -f -u modem
+ss -lntp | grep 8300
+ss -lntp | grep 8100
+\end{verbatim}
 
 \subsubsection{ARDOP}
 
@@ -565,16 +583,14 @@ Communication between \verb|uuport| and \verb|uucpd| uses System V shared memory
 
 Download link: \url{https://github.com/Rhizomatica/hermes-net/tree/main/uucpd} \\
 
-\textbf{Install} \\
-\\
+\subsubsection{Install}
 To compile and install, type:
 \begin{verbatim}
   $ make
   $ make install    
 \end{verbatim}
 
-\textbf{Configuration} \\
-\\
+\subsubsection{UUCP configuration (/etc/uucp)}
 Port configuration example at "/etc/uucp/port":
 \begin{verbatim}
   port HFP
@@ -614,10 +630,10 @@ Sys configuration example of remote system at "/etc/uucp/sys" (with login prompt
   call-password *
   time any
   port HFP
-  chat "" \r\c ogin: \L word: \P
+   chat "" \r\c ogin: \L word: \P
 \end{verbatim}
 
-\textbf{Systemd service}
+\subsubsection{uucpd.service (systemd unit)}
 
 The reference systemd unit files shipped with \verb|hermes-net| include:
 \begin{itemize}
@@ -626,18 +642,30 @@ The reference systemd unit files shipped with \verb|hermes-net| include:
 \item \verb|hermes-net/system_services/init/caller.service| (gateway-only)
 \end{itemize}
 
-In the reference VARA deployment, the \verb|uucpd.service| ExecStart is:
+In the reference VARA deployment (Wine VARA + VNC), the \verb|uucpd.service| unit is:
 \begin{verbatim}
+After=vnc.service sbitx.service
 ExecStart=/usr/bin/uucpd -a 127.0.0.1 -p 8300 -r vara -o shm -f 2750p -m
 \end{verbatim}
 
-\textbf{Start/stop uucpd service}
+In the open-modem (mercury) deployment, \verb|hermes-net| ships \verb|uucpd-mercury.service| and installs it as \verb|uucpd.service|:
 \begin{verbatim}
-systemctl start uucpd.service
-systemctl stop uucpd.service
+After=modem.service sbitx.service
+ExecStart=/usr/bin/uucpd -a 127.0.0.1 -p 8300 -r vara -o shm -m -F
 \end{verbatim}
 
-\textbf{Running uucpd (examples)}\\
+\subsubsection{Health checks}
+\begin{verbatim}
+systemctl status uucpd
+systemctl start uucpd.service
+systemctl stop uucpd.service
+journalctl -f -u uucpd
+
+# TNC base port (control) should be up (default 8300):
+ss -lntp | grep 8300
+\end{verbatim}
+
+\subsubsection{Running uucpd (examples)}
 
 Examples of \verb|uucpd| invocation:
 
@@ -647,13 +675,7 @@ $ uucpd -a 127.0.0.1 -p 8300 -r vara -o icom -s /dev/ttyUSB0 -f 2750p
 $ uucpd -a 127.0.0.1 -p 8300 -r vara -o shm -f 2750p -m
 \end{verbatim}
 
-
-\textbf{See the log}
-\begin{verbatim}
-journalctl -f -u uucpd
-\end{verbatim}
-
-\textbf{uucpd usage}
+\subsubsection{Command-line usage (uucpd / uuport)}
 \begin{verbatim}
  -c callsign:         Station Callsign (Eg: PU2HFF)
  -d remote_callsign:  Remote Station Callsign (optional)
