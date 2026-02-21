@@ -322,28 +322,62 @@ HERMES v2 uses Rhizomatica's sBitx-based radio control stack from \verb|hermes-n
 \item \verb|sbitx_client|: a CLI tool used for monitoring and setting radio parameters (frequency, mode, power, etc.).
 \end{itemize}
 
-\textbf{Shared memory interface (control plane).} The controller exposes a System V shared memory segment (key \verb|66650|, type
-\verb|controller_conn|, see \verb|hermes-net/include/sbitx_io.h|). This interface is used by \verb|sbitx_client| and also by \verb|uucpd|
-when configured with \verb|-o shm|, allowing the modem/TNC integration to key PTT (and report status such as bitrate/SNR/bytes) without
-direct serial/CAT access.
+\subsubsection{sbitx.service (systemd unit)}
 
-\textbf{Configuration files.} The default configuration files are expected at:
+The controller is typically started by systemd as \verb|sbitx.service|:
+\begin{verbatim}
+hermes-net/system_services/init/sbitx.service
+  ExecStart=/usr/bin/sbitx_controller
+\end{verbatim}
+
+\subsubsection{Configuration files (/etc/sbitx)}
+
+The default configuration files are expected at:
 \begin{itemize}
 \item \verb|/etc/sbitx/core.ini|
 \item \verb|/etc/sbitx/user.ini|
 \end{itemize}
 They are installed by \verb|hermes-net| (\verb|make install|) from the \verb|trx_v2-userland/config/| directory.
 
-\textbf{Service unit.} The reference systemd unit file shipped in \verb|hermes-net| is:
-\begin{verbatim}
-hermes-net/system_services/init/sbitx.service
-  ExecStart=/usr/bin/sbitx_controller
-\end{verbatim}
+\textbf{Core switches.} The most relevant toggles in \verb|core.ini| are:
+\begin{itemize}
+\item \verb|enable_shm_control = 1| (required for \verb|sbitx_client| and for \verb|uucpd -o shm| integration);
+\item \verb|enable_websocket = 1| (optional; used by web GUIs for status streaming).
+\end{itemize}
 
-\textbf{Health checks.} Typical checks include:
+\subsubsection{Shared memory control API (sbitx\_client, uucpd)}
+
+The controller exposes a System V shared memory segment (key \verb|66650|, type \verb|controller_conn|, see
+\verb|hermes-net/include/sbitx_io.h|). This interface is used by \verb|sbitx_client| and also by \verb|uucpd| when configured with
+\verb|-o shm|, allowing the modem/TNC integration to key PTT (and report status such as bitrate/SNR/bytes) without direct serial/CAT
+access.
+
+\subsubsection{Websocket status API (optional)}
+
+When \verb|enable_websocket = 1|, \verb|sbitx_controller| starts an HTTPS/WSS server (Mongoose-based) that:
+\begin{itemize}
+\item listens on \verb|wss://0.0.0.0:8080|;
+\item upgrades \verb|/websocket| to a websocket stream (JSON status updates);
+\item serves static files from \verb|/etc/sbitx/web| (installed by \verb|hermes-net| from \verb|trx_v2-userland/web/|).
+\end{itemize}
+For example, the test page is typically available at \verb|https://<station>:8080/test.html| and connects to
+\verb|wss://<station>:8080/websocket|.
+
+TLS files are expected at:
+\begin{itemize}
+\item \verb|/etc/ssl/certs/hermes.radio.crt|
+\item \verb|/etc/ssl/private/hermes.radio.key|
+\end{itemize}
+
+\subsubsection{Health checks}
+
 \begin{verbatim}
+systemctl status sbitx
 sbitx_client -c get_frequency -p 0
 sbitx_client -c get_mode -p 0
+
+# If websocket is enabled:
+ss -lntp | grep 8080
 journalctl -f -u sbitx
 \end{verbatim}
 

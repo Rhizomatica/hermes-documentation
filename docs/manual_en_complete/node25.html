@@ -27,7 +27,7 @@
 <A
  HREF="node24.html">
 <IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
-<A ID="tex2html438"
+<A ID="tex2html448"
   HREF="node1.html">
 <IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
 <BR>
@@ -37,7 +37,7 @@
  HREF="node21.html">Software description (architecture and</A>
 <B> Previous:</B> <A
  HREF="node24.html">HERMES System Architecture</A>
- &nbsp; <B>  <A ID="tex2html439"
+ &nbsp; <B>  <A ID="tex2html449"
   HREF="node1.html">Contents</A></B> 
 <BR>
 <BR></DIV>
@@ -46,33 +46,46 @@
 <A ID="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
 
 <UL CLASS="ChildLinks">
-<LI><A ID="tex2html440"
+<LI><A ID="tex2html450"
   HREF="node25.html#SECTION00441000000000000000">ALSA (Audio configuration)</A>
-<LI><A ID="tex2html441"
+<LI><A ID="tex2html451"
   HREF="node25.html#SECTION00442000000000000000">Radio control: trx_v2-userland (sbitx_controller)</A>
-<LI><A ID="tex2html442"
+<UL>
+<LI><A ID="tex2html452"
+  HREF="node25.html#SECTION00442100000000000000">sbitx.service (systemd unit)</A>
+<LI><A ID="tex2html453"
+  HREF="node25.html#SECTION00442200000000000000">Configuration files (/etc/sbitx)</A>
+<LI><A ID="tex2html454"
+  HREF="node25.html#SECTION00442300000000000000">Shared memory control API (sbitx_client, uucpd)</A>
+<LI><A ID="tex2html455"
+  HREF="node25.html#SECTION00442400000000000000">Websocket status API (optional)</A>
+<LI><A ID="tex2html456"
+  HREF="node25.html#SECTION00442500000000000000">Health checks</A>
+</UL>
+<BR>
+<LI><A ID="tex2html457"
   HREF="node25.html#SECTION00443000000000000000">Modem configuration</A>
 <UL>
-<LI><A ID="tex2html443"
+<LI><A ID="tex2html458"
   HREF="node25.html#SECTION00443100000000000000">VARA</A>
-<LI><A ID="tex2html444"
+<LI><A ID="tex2html459"
   HREF="node25.html#SECTION00443200000000000000">Open modem: hermes-modem (&ldquo;mercury&rdquo; binary)</A>
-<LI><A ID="tex2html445"
+<LI><A ID="tex2html460"
   HREF="node25.html#SECTION00443300000000000000">ARDOP</A>
-<LI><A ID="tex2html446"
+<LI><A ID="tex2html461"
   HREF="node25.html#SECTION00443400000000000000">Mercury (R&amp;D note)</A>
 </UL>
 <BR>
-<LI><A ID="tex2html447"
+<LI><A ID="tex2html462"
   HREF="node25.html#SECTION00444000000000000000">UUCP (Network configuration)</A>
-<LI><A ID="tex2html448"
+<LI><A ID="tex2html463"
   HREF="node25.html#SECTION00445000000000000000">UUCPD: uucpd + uuport (UUCP to modem bridge)</A>
-<LI><A ID="tex2html449"
+<LI><A ID="tex2html464"
   HREF="node25.html#SECTION00446000000000000000">User Web Interface</A>
 <UL>
-<LI><A ID="tex2html450"
+<LI><A ID="tex2html465"
   HREF="node25.html#SECTION00446100000000000000">Hermes-GUI</A>
-<LI><A ID="tex2html451"
+<LI><A ID="tex2html466"
   HREF="node25.html#SECTION00446200000000000000">Hermes-API</A>
 </UL></UL>
 <!--End of Table of Child-Links-->
@@ -187,13 +200,26 @@ Radio control: trx_v2-userland (sbitx_controller)
 </UL><SPAN CLASS="LARGE">
 </SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Shared memory interface (control plane).</SPAN> The controller exposes a System V shared memory segment (key <code>66650</code>, type
-<code>controller_conn</code>, see <code>hermes-net/include/sbitx_io.h</code>). This interface is used by <code>sbitx_client</code> and also by <code>uucpd</code>
-when configured with <code>-o shm</code>, allowing the modem/TNC integration to key PTT (and report status such as bitrate/SNR/bytes) without
-direct serial/CAT access.
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00442100000000000000">
+sbitx.service (systemd unit)</A>
+</H3><SPAN CLASS="LARGE">
 </SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Configuration files.</SPAN> The default configuration files are expected at:
+<SPAN CLASS="LARGE">The controller is typically started by systemd as <code>sbitx.service</code>:
+</SPAN><PRE>
+hermes-net/system_services/init/sbitx.service
+  ExecStart=/usr/bin/sbitx_controller
+</PRE><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00442200000000000000">
+Configuration files (/etc/sbitx)</A>
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The default configuration files are expected at:
 </SPAN>
 <UL>
 <LI><code>/etc/sbitx/core.ini</code>
@@ -204,17 +230,71 @@ direct serial/CAT access.
 They are installed by <code>hermes-net</code> (<code>make install</code>) from the <code>trx_v2-userland/config/</code> directory.
 </SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Service unit.</SPAN> The reference systemd unit file shipped in <code>hermes-net</code> is:
-</SPAN><PRE>
-hermes-net/system_services/init/sbitx.service
-  ExecStart=/usr/bin/sbitx_controller
-</PRE><SPAN CLASS="LARGE">
+<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Core switches.</SPAN> The most relevant toggles in <code>core.ini</code> are:
+</SPAN>
+<UL>
+<LI><code>enable_shm_control = 1</code> (required for <code>sbitx_client</code> and for <code>uucpd -o shm</code> integration);
+</LI>
+<LI><code>enable_websocket = 1</code> (optional; used by web GUIs for status streaming).
+</LI>
+</UL><SPAN CLASS="LARGE">
 </SPAN>
 <P>
-<SPAN CLASS="LARGE"><SPAN  CLASS="textbf">Health checks.</SPAN> Typical checks include:
-</SPAN><PRE>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00442300000000000000">
+Shared memory control API (sbitx_client, uucpd)</A>
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">The controller exposes a System V shared memory segment (key <code>66650</code>, type <code>controller_conn</code>, see
+<code>hermes-net/include/sbitx_io.h</code>). This interface is used by <code>sbitx_client</code> and also by <code>uucpd</code> when configured with
+<code>-o shm</code>, allowing the modem/TNC integration to key PTT (and report status such as bitrate/SNR/bytes) without direct serial/CAT
+access.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00442400000000000000">
+Websocket status API (optional)</A>
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">When <code>enable_websocket = 1</code>, <code>sbitx_controller</code> starts an HTTPS/WSS server (Mongoose-based) that:
+</SPAN>
+<UL>
+<LI>listens on <code>wss://0.0.0.0:8080</code>;
+</LI>
+<LI>upgrades <code>/websocket</code> to a websocket stream (JSON status updates);
+</LI>
+<LI>serves static files from <code>/etc/sbitx/web</code> (installed by <code>hermes-net</code> from <code>trx_v2-userland/web/</code>).
+</LI>
+</UL><SPAN CLASS="LARGE">
+For example, the test page is typically available at <code>https://&lt;station&gt;:8080/test.html</code> and connects to
+<code>wss://&lt;station&gt;:8080/websocket</code>.
+</SPAN>
+<P>
+<SPAN CLASS="LARGE">TLS files are expected at:
+</SPAN>
+<UL>
+<LI><code>/etc/ssl/certs/hermes.radio.crt</code>
+</LI>
+<LI><code>/etc/ssl/private/hermes.radio.key</code>
+</LI>
+</UL><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN>
+<H3><A ID="SECTION00442500000000000000">
+Health checks</A>
+</H3><SPAN CLASS="LARGE">
+</SPAN>
+<P>
+<SPAN CLASS="LARGE"></SPAN><PRE>
+systemctl status sbitx
 sbitx_client -c get_frequency -p 0
 sbitx_client -c get_mode -p 0
+
+# If websocket is enabled:
+ss -lntp | grep 8080
 journalctl -f -u sbitx
 </PRE><SPAN CLASS="LARGE">
 </SPAN>
@@ -875,7 +955,7 @@ Hermes Message Pack is a tar gziped file named .hmp
 <A
  HREF="node24.html">
 <IMG WIDTH="63" HEIGHT="24" ALT="previous" SRC="prev.png"></A> 
-<A ID="tex2html438"
+<A ID="tex2html448"
   HREF="node1.html">
 <IMG WIDTH="65" HEIGHT="24" ALT="contents" SRC="contents.png"></A>  
 <BR>
@@ -885,7 +965,7 @@ Hermes Message Pack is a tar gziped file named .hmp
  HREF="node21.html">Software description (architecture and</A>
 <B> Previous:</B> <A
  HREF="node24.html">HERMES System Architecture</A>
- &nbsp; <B>  <A ID="tex2html439"
+ &nbsp; <B>  <A ID="tex2html449"
   HREF="node1.html">Contents</A></B> </DIV>
 <!--End of Navigation Panel-->
 
