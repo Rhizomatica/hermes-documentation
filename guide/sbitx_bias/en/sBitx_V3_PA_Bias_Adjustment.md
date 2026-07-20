@@ -139,7 +139,7 @@ This guide outlines the step-by-step process for setting the **Power Amplifier (
 
 | Date | Version | Author | Description |
 |------|---------|--------|-------------|
-| 2026-07-20 | 1.0 | [Seu Nome] | Initial creation |
+| 2026-07-20 | 1.0 | [Nilson Rocha ] | Initial creation |
 | | | | |
 
 ---
