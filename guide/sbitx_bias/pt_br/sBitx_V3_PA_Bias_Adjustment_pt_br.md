@@ -138,7 +138,7 @@ Este guia descreve o processo passo a passo para ajustar a **polarização do Am
 
 | Data | Versão | Autor | Descrição |
 |------|--------|-------|-----------|
-| 2026-07-20 | 1.0 | [Nilson Rocha ] | Criação inicial |
+| 2026-07-20 | 1.0 | Nilson Rocha  | Criação inicial |
 | | | | |
 
 ---
