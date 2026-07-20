@@ -129,9 +129,9 @@ This guide outlines the step-by-step process for setting the **Power Amplifier (
 
 ## 📚 References
 
-- [sBitx V3 Schematic](../documentation/sbitx-v3-schematic.pdf)
-- [IRF510 Datasheet](https://www.infineon.com/dgdl/irf510.pdf)
-- [sBitx V3 User Manual](../documentation/sbitx-v3-manual.pdf)
+- [Esquema do sBitx V3](https://github.com/drexjj/sbitx/wiki/sBitx-V3-PA-Bias-Adjustment#sbitx-v3-pa-bias-adjustment-guide)
+- [Manual do Usuário do sBitx V3](https://github.com/drexjj/sbitx/wiki)
+
 
 ---
 
