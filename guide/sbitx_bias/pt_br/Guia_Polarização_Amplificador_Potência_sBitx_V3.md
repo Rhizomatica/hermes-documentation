@@ -8,7 +8,7 @@ Este guia descreve o processo passo a passo para ajustar a **polarização do Am
 
 ### 🛡️ Considerações de Segurança
 
-- Sempre conecte o sBitx a uma **carga fantasma de 50 ohms** e a um **medidor de potência** para evitar danos aos MOSFETs ao transmitir em uma carga aberta ou desequilibrada.
+- Sempre conecte o sBitx a uma **carga fantasma de 50 ohms** e a um **medidor de potência** para evitar danos aos MOSFETs ao transmitir com carga aberta ou com impedância não casada.
 
 ### 🛠️ Ferramentas Necessárias
 
@@ -20,7 +20,7 @@ Este guia descreve o processo passo a passo para ajustar a **polarização do Am
 
 ## 📖 Visão Geral do MOSFET IRF510
 
-- O **IRF510** é um MOSFET de canal N de modo de enriquecimento, não projetado especificamente para RF, mas às vezes usado em amplificadores de rádio amador.
+- O **IRF510** é um MOSFET de canal N de enriquecimento, não projetado especificamente para RF, mas às vezes usado em amplificadores de rádio amador.
 - Requer **polarização precisa** para operar na região linear (Classe AB para SSB/CW) para evitar fuga térmica.
 
 ### 🧠 Notas sobre o sBitx V3
@@ -107,7 +107,7 @@ Este guia descreve o processo passo a passo para ajustar a **polarização do Am
 | Etapa | Ação | Alvo |
 |-------|------|------|
 | 1 | Preparação da Montagem | Conectar carga fantasma, medidor de potência, localizar PA_BIAS1 |
-| 2 | Configuração Inicial | Frequência: 7,035 MHz, Modo: USB, Drive/Mic Gain mínimos |
+| 2 | Configuração Inicial | Frequência: 7,035 MHz, Modo: USB, Drive (Excitação)/Mic Gain mínimos |
 | 3 | Medir Corrente de Repouso em TX | Registrar a corrente de base |
 | 4 | Ajustar Corrente de Polarização | Aumentar em **150-250 mA** acima da corrente de repouso |
 | 5 | Verificar e Ajustar Finamente | Polarização estável, verificar temperatura do dissipador |
