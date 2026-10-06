@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" role="img" aria-label="Every request passes nginx, and hermes-api decides who gets in" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#b8b8ad"/>
+    </marker>
+  </defs>
+  <rect width="760" height="440" fill="#ffffff"/>
+  <text x="24" y="32" font-size="15" font-weight="600" fill="#1f1f1d">Every request passes nginx, and hermes-api decides who gets in</text>
+
+  <!-- localhost zone -->
+  <rect x="478" y="50" width="266" height="366" rx="8" fill="#ecece8" stroke="#d6d6cf" stroke-width="1"/>
+  <text x="488" y="68" font-size="11.5" fill="#5e5d59">localhost only: reached through nginx</text>
+
+  <!-- connectors -->
+  <g fill="none" stroke="#b8b8ad" stroke-width="1.25">
+    <path d="M192 240H272" marker-end="url(#arch-arrow)"/>
+    <path d="M400 110H488" marker-end="url(#arch-arrow)"/>
+    <path d="M400 146H488" stroke-dasharray="4 4" marker-end="url(#arch-arrow)"/>
+    <path d="M400 240H488" marker-end="url(#arch-arrow)"/>
+    <path d="M400 356H488" marker-end="url(#arch-arrow)"/>
+  </g>
+  <text x="232" y="230" text-anchor="middle" font-size="11.5" fill="#5e5d59">HTTPS, WSS</text>
+  <text x="232" y="258" text-anchor="middle" font-size="11.5" fill="#5e5d59">cookie</text>
+  <text x="444" y="102" text-anchor="middle" font-size="11.5" fill="#5e5d59">/api</text>
+  <text x="444" y="138" text-anchor="middle" font-size="11.5" fill="#5e5d59">auth check</text>
+  <text x="444" y="232" text-anchor="middle" font-size="11.5" fill="#5e5d59">/ws/radio</text>
+  <text x="444" y="348" text-anchor="middle" font-size="11.5" fill="#5e5d59">/ws/modem</text>
+
+  <!-- browser -->
+  <rect x="24" y="204" width="168" height="72" rx="8" fill="#ffffff" stroke="#b8b8ad" stroke-width="1.25"/>
+  <text x="36" y="228" font-weight="600" fill="#1f1f1d">Browser UI</text>
+  <text x="36" y="248" font-size="11.5" fill="#5e5d59">hermes-gui or</text>
+  <text x="36" y="264" font-size="11.5" fill="#5e5d59">hermes-frontend</text>
+
+  <!-- nginx -->
+  <rect x="272" y="80" width="128" height="320" rx="8" fill="#e3edf9" stroke="#2f7bd8" stroke-width="2"/>
+  <text x="284" y="104" font-weight="600" fill="#1f1f1d">nginx</text>
+  <text x="284" y="124" font-size="11.5" fill="#1f1f1d">TLS on 443</text>
+  <text x="284" y="140" font-size="11.5" fill="#1f1f1d">routes by path</text>
+  <text x="284" y="156" font-size="11.5" fill="#1f1f1d">auth_request on</text>
+  <text x="284" y="172" font-size="11.5" fill="#1f1f1d">every WS upgrade</text>
+
+  <!-- hermes-api -->
+  <rect x="488" y="80" width="240" height="88" rx="8" fill="#ffffff" stroke="#b8b8ad" stroke-width="1.25"/>
+  <text x="500" y="104" font-weight="600" fill="#1f1f1d">hermes-api (PHP-FPM)</text>
+  <text x="500" y="124" font-size="11.5" fill="#5e5d59">REST /api/v2 and frozen /api</text>
+  <text x="500" y="140" font-size="11.5" fill="#5e5d59">sessions, roles, audit log</text>
+  <text x="500" y="156" font-size="11.5" fill="#5e5d59">MariaDB; UUCP, mail via sudo</text>
+
+  <!-- radiod -->
+  <rect x="488" y="196" width="240" height="88" rx="8" fill="#ffffff" stroke="#b8b8ad" stroke-width="1.25"/>
+  <text x="500" y="220" font-weight="600" fill="#1f1f1d">hermes-radio-daemon</text>
+  <text x="500" y="240" font-size="11.5" fill="#5e5d59">127.0.0.1:8080</text>
+  <text x="500" y="256" font-size="11.5" fill="#5e5d59">state, commands, spectrum</text>
+  <text x="500" y="272" font-size="11.5" fill="#5e5d59">rig over CAT, SHM for scripts</text>
+
+  <!-- mercury -->
+  <rect x="488" y="312" width="240" height="88" rx="8" fill="#ffffff" stroke="#b8b8ad" stroke-width="1.25"/>
+  <text x="500" y="336" font-weight="600" fill="#1f1f1d">Mercury</text>
+  <text x="500" y="356" font-size="11.5" fill="#5e5d59">127.0.0.1:10000</text>
+  <text x="500" y="372" font-size="11.5" fill="#5e5d59">link state, config, chat</text>
+  <text x="500" y="388" font-size="11.5" fill="#5e5d59">TNC 8300/8301 for uucpd</text>
+</svg>
