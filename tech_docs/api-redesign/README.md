@@ -240,6 +240,22 @@ The migration makes today's `root` an admin. Every other user starts as `user`, 
 
 The hermes-security-hardening work already in progress on the stations should own this table. The list here is what the API redesign depends on.
 
+### With hermes-radio-daemon as the backend
+
+The daemon that drives the transmitter now also parses requests from the network, so the specs ([openapi.yaml](openapi.yaml) and [asyncapi.yaml](asyncapi.yaml), Security sections) add:
+
+| Risk | Rule |
+| --- | --- |
+| Encryption on the air is not allowed on amateur bands | Encrypted messages, attachments and D-STAR voice are refused unless an admin enables them in `settings.encryption` for a licensed station. Both off by default |
+| Anyone on the Wi-Fi making the station transmit | Transmitting needs `operator`, is rate-limited per user, and every transmission is in the audit log (`radio.tx`). CW and RTTY append the station callsign when the text lacks it. The transmit timeout is enforced by the station |
+| Text that arrives over the air (FT8, CW, RTTY, D-STAR, chat, `.hmp`) is attacker-controlled | Control characters removed, lengths capped, always valid JSON, rendered as plain text. Decoded callsigns are claims, not identities |
+| A forged sender inside an `.hmp` file | The origin is the UUCP system that delivered the file |
+| Claiming a new station first, through `/setup` | A one-time setup code from the installer (console and `/etc/hermes/setup-code`) |
+| Cross-site requests riding a login cookie | Writes made with the cookie need a matching `Origin` or `X-Hermes-CSRF: 1` |
+| A C daemon with hardware access parsing untrusted HTTP and JSON | An unprivileged user under systemd sandboxing, a real JSON parser, fuzzing, and a privileged helper with fixed verbs for system actions |
+| A crash while transmitting | A watchdog unkeys the radio |
+| One TLS key on every station image | nginx terminates TLS, and each station gets its own key |
+
 ## Migration and rollout
 
 The work ships in five steps. Each step is a release that a station can install on its own. Nothing a deployed station depends on changes until the step that replaces it has shipped and been tested on the bench stations.
@@ -275,4 +291,5 @@ The work ships in five steps. Each step is a release that a station can install 
 - [ ] **Who owns saved radio profiles?** radiod's `user.ini` today. Either `/api/v2/radio/profiles` reads and writes them through radiod's socket, as proposed here, or they move into the database and radiod reads them from there.
 - [ ] **Does the UI need audio in the browser?** If it does, `radio.audio.rx` and `audio.tx` must be tested over Wi-Fi with several clients. If it doesn't, they stay for tools and can be left out of the UI.
 - [ ] **Where does the `nncp-transport` branch of hermes-api stand?** It must be merged, or retired, before the database migration.
+- [ ] **Are messages private to their author?** Today, and in these specs, every user of a station reads every message on it. Per-user privacy would scope `GET /messages` to the author and the addressed mailbox.
 - [ ] **Roles for existing users.** Everyone except `root` starts as `user`. Should stations with known operators get a list to promote at upgrade time?

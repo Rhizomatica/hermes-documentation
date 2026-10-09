@@ -43,6 +43,25 @@ info:
       2 MB behind is disconnected (close code 1008).
     - If the client that holds PTT disconnects, the station unkeys at once.
 
+    ## Security
+
+    The same rules as `openapi.yaml` (its Security section), and on this socket:
+
+    - The upgrade needs a session and an `Origin` naming this station; `readonly` runs no
+      commands.
+    - **Transmitting** (`radio.ptt`, `digi.send`, `audio.tx`) needs `operator`, is limited
+      per user (`settings.tx_rate_limit`, error `rate_limited`) and is written to the audit
+      log as `radio.tx`. The transmit timeout is enforced by the station, not the client,
+      and PTT is released when its client disconnects.
+    - **D-STAR encrypted voice** keys only when `settings.encryption.dstar_voice` is on;
+      otherwise PTT is refused with `encryption_not_allowed`.
+    - **CW and RTTY identify the station:** if the text of a `digi.send` doesn't contain
+      the station callsign, the station appends ` de <callsign>`.
+    - **Untrusted text.** `digi.rx` and `modem.chat` text, decoded callsigns and every
+      field that came over the air are untrusted: control characters are removed, lengths
+      are capped, and every frame is valid JSON whatever was received. Clients render them
+      as plain text and never as HTML. A decoded callsign is a claim, not an identity.
+
     ## Binary frames
 
     Little-endian. Header (12 bytes): `u8 kind`, `u8 version` (1), `u16 flags` (0),
@@ -555,7 +574,12 @@ components:
       required: [mode, text]
       properties:
         mode: { type: string, enum: [FT8, CW, RTTY] }
-        text: { type: string, maxLength: 256, description: FT8 free text is at most 13 characters. }
+        text:
+          type: string
+          maxLength: 256
+          description: |
+            FT8 free text is at most 13 characters. CW and RTTY text without the station
+            callsign gets ` de <callsign>` appended.
     RecordingArgs:
       type: object
       title: recording.start / recording.stop (operator)
@@ -600,6 +624,9 @@ components:
                 - rig_timeout
                 - not_supported
                 - no_ptt
+                - rate_limited
+                - encryption_not_allowed
+                - tx_timeout
                 - internal
             message: { type: string }
     EventEnvelope:
@@ -623,17 +650,26 @@ components:
       required: [mode, text, at]
       properties:
         mode: { type: string, enum: [FT8, CW, RTTY, DSTAR] }
-        text: { type: string }
+        text:
+          type: string
+          maxLength: 512
+          description: Decoded off the air; untrusted, render as plain text.
         at: { type: string, format: date-time }
         frequency_hz: { type: integer }
         snr_db: { type: [number, "null"] }
-        from: { type: [string, "null"], description: "Callsign, when the mode carries one." }
+        from:
+          type: [string, "null"]
+          maxLength: 16
+          description: Callsign as decoded, when the mode carries one. Not verified.
     ChatLine:
       type: object
       required: [plane, dir, text, at]
       properties:
         plane: { type: string, enum: [arq, broadcast] }
         dir: { type: string, enum: [rx, tx] }
-        peer: { type: [string, "null"] }
-        text: { type: string }
+        peer: { type: [string, "null"], maxLength: 16 }
+        text:
+          type: string
+          maxLength: 1024
+          description: Received lines are untrusted; render as plain text.
         at: { type: string, format: date-time }

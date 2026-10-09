@@ -37,6 +37,46 @@ info:
     - Text meant for people (`title`, `detail`) follows the user's `locale`, or
       `Accept-Language` before login.
 
+    ## Security
+
+    A station's Wi-Fi is open to its community, so the API assumes anyone can reach it.
+
+    - **Logins.** Sessions are opaque tokens stored only as hashes. The cookie is
+      `HttpOnly; Secure; SameSite=Strict`. Failed logins are limited to 5 a minute per
+      address (429, `rate_limited`).
+    - **CSRF.** A request that changes anything (`POST`, `PUT`, `PATCH`, `DELETE`) made
+      with the session cookie must carry an `Origin` header naming this station, or the
+      `X-Hermes-CSRF: 1` header; otherwise 403 `csrf`. Requests authenticated with
+      `Authorization: Bearer` are exempt, since browsers never add that header by
+      themselves.
+    - **First boot.** `/setup` needs the one-time setup code the installer writes to the
+      console and to `/etc/hermes/setup-code` (root only). Anyone on the Wi-Fi could
+      otherwise claim a new station before its owner does.
+    - **Encryption on the air** is not allowed on amateur bands. Passphrase-encrypted
+      messages and attachments, and D-STAR encrypted voice, are refused (403
+      `encryption_not_allowed`) unless an admin turns them on in `settings.encryption`
+      for a station licensed to use them. Both default to off.
+    - **Transmissions are accountable.** Only `operator` and above can make the station
+      transmit, and every transmission is in the audit log (`GET /events`, action
+      `radio.tx`): who, mode, frequency, text, start and end.
+    - **Text from other stations is untrusted.** Anyone can transmit, so everything that
+      arrives over the air is data, never markup: incoming message subjects and bodies,
+      attachment names, decoded FT8, CW, RTTY and D-STAR text, chat lines and decoded
+      callsigns. The station removes control characters, enforces the length limits in
+      the schemas and always emits valid JSON; clients render it as plain text. Callsigns
+      decoded off the air are claims, not identities.
+    - **A message's origin** is the UUCP system that delivered it, never the sender field
+      inside the `.hmp` file, and the station never stores fields from that file beyond
+      the ones it maps.
+    - **The process.** hermes-radio-daemon runs as an unprivileged user with only the
+      real-time, audio and device rights it needs, under systemd sandboxing. System
+      actions (reboot, Wi-Fi, mailboxes, UUCP) go through a privileged helper with a fixed
+      set of verbs and validated arguments; no user input ever reaches a shell. HTTP, JSON
+      and WebSocket parsing is fuzzed.
+    - **Failsafe.** If the backend stops while transmitting, a watchdog unkeys the radio.
+    - **TLS.** nginx terminates TLS and limits request sizes and slow clients. Each station
+      should have its own key: a key shared by every station image is not secret.
+
     ## Choices where the two earlier proposals differ
 
     | Topic | README (hermes-api v2) | hermes-backend | This spec | Why |
@@ -133,9 +173,11 @@ paths:
       summary: First-boot setup, once.
       description: |
         Accepted only until setup is completed, while no user but the installer's `root`
-        exists, and only from the station's own network. Creates the first admin, names the
-        station and sets its language, time zone, first radio profile and enabled apps. The
-        UUCP name and mail domain are set by the installer and are not changed here.
+        exists, and only with the one-time `setup_code` that the installer shows on the
+        console and writes to `/etc/hermes/setup-code`. Five wrong codes lock setup for 10
+        minutes. Creates the first admin, names the station and sets its language, time
+        zone, first radio profile and enabled apps. The UUCP name and mail domain are set
+        by the installer and are not changed here.
       security: []
       requestBody:
         required: true
@@ -148,6 +190,11 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/Session"}
+        "403":
+          description: Wrong setup code (`code` = `bad_setup_code`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "409":
           description: Setup was already done (`code` = `setup_done`).
           content:
@@ -383,7 +430,10 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/Message"}
         "403":
-          description: Attachments are not allowed for this role (`settings.allow_attachments_role`).
+          description: |
+            Attachments are not allowed for this role (`settings.allow_attachments_role`,
+            `code` = `forbidden`), or a passphrase was given while
+            `settings.encryption.messages` is off (`code` = `encryption_not_allowed`).
           content:
             application/problem+json:
               schema: {$ref: "#/components/schemas/Problem"}
@@ -443,6 +493,11 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/Message"}
+        "403":
+          description: The draft is encrypted and `settings.encryption.messages` is off (`code` = `encryption_not_allowed`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "409": {$ref: "#/components/responses/Conflict"}
         "413": {$ref: "#/components/responses/TooLarge"}
         "507":
@@ -510,7 +565,8 @@ paths:
       summary: Upload a file before attaching it to a draft.
       description: |
         Images are recompressed (VVC) and audio encoded (LPCNet) for HF unless `codec` is
-        `none`. With a passphrase the stored file is encrypted.
+        `none`. With a passphrase the stored file is encrypted, which needs
+        `settings.encryption.messages`.
       x-hermes-role: user
       requestBody:
         required: true
@@ -531,6 +587,11 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/Attachment"}
+        "403":
+          description: A passphrase was given while `settings.encryption.messages` is off (`code` = `encryption_not_allowed`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "413": {$ref: "#/components/responses/TooLarge"}
   /attachments/{attachment_id}:
     parameters:
@@ -1266,6 +1327,10 @@ paths:
       tags: [events]
       operationId: listEvents
       summary: Audit log — who did what, when. Kept 90 days.
+      description: |
+        Logins, user and setting changes, system actions, and every transmission
+        (`radio.tx`: user, mode, frequency, text or "voice", start and end). Filter with
+        `action`.
       x-hermes-role: admin
       parameters:
         - name: user_id
@@ -1565,15 +1630,24 @@ components:
         id: {type: integer, format: int64}
         direction: {type: string, enum: [in, out]}
         status: {$ref: "#/components/schemas/MessageStatus"}
-        origin: {$ref: "#/components/schemas/UucpName"}
+        origin:
+          $ref: "#/components/schemas/UucpName"
+          description: |
+            For incoming messages, the UUCP system that delivered the file, never the
+            sender field inside it.
         author_id:
           type: [integer, "null"]
           format: int64
           description: The local user who wrote it; null for incoming messages.
-        subject: {type: string, maxLength: 255}
+        subject:
+          type: string
+          maxLength: 255
+          description: Untrusted on incoming messages; render as plain text.
         body:
           type: string
-          description: Absent in lists, and when `body_encrypted` (use `/decrypt`).
+          description: |
+            Absent in lists, and when `body_encrypted` (use `/decrypt`). Untrusted on
+            incoming messages; render as plain text.
         body_encrypted: {type: boolean}
         recipients:
           type: array
@@ -1624,7 +1698,9 @@ components:
         passphrase:
           type: string
           writeOnly: true
-          description: When given, the body is encrypted with it (AES-256, as today).
+          description: |
+            When given, the body is encrypted with it (AES-256, as today). Refused unless
+            `settings.encryption.messages` is on.
     MessagePatch:
       type: object
       properties:
@@ -1915,6 +1991,26 @@ components:
           type: array
           items: {$ref: "#/components/schemas/UucpName"}
         idle_logout_s: {type: integer, minimum: 60}
+        encryption:
+          type: object
+          description: |
+            Encryption on the air is not allowed on amateur bands. Turn these on only for a
+            station licensed to use encryption. Admin only; both default to off.
+          properties:
+            messages:
+              type: boolean
+              default: false
+              description: Allow passphrase-encrypted message bodies and attachments.
+            dstar_voice:
+              type: boolean
+              default: false
+              description: Allow D-STAR encrypted voice; otherwise the radio refuses to key with it on.
+        tx_rate_limit:
+          type: object
+          description: Per-user limits on making the station transmit.
+          properties:
+            digi_per_minute: {type: integer, minimum: 1, default: 6}
+            ptt_per_minute: {type: integer, minimum: 1, default: 30}
 
     LogLine:
       type: object
@@ -2002,8 +2098,12 @@ components:
         domain: {type: string}
     SetupRequest:
       type: object
-      required: [station_name, admin, language, timezone]
+      required: [setup_code, station_name, admin, language, timezone]
       properties:
+        setup_code:
+          type: string
+          writeOnly: true
+          description: From the installer (console or `/etc/hermes/setup-code`); single use.
         station_name: {type: string, maxLength: 64}
         callsign: {type: [string, "null"], maxLength: 16}
         country: {type: [string, "null"], pattern: "^[A-Z]{2}$", description: ISO 3166-1 alpha-2.}
