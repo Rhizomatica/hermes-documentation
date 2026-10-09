@@ -2,6 +2,19 @@
 
 2026-10-06 · Rafael Diniz · draft for review
 
+> **Direction (2026-10-09).** The target architecture has changed: hermes-radio-daemon
+> becomes the station's backend, including Mercury and serving the WebSocket and REST
+> APIs. This document was written before that decision. Its survey of today's system,
+> the `hermes.v1` protocol, the REST conventions, the database model and the security
+> fixes still apply; the parts that assume hermes-api in PHP behind nginx `auth_request`
+> will be revised. The station range is every Raspberry Pi from 1 GB to 16 GB. See
+> [COMPARISON.md](COMPARISON.md) for the decision register.
+>
+> The tentative API for that backend is specified in [api-rest.yaml](api-rest.yaml) (REST,
+> OpenAPI 3.1) and [api-ws.yaml](api-ws.yaml) (the `hermes.v1` WebSocket, AsyncAPI 3.1).
+> Where this document and the hermes-backend docs disagree, each spec says which way it went
+> and why.
+
 ## Summary
 
 This design gives the station one front door, nginx on port 443, behind which there are two APIs. Live radio and modem state, and radio commands, travel over WebSockets served directly by hermes-radio-daemon and Mercury. Everything stored or done on the station's files and services stays REST in hermes-api, as a new `/api/v2`. hermes-api becomes the single place that authenticates users, both for REST and for opening a WebSocket. Its database is redesigned around messages with per-recipient delivery state, stations, schedules, settings and sessions.
@@ -227,6 +240,22 @@ The migration makes today's `root` an admin. Every other user starts as `user`, 
 
 The hermes-security-hardening work already in progress on the stations should own this table. The list here is what the API redesign depends on.
 
+### With hermes-radio-daemon as the backend
+
+The daemon that drives the transmitter now also parses requests from the network, so the specs ([api-rest.yaml](api-rest.yaml) and [api-ws.yaml](api-ws.yaml), Security sections) add:
+
+| Risk | Rule |
+| --- | --- |
+| Encryption on the air is not allowed on amateur bands | Encrypted messages, attachments and D-STAR voice are refused unless an admin enables them in `settings.encryption` for a licensed station. Both off by default |
+| Anyone on the Wi-Fi making the station transmit | Transmitting needs `operator`, is rate-limited per user, and every transmission is in the audit log (`radio.tx`). CW and RTTY append the station callsign when the text lacks it. The transmit timeout is enforced by the station |
+| Text that arrives over the air (FT8, CW, RTTY, D-STAR, chat, `.hmp`) is attacker-controlled | Control characters removed, lengths capped, always valid JSON, rendered as plain text. Decoded callsigns are claims, not identities |
+| A forged sender inside an `.hmp` file | The origin is the UUCP system that delivered the file |
+| Claiming a new station first, through `/setup` | A one-time setup code from the installer (console and `/etc/hermes/setup-code`) |
+| Cross-site requests riding a login cookie | Writes made with the cookie need a matching `Origin` or `X-Hermes-CSRF: 1` |
+| A C daemon with hardware access parsing untrusted HTTP and JSON | An unprivileged user under systemd sandboxing, a real JSON parser, fuzzing, and a privileged helper with fixed verbs for system actions |
+| A crash while transmitting | A watchdog unkeys the radio |
+| One TLS key on every station image | nginx terminates TLS, and each station gets its own key |
+
 ## Migration and rollout
 
 The work ships in five steps. Each step is a release that a station can install on its own. Nothing a deployed station depends on changes until the step that replaces it has shipped and been tested on the bench stations.
@@ -257,9 +286,10 @@ The work ships in five steps. Each step is a release that a station can install 
 ## Open questions
 
 - [ ] **Which UI is the future?** hermes-gui (Angular, deployed) or hermes-frontend (Next.js, newer, currently not buildable)? This decides who ports to v2 first and whether step 5 is done once or twice.
-- [ ] **Stay on PHP/Lumen?** This design keeps hermes-api in Lumen, so the work is a refactor rather than a rewrite. A rewrite (for example Go, one binary with built-in WebSockets) would remove the nginx `auth_request` hop and PHP-FPM's memory, but costs much more up front.
+- [x] **Stay on PHP/Lumen?** *Decided 2026-10-09: no; the backend is built on hermes-radio-daemon (see Direction).* This design keeps hermes-api in Lumen, so the work is a refactor rather than a rewrite. A rewrite (for example Go, one binary with built-in WebSockets) would remove the nginx `auth_request` hop and PHP-FPM's memory, but costs much more up front.
 - [ ] **MariaDB or SQLite?** SQLite would free about 100 MB of RAM on 1 GB stations and make backups a file copy. MariaDB is already installed everywhere and needs no migration of engine.
 - [ ] **Who owns saved radio profiles?** radiod's `user.ini` today. Either `/api/v2/radio/profiles` reads and writes them through radiod's socket, as proposed here, or they move into the database and radiod reads them from there.
 - [ ] **Does the UI need audio in the browser?** If it does, `radio.audio.rx` and `audio.tx` must be tested over Wi-Fi with several clients. If it doesn't, they stay for tools and can be left out of the UI.
 - [ ] **Where does the `nncp-transport` branch of hermes-api stand?** It must be merged, or retired, before the database migration.
+- [ ] **Are messages private to their author?** Today, and in these specs, every user of a station reads every message on it. Per-user privacy would scope `GET /messages` to the author and the addressed mailbox.
 - [ ] **Roles for existing users.** Everyone except `root` starts as `user`. Should stations with known operators get a list to promote at upgrade time?
