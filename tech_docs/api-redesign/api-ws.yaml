@@ -7,7 +7,7 @@ info:
     implemented yet.
 
     One WebSocket per client, served by hermes-radio-daemon (which includes Mercury) next
-    to the REST API in `openapi.yaml`. Payload schemas are shared with that file, so a
+    to the REST API in `api-rest.yaml`. Payload schemas are shared with that file, so a
     field means the same thing in both.
 
     The application described here is the **station**: `send` operations are frames the
@@ -45,7 +45,7 @@ info:
 
     ## Security
 
-    The same rules as `openapi.yaml` (its Security section), and on this socket:
+    The same rules as `api-rest.yaml` (its Security section), and on this socket:
 
     - The upgrade needs a session and an `Origin` naming this station; `readonly` runs no
       commands.
@@ -86,10 +86,10 @@ info:
     | Error codes | strings | numbers 4001–4010 | strings | Readable in logs; the same codes as REST |
     | Heartbeat | 5 s, carries the clock | 30 s ping, 60 s timeout | 5 s heartbeat, 60 s idle timeout | The UI needs the station clock; the timeout tolerates a slow Wi-Fi link |
     | Binary | audio and spectrum | JSON only | binary, one header | A 512-bin spectrum at 20 fps is 41 kB/s as binary, several times that as JSON |
-    | Roles | 3 | 4 with `readonly` | 4 with `readonly` | Adopted, as in `openapi.yaml` |
+    | Roles | 3 | 4 with `readonly` | 4 with `readonly` | Adopted, as in `api-rest.yaml` |
     | Correlation | command `id` | `requestId` | command `id`, plus `X-Request-Id` per connection | Adopted for tracing; `id` already pairs a command with its reply |
     | Language | — | `locale` in the token | `locale` in `hello` | Adopted |
-    | Read state | — | `MESSAGE_ACK` | `messages` events with `change: read` | Adopted as local read state, as in `openapi.yaml` |
+    | Read state | — | `MESSAGE_ACK` | `messages` events with `change: read` | Adopted as local read state, as in `api-rest.yaml` |
     | Digital modes | `digi.rx` decodes | — | `digi`: sent and received, D-STAR headers, FT8 SNR, time and audio offsets; history at `GET /digi/log` | Matches what hermes-radio-daemon already does (FT8, CW, RTTY, D-STAR), with the metadata its log drops today |
   license:
     name: GPL-3.0-or-later
@@ -265,7 +265,7 @@ components:
           - type: object
             properties:
               topic: { const: radio.state }
-              data: { $ref: "openapi.yaml#/components/schemas/RadioState" }
+              data: { $ref: "api-rest.yaml#/components/schemas/RadioState" }
     RadioProfilesEvent:
       name: radio.profiles
       summary: Every saved profile; on change, the profiles that changed.
@@ -280,7 +280,7 @@ components:
                 properties:
                   profiles:
                     type: array
-                    items: { $ref: "openapi.yaml#/components/schemas/RadioProfile" }
+                    items: { $ref: "api-rest.yaml#/components/schemas/RadioProfile" }
     RadioRigEvent:
       name: radio.rig
       summary: Hamlib levels, functions and parameters the client asked to watch (`rig.watch`).
@@ -308,7 +308,7 @@ components:
           - type: object
             properties:
               topic: { const: digi }
-              data: { $ref: "openapi.yaml#/components/schemas/DigiEntry" }
+              data: { $ref: "api-rest.yaml#/components/schemas/DigiEntry" }
     ModemStatusEvent:
       name: modem.status
       payload:
@@ -317,7 +317,7 @@ components:
           - type: object
             properties:
               topic: { const: modem.status }
-              data: { $ref: "openapi.yaml#/components/schemas/ModemStatus" }
+              data: { $ref: "api-rest.yaml#/components/schemas/ModemStatus" }
     ModemConfigEvent:
       name: modem.config
       summary: Operator role and above.
@@ -327,7 +327,7 @@ components:
           - type: object
             properties:
               topic: { const: modem.config }
-              data: { $ref: "openapi.yaml#/components/schemas/ModemConfig" }
+              data: { $ref: "api-rest.yaml#/components/schemas/ModemConfig" }
     ModemChatEvent:
       name: modem.chat
       summary: Mercury's keyboard chat (ARQ and broadcast). The snapshot is the stored history.
@@ -352,7 +352,7 @@ components:
                 required: [change, message]
                 properties:
                   change: { type: string, enum: [created, received, updated, read, unread, deleted] }
-                  message: { $ref: "openapi.yaml#/components/schemas/Message" }
+                  message: { $ref: "api-rest.yaml#/components/schemas/Message" }
     QueueEvent:
       name: queue
       summary: A UUCP job was queued, sent, failed or cancelled; a call started or ended.
@@ -366,8 +366,8 @@ components:
                 type: object
                 properties:
                   change: { type: string, enum: [queued, sent, failed, cancelled, call_started, call_ended] }
-                  job: { $ref: "openapi.yaml#/components/schemas/QueueJob" }
-                  station: { $ref: "openapi.yaml#/components/schemas/UucpName" }
+                  job: { $ref: "api-rest.yaml#/components/schemas/QueueJob" }
+                  station: { $ref: "api-rest.yaml#/components/schemas/UucpName" }
     SystemEvent:
       name: system
       summary: Health, disk, clock sync or a service changed state.
@@ -377,7 +377,7 @@ components:
           - type: object
             properties:
               topic: { const: system }
-              data: { $ref: "openapi.yaml#/components/schemas/Health" }
+              data: { $ref: "api-rest.yaml#/components/schemas/Health" }
     GpsEvent:
       name: gps
       payload:
@@ -386,7 +386,7 @@ components:
           - type: object
             properties:
               topic: { const: gps }
-              data: { $ref: "openapi.yaml#/components/schemas/Gps" }
+              data: { $ref: "api-rest.yaml#/components/schemas/Gps" }
     BinaryFrame:
       name: binary
       contentType: application/octet-stream
@@ -431,7 +431,7 @@ components:
         version: { type: string }
         role: { type: string, enum: [readonly, user, operator, admin] }
         user: { type: string }
-        locale: { $ref: "openapi.yaml#/components/schemas/Locale" }
+        locale: { $ref: "api-rest.yaml#/components/schemas/Locale" }
         topics:
           type: array
           description: Topics this station offers (a station without a radio offers no `radio.*`).
@@ -522,7 +522,7 @@ components:
       properties:
         profile: { type: integer, minimum: 0 }
         frequency_hz: { type: integer, minimum: 0 }
-        mode: { $ref: "openapi.yaml#/components/schemas/Mode" }
+        mode: { $ref: "api-rest.yaml#/components/schemas/Mode" }
         power: { type: integer, minimum: 0, maximum: 100 }
         volume: { type: integer, minimum: 0, maximum: 100 }
         step_hz: { type: integer, minimum: 1 }

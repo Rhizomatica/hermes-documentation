@@ -10,8 +10,8 @@
 > will be revised. The station range is every Raspberry Pi from 1 GB to 16 GB. See
 > [COMPARISON.md](COMPARISON.md) for the decision register.
 >
-> The tentative API for that backend is specified in [openapi.yaml](openapi.yaml) (REST,
-> OpenAPI 3.1) and [asyncapi.yaml](asyncapi.yaml) (the `hermes.v1` WebSocket, AsyncAPI 3.1).
+> The tentative API for that backend is specified in [api-rest.yaml](api-rest.yaml) (REST,
+> OpenAPI 3.1) and [api-ws.yaml](api-ws.yaml) (the `hermes.v1` WebSocket, AsyncAPI 3.1).
 > Where this document and the hermes-backend docs disagree, each spec says which way it went
 > and why.
 
@@ -242,7 +242,7 @@ The hermes-security-hardening work already in progress on the stations should ow
 
 ### With hermes-radio-daemon as the backend
 
-The daemon that drives the transmitter now also parses requests from the network, so the specs ([openapi.yaml](openapi.yaml) and [asyncapi.yaml](asyncapi.yaml), Security sections) add:
+The daemon that drives the transmitter now also parses requests from the network, so the specs ([api-rest.yaml](api-rest.yaml) and [api-ws.yaml](api-ws.yaml), Security sections) add:
 
 | Risk | Rule |
 | --- | --- |

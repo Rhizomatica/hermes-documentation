@@ -9,7 +9,7 @@ info:
 
     hermes-radio-daemon is the station's backend: it controls the radio, includes
     Mercury (the modem) and serves this REST API and the `hermes.v1` WebSocket
-    (`asyncapi.yaml`, same folder) on one port. It replaces hermes-api (PHP) route by
+    (`api-ws.yaml`, same folder) on one port. It replaces hermes-api (PHP) route by
     route; today's `/api` keeps working until no released UI uses it.
 
     It must run on every Raspberry Pi from 1 GB to 16 GB; the 1 GB Pi sets the budget.
