@@ -57,7 +57,7 @@ info:
       otherwise PTT is refused with `encryption_not_allowed`.
     - **CW and RTTY identify the station:** if the text of a `digi.send` doesn't contain
       the station callsign, the station appends ` de <callsign>`.
-    - **Untrusted text.** `digi.rx` and `modem.chat` text, decoded callsigns and every
+    - **Untrusted text.** `digi` and `modem.chat` text, decoded callsigns and every
       field that came over the air are untrusted: control characters are removed, lengths
       are capped, and every frame is valid JSON whatever was received. Clients render them
       as plain text and never as HTML. A decoded callsign is a claim, not an identity.
@@ -90,6 +90,7 @@ info:
     | Correlation | command `id` | `requestId` | command `id`, plus `X-Request-Id` per connection | Adopted for tracing; `id` already pairs a command with its reply |
     | Language | — | `locale` in the token | `locale` in `hello` | Adopted |
     | Read state | — | `MESSAGE_ACK` | `messages` events with `change: read` | Adopted as local read state, as in `openapi.yaml` |
+    | Digital modes | `digi.rx` decodes | — | `digi`: sent and received, D-STAR headers, FT8 SNR, time and audio offsets; history at `GET /digi/log` | Matches what hermes-radio-daemon already does (FT8, CW, RTTY, D-STAR), with the metadata its log drops today |
   license:
     name: GPL-3.0-or-later
 
@@ -127,7 +128,7 @@ channels:
       radioState: { $ref: "#/components/messages/RadioStateEvent" }
       radioProfiles: { $ref: "#/components/messages/RadioProfilesEvent" }
       radioRig: { $ref: "#/components/messages/RadioRigEvent" }
-      digiRx: { $ref: "#/components/messages/DigiRxEvent" }
+      digi: { $ref: "#/components/messages/DigiEvent" }
       modemStatus: { $ref: "#/components/messages/ModemStatusEvent" }
       modemConfig: { $ref: "#/components/messages/ModemConfigEvent" }
       modemChat: { $ref: "#/components/messages/ModemChatEvent" }
@@ -180,7 +181,7 @@ operations:
       - $ref: "#/channels/station/messages/radioState"
       - $ref: "#/channels/station/messages/radioProfiles"
       - $ref: "#/channels/station/messages/radioRig"
-      - $ref: "#/channels/station/messages/digiRx"
+      - $ref: "#/channels/station/messages/digi"
       - $ref: "#/channels/station/messages/modemStatus"
       - $ref: "#/channels/station/messages/modemConfig"
       - $ref: "#/channels/station/messages/modemChat"
@@ -295,16 +296,19 @@ components:
                   levels: { type: object, additionalProperties: { type: number } }
                   funcs: { type: object, additionalProperties: { type: boolean } }
                   parms: { type: object, additionalProperties: { type: number } }
-    DigiRxEvent:
-      name: digi.rx
-      summary: One event per FT8, CW, RTTY or D-STAR decode. The snapshot is the last 100.
+    DigiEvent:
+      name: digi
+      summary: |
+        One event per FT8 decode, CW or RTTY line, D-STAR header, and per digital-mode
+        transmission (`dir: tx`). The snapshot is the last 100; older ones are in
+        `GET /digi/log`.
       payload:
         allOf:
           - $ref: "#/components/schemas/EventEnvelope"
           - type: object
             properties:
-              topic: { const: digi.rx }
-              data: { $ref: "#/components/schemas/DigiDecode" }
+              topic: { const: digi }
+              data: { $ref: "openapi.yaml#/components/schemas/DigiEntry" }
     ModemStatusEvent:
       name: modem.status
       payload:
@@ -408,7 +412,7 @@ components:
         - radio.spectrum.rx
         - radio.spectrum.tx
         - radio.audio.rx
-        - digi.rx
+        - digi
         - modem.status
         - modem.config
         - modem.chat
@@ -571,7 +575,12 @@ components:
     DigiSendArgs:
       type: object
       title: digi.send (operator)
-      required: [mode, text]
+      description: |
+        Sent in the active profile's mode (FT8, CW or RTTY), as hermes-radio-daemon does
+        today. `mode`, when given, must match it: a guard against sending in a mode the
+        operator didn't expect (`wrong_mode`). Change the mode first with `radio.set`. The
+        reply says the text is queued; the `digi` topic reports it as `tx` when it goes out.
+      required: [text]
       properties:
         mode: { type: string, enum: [FT8, CW, RTTY] }
         text:
@@ -624,6 +633,8 @@ components:
                 - rig_timeout
                 - not_supported
                 - no_ptt
+                - wrong_mode
+                - queue_full
                 - rate_limited
                 - encryption_not_allowed
                 - tx_timeout
@@ -645,22 +656,6 @@ components:
           default: false
           description: true for the full state sent on subscribe.
         data: { type: object }
-    DigiDecode:
-      type: object
-      required: [mode, text, at]
-      properties:
-        mode: { type: string, enum: [FT8, CW, RTTY, DSTAR] }
-        text:
-          type: string
-          maxLength: 512
-          description: Decoded off the air; untrusted, render as plain text.
-        at: { type: string, format: date-time }
-        frequency_hz: { type: integer }
-        snr_db: { type: [number, "null"] }
-        from:
-          type: [string, "null"]
-          maxLength: 16
-          description: Callsign as decoded, when the mode carries one. Not verified.
     ChatLine:
       type: object
       required: [plane, dir, text, at]
