@@ -1,0 +1,390 @@
+openapi: 3.1.0
+info:
+  title: HERMES Station API
+  version: 2.0.0
+  description: |
+    Contract skeleton for the HERMES station backend — a modular monolith
+    (single Go binary, ADR-006), not one service per domain. Structure only:
+    representative endpoints per domain. Expand against
+    `hermes-backend/architecture/api.md` §4.
+    REST = stored state + commands; WebSocket = pushed state (ws-protocol.md);
+    voice/media gated off by default. JWT RS256 + session cookie.
+
+servers:
+  - url: https://sbitx.local/api/v2
+    description: Station behind nginx TLS (443)
+
+tags:
+  - name: auth
+  - name: radio
+  - name: conversations
+  - name: messages
+  - name: geolocation
+  - name: email
+  - name: system
+  - name: frequencies
+  - name: schedules
+  - name: apps
+  - name: health
+
+security:
+  - bearerAuth: []
+  - sessionCookie: []
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      security: []
+      summary: Liveness check
+      responses:
+        "200":
+          description: Service is up
+
+  /auth/login:
+    post:
+      tags: [auth]
+      security: []
+      summary: Login with callsign + password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [callsign, password]
+              properties:
+                callsign: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Token pair
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      security: []
+      summary: Rotate access token
+      responses:
+        "200":
+          description: New token pair
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Revoke current session
+      responses:
+        "204":
+          description: Session revoked
+
+  /radio/status:
+    get:
+      tags: [radio]
+      summary: Current radio status snapshot
+      responses:
+        "200":
+          description: Radio + system state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RadioStatus" }
+
+  /radio/profiles:
+    get:
+      tags: [radio]
+      summary: List radio profiles
+      responses:
+        "200":
+          description: Profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RadioProfile" }
+
+  /radio/ptt:
+    post:
+      tags: [radio]
+      summary: Push-to-talk (operator+)
+      responses:
+        "200":
+          description: PTT state applied
+
+  /conversations:
+    get:
+      tags: [conversations]
+      summary: List conversations (paginated)
+      responses:
+        "200":
+          description: Conversation list
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConversationList" }
+    post:
+      tags: [conversations]
+      summary: Create a conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConversationCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
+
+  /conversations/{conversationId}/messages:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [messages]
+      summary: List messages (cursor-based)
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageList" }
+    post:
+      tags: [messages]
+      summary: Send a message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MessageCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+
+  /geolocation/current:
+    get:
+      tags: [geolocation]
+      summary: Latest GPS position
+      responses:
+        "200":
+          description: Position
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GeoPosition" }
+
+  /geolocation:
+    post:
+      tags: [geolocation]
+      summary: Report a GPS position
+      responses:
+        "201":
+          description: Stored
+
+  /system/config:
+    get:
+      tags: [system]
+      summary: Read system configuration (operator+)
+      responses:
+        "200":
+          description: Configuration
+    patch:
+      tags: [system]
+      summary: Update system configuration (admin)
+      responses:
+        "200":
+          description: Updated
+
+  /system/clock:
+    get:
+      tags: [system]
+      summary: Clock sync status
+      responses:
+        "200":
+          description: Clock status
+
+  /frequencies:
+    get:
+      tags: [frequencies]
+      summary: List frequency presets
+      responses:
+        "200":
+          description: Frequencies
+    post:
+      tags: [frequencies]
+      summary: Create frequency preset (operator+)
+      responses:
+        "201":
+          description: Created
+
+  /schedules:
+    get:
+      tags: [schedules]
+      summary: List connection schedules
+      responses:
+        "200":
+          description: Schedules
+    post:
+      tags: [schedules]
+      summary: Create schedule (operator+)
+      responses:
+        "201":
+          description: Created
+
+  /apps:
+    get:
+      tags: [apps]
+      summary: List installed frontend applications
+      responses:
+        "200":
+          description: Installed apps
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: string }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: hermes_session
+
+  schemas:
+    Error:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        code: { type: string }
+        message: { type: string }
+        requestId: { type: string }
+
+    Pagination:
+      type: object
+      properties:
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+        cursor: { type: string }
+        hasMore: { type: boolean }
+
+    RadioStatus:
+      type: object
+      properties:
+        radio:
+          type: object
+          properties:
+            frequencyHz: { type: integer }
+            mode: { type: string, enum: [USB, LSB, AM, FM, CW] }
+            tx: { type: boolean }
+            rx: { type: boolean }
+            snr: { type: number }
+            bitrate: { type: integer }
+            powerLevel: { type: integer }
+        system:
+          type: object
+          properties:
+            ok: { type: boolean }
+            connected: { type: boolean }
+            protection: { type: boolean }
+            profileActiveIdx: { type: integer }
+            digitalVoice: { type: boolean }
+
+    RadioProfile:
+      type: object
+      properties:
+        idx: { type: integer }
+        frequencyHz: { type: integer }
+        mode: { type: string, enum: [USB, LSB, AM, FM, CW] }
+        volume: { type: integer, minimum: 0, maximum: 100 }
+        digitalVoice: { type: boolean }
+
+    GeoPosition:
+      type: object
+      properties:
+        stationId: { type: string, format: uuid }
+        time: { type: string, format: date-time }
+        latitude: { type: number }
+        longitude: { type: number }
+        altitudeM: { type: number }
+        accuracyM: { type: number }
+        speedKmh: { type: number }
+        headingDeg: { type: number }
+        source: { type: string, enum: [gps, manual] }
+
+    Participant:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        callsign: { type: string }
+        role: { type: string, enum: [owner, member] }
+
+    Conversation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [direct, group, broadcast, radio] }
+        title: { type: string }
+        lastActivityAt: { type: string, format: date-time }
+        unreadCount: { type: integer }
+        participants:
+          type: array
+          items: { $ref: "#/components/schemas/Participant" }
+
+    ConversationCreate:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [direct, group, broadcast, radio] }
+        title: { type: string }
+        participantIds:
+          type: array
+          items: { type: string, format: uuid }
+
+    ConversationList:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Conversation" }
+        pagination: { $ref: "#/components/schemas/Pagination" }
+
+    Message:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        conversationId: { type: string, format: uuid }
+        senderCallsign: { type: string }
+        content: { type: string }
+        contentType: { type: string, enum: [text] }
+        status: { type: string, enum: [draft, sending, sent, delivered, read, failed] }
+        createdAt: { type: string, format: date-time }
+
+    MessageCreate:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string, maxLength: 65536 }
+        contentType: { type: string, enum: [text] }
+        clientMessageId: { type: string, format: uuid }
+        replyToMessageId: { type: string, format: uuid }
+
+    MessageList:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/Message" }
+        pagination: { $ref: "#/components/schemas/Pagination" }
+
+

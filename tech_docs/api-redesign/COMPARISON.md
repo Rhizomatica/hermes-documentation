@@ -63,6 +63,7 @@ compatible in principle but not interchangeable in implementation.
 | Identity / login | `username` = mailbox name (UUCP) | `callsign` = login id | ⚠️ |
 | Messaging model | inbox/outbox/drafts; `messages` + `message_recipients` (row per recipient + `uucp_job_id`) | `conversations` + `participants` + `message_deliveries` + reactions + envelopes | ⚠️ |
 | Radio command path | Straight to the radio daemon over WS (not REST) | REST → backend HAL → `sbitx` CLI (`execFile`) | ⚠️ |
+| Hamlib radios (IC-7100) | `sbitx_client -c set_ptt` / `radio_client` over shared memory to radiod or sbitx_controller; on Hamlib stations radiod drives the rig | `execFile('/usr/local/bin/sbitx', ['ptt','on'])` (ADR-006) — a command that exists on no deployed station; Hamlib only appears as a `-lhamlib` link flag | ⚠️ |
 | Modem state in the UI | First-class `/ws/modem` (link, SNR, bitrate, ARQ) | Not surfaced in the gateway at all | • |
 | Auth mechanism | Session **cookie** + nginx `auth_request`; argon2id | **JWT RS256** access + refresh rotation; bcrypt | ⚠️ |
 | Roles | 3 (`admin` / `operator` / `user`) | 4 (adds `readonly`) | • |
@@ -73,8 +74,8 @@ compatible in principle but not interchangeable in implementation.
 | WS heartbeat | 5 s | 30 s PING / 60 s timeout | • |
 | WS error codes | strings (`bad_request`, `unknown_cmd`) | numeric `4001`–`4010` | • |
 | WS auth | nginx `auth_request` → `X-Hermes-User` / `X-Hermes-Role` | `AUTHENTICATE` message with JWT, 10 s timeout | ⚠️ |
-| Hardware target | 1 GB Raspberry Pi | 4 GB Pi (sBitx v2) | ⚠️ |
-| UUCP / Postfix / Dovecot | First-class compatibility constraint | Barely addressed; the sync engine that carried it was removed | • |
+| Hardware target | 1 GB Raspberry Pi (smallest deployed station — the fleet's real budget) | 4 GB Pi (sBitx v2) — matches no deployed station; this repo's sBitx guide is V3 | ⚠️ |
+| UUCP / Postfix / Dovecot | First-class compatibility constraint | Not addressed — Postfix, Dovecot and `.hmp` appear nowhere in hermes-backend; a backend that doesn't carry the UUCP mail path and `.hmp` format can't replace the deployed station | ⚠️ |
 | i18n | Not mentioned | Full `en` / `es` / `pt-BR`; locale in the JWT | • |
 | Extra features | — | `user_devices` push (FCM/APNs), WebRTC signaling, app install/remove | • |
 
@@ -101,7 +102,7 @@ Each is a hard fork, not a wording difference.
 4. **Radio command path** — daemon WebSocket (README) vs backend HAL wrapping the `sbitx` CLI.
 5. **Auth** — session cookie + nginx `auth_request` (README) vs JWT RS256 + refresh rotation (ADR-004).
 6. **HTTP/WS contract** — `/api/v2`, `snake_case`, string error codes, binary frames (README) vs `/api/v1`, `camelCase`, numeric codes, JSON-only (hermes-backend).
-7. **Hardware assumption** — 1 GB Pi (README) vs 4 GB Pi (hermes-backend). The whole RAM budget of both designs depends on which is true.
+7. **Hardware** — settled by the deployed fleet, not an open fork. The smallest Pi in service sets the RAM budget: `estacao8` (the IC-7100 station) has ~900 MB and `estacao`/`estacao2` have 2 GB, so the budget is **1 GB**. hermes-backend's "sBitx v2, Raspberry Pi 4, 4 GB" (`audits/sbitx-v2.md`) matches no deployed station — and this repo's own sBitx guide is for the **V3**.
 
 ## Decision register
 
@@ -119,6 +120,8 @@ are being decided fresh rather than reconciled, because the README is silent on 
 Rows **R-01–R-07** are items the backend docs already assert as settled and that the
 team should ratify or reverse. All four groups are up for team review.
 
+**How to work the register.** Start with **D-00–D-07** — the seven hard forks — and settle them first, ideally as GitHub issues. The remaining rows close as they come up; working through all ~90 at once is not the path.
+
 Column meanings:
 
 - **Decision to take** — the concrete question, with both candidate answers inline.
@@ -131,14 +134,14 @@ Column meanings:
 
 | ID | Decision to take | Decision | Reason | Data | Members | Status | Blocks |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| D-00 | Plan of record: the README refactor, the hermes-backend design, or a merge of both? | TBD | Every row below hangs off this; without it the two docs keep drifting | This document; README §Summary; `hermes-backend/` | Maintainer + whole team | Open | Every row below |
+| D-00 | Plan of record: the README refactor, the hermes-backend design, or a merge of both? | TBD | Every row below hangs off this; without it the two docs keep drifting. Blocker: the plan of record must carry the UUCP mail path and `.hmp` format (the network's main payload) — hermes-backend drops it | This document; README §Summary; `hermes-backend/` | Maintainer + whole team | Open | Every row below |
 | D-01 | Database engine: MariaDB (README) or SQLite (ADR-001)? | TBD | Sets migration, backup model, RAM budget and the query layer | README "Open questions"; `adr-001-sqlite-for-pi4.md` | Backend + Ops | Open | Schema, ORM, migrations, backups |
-| D-02 | Runtime: keep PHP/Lumen (README) or rewrite in Node/Go (ADR-006)? | TBD | Decides whether this is a refactor or a rebuild, and the whole timeline | README "Open questions"; `adr-006-go-rewrite-and-station-consolidation.md` | Maintainer + Backend | Open | Every later row |
-| D-03 | Topology: separate daemons behind nginx (README) or one consolidated process (ADR-006)? | TBD | Drives RAM, ops surface and whether nginx `auth_request` is needed at all | README "Why direct sockets…"; `adr-006` | Backend + Radio/HAL | Open | WS auth design (D-15), deployment |
+| D-02 | Runtime: keep PHP/Lumen (README) or rewrite in Node/Go (ADR-006)? | TBD | Decides whether this is a refactor or a rebuild, and the whole timeline. Blocker: a runtime that doesn't carry the UUCP mail path and `.hmp` format can't replace the deployed station | README "Open questions"; `adr-006-go-rewrite-and-station-consolidation.md` | Maintainer + Backend | Open | Every later row |
+| D-03 | Topology: separate daemons behind nginx (README) or one consolidated process (ADR-006)? | TBD | Drives RAM, ops surface and whether nginx `auth_request` is needed at all. ADR-006's single-process consolidation carries risks the fork list doesn't name: radiod has no linkable core yet (`libradio_daemon_core.a` doesn't exist); the RT threads need new upstream C code (self-pinning); and one crash takes down the API, the radio and the modem together | README "Why direct sockets…"; `adr-006` | Backend + Radio/HAL | Open | WS auth design (D-15), deployment |
 | D-04 | Messaging model: inbox/outbox + per-recipient rows (README) or conversations (ADR-003)? | TBD | Defines message schema, UI shape and the UUCP/`.hmp` mapping | README schema; `adr-003-conversation-messaging-model.md` | Backend + UI | Open | Message schema and endpoints |
 | D-05 | Radio command path: daemon WebSocket (README) or backend HAL wrapping the `sbitx` CLI? | TBD | Sets control latency, the single source of truth and the attack surface | README "One path per job"; `architecture/hardware-integration.md` | Radio/HAL + Backend | Open | Radio REST/WS endpoints |
 | D-06 | Auth: session cookie + nginx `auth_request` (README) or JWT RS256 + refresh (ADR-004)? | TBD | Decides WS handshake, revocation and browser vs CLI/mobile support | README auth section; `adr-004-jwt-rs256-token-rotation.md` | Backend + Security | Open | WS auth (D-15), all protected routes |
-| D-07 | Hardware target: 1 GB Pi (README) or 4 GB Pi sBitx v2 (hermes-backend)? | TBD | The RAM budget that every other choice above is measured against | README "1 GB Raspberry Pi"; `audits/sbitx-v2.md` | Maintainer + Ops | Open | D-01, D-02, D-03 |
+| D-07 | Hardware target: settled by the deployed fleet — the smallest Pi sets the RAM budget (1 GB) | 1 GB Pi (smallest deployed station) | `estacao8` (IC-7100) ≈ 900 MB and `estacao`/`estacao2` = 2 GB are the fleet; the sBitx-v2 4 GB figure matches no deployed station, and this repo's sBitx guide is V3 | README "1 GB Raspberry Pi"; `audits/sbitx-v2.md`; deployed fleet | Maintainer + Ops | Decided | D-01, D-02, D-03 |
 | D-08 | REST version prefix: `/api/v2` (README) or `/api/v1` (hermes-backend)? | TBD | Client migration path and the freeze policy for the old routes | README conventions; `architecture/api.md` | Backend + UI | Open | Routing, UI migration |
 | D-09 | JSON casing: `snake_case` (README) or `camelCase` (hermes-backend)? | TBD | One convention across REST and WS; client code generation | README conventions; `architecture/api.md` | Backend + UI | Open | DTOs, WS payloads, clients |
 | D-10 | Error body: README `errors{field:[]}` map or `code`/`message`/`details`/`requestId`? | TBD | RFC 7807 needs one shape for every client to parse | README error format; `architecture/api.md` §errors | Backend + UI | Open | Shared error schema, clients |
