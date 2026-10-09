@@ -1,0 +1,1796 @@
+openapi: 3.1.0
+info:
+  title: HERMES station API
+  version: 2.0.0-draft.1
+  summary: REST API of a HERMES station, served by hermes-radio-daemon.
+  description: |
+    **Tentative proposal, 2026-10-09.** Defines the future architecture; nothing here is
+    implemented yet.
+
+    hermes-radio-daemon is the station's backend: it controls the radio, includes
+    Mercury (the modem) and serves this REST API and the `hermes.v1` WebSocket
+    (`asyncapi.yaml`, same folder) on one port. It replaces hermes-api (PHP) route by
+    route; today's `/api` keeps working until no released UI uses it.
+
+    It must run on every Raspberry Pi from 1 GB to 16 GB; the 1 GB Pi sets the budget.
+
+    ## Conventions
+
+    - JSON in and out, `snake_case`, real booleans and numbers.
+    - Timestamps are ISO 8601 in UTC (`2026-10-09T14:03:00Z`). Frequencies are integer Hz.
+    - Collections return `{"data": [...], "next_cursor": "..."}` and take `limit`
+      (default 50, maximum 200) and `cursor`. `next_cursor` is absent on the last page.
+    - Create returns 201 with the object; update is `PATCH` with only the fields that
+      change; delete returns 204.
+    - Errors are `application/problem+json` (RFC 9457) with a stable string `code`.
+    - Actions that are not a change to one resource are `POST` to a verb under it
+      (`POST /system/reboot`). No GET changes anything.
+    - No secret travels in a URL: passphrases go in bodies or the `X-Hermes-Passphrase`
+      header.
+    - `x-hermes-role` on an operation is the lowest role that may call it:
+      `user` < `operator` < `admin`. A role check failure is 403.
+
+    ## Choices where the two earlier proposals differ
+
+    | Topic | README (hermes-api v2) | hermes-backend | This spec | Why |
+    | --- | --- | --- | --- | --- |
+    | Base path | `/api/v2` | `/api/v1` | `/api/v2` | `/api` and `/api/v1` already mean today's routes on stations |
+    | Field case | `snake_case` | `camelCase` | `snake_case` | Matches radiod's and Mercury's existing JSON and the C code that emits it |
+    | Auth | Cookie session + nginx | JWT RS256 + refresh | Opaque session token, as a cookie for browsers or `Authorization: Bearer` for tools | One process holds the session table, so revocation is a row delete; no signing keys to manage on a 1 GB Pi |
+    | Login id | username (mailbox) | callsign | `username` (the mailbox name) | Users are people at a station; the callsign belongs to the station (`GET /system`) |
+    | Messages | inbox/outbox + per-recipient rows | conversations | Messages with per-recipient delivery; `GET /messages?peer=` gives a conversation view | The UUCP `.hmp` and mail model is per message and per destination; a conversation is a filter over it |
+    | Errors | problem+json with `errors` | problem+json with `code` | problem+json with both `code` and `errors` | Machines branch on `code`, forms show `errors` |
+    | Radio control | WebSocket only | REST through a CLI | Saved settings and state in REST; live control, PTT and streams on the WebSocket | PTT must be released when its client disappears, which only a socket can tell |
+  license:
+    name: GPL-3.0-or-later
+    identifier: GPL-3.0-or-later
+servers:
+  - url: https://{station}/api/v2
+    variables:
+      station:
+        default: station.hermes.radio
+        description: The station's hostname or address on its local network.
+security:
+  - sessionCookie: []
+  - bearerToken: []
+tags:
+  - name: session
+    description: Logging in and out.
+  - name: users
+    description: People with an account (and a mailbox) on this station.
+  - name: messages
+    description: HERMES messages exchanged with other stations over UUCP.
+  - name: attachments
+    description: Files attached to messages.
+  - name: stations
+    description: Stations this one can reach, from the UUCP configuration.
+  - name: schedules
+    description: When the station calls the others.
+  - name: queue
+    description: The UUCP spool.
+  - name: radio
+    description: Radio state and saved profiles; live control is on the WebSocket.
+  - name: modem
+    description: Mercury, the HF modem.
+  - name: system
+    description: Station identity, health, settings and power.
+  - name: logs
+    description: Mail and UUCP logs.
+  - name: wifi
+    description: The station's access point.
+  - name: gps
+    description: Position and position logging.
+  - name: events
+    description: Audit log.
+
+paths:
+  /health:
+    get:
+      tags: [system]
+      operationId: getHealth
+      summary: Liveness and component health (no login needed).
+      security: []
+      responses:
+        "200":
+          description: Healthy or degraded; see `status`.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Health"}
+
+  /session:
+    post:
+      tags: [session]
+      operationId: login
+      summary: Log in.
+      description: |
+        Sets the `hermes_session` cookie and also returns the token, for tools that use
+        `Authorization: Bearer`. Failed logins are limited to 5 a minute per address.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/LoginRequest"}
+      responses:
+        "201":
+          description: Logged in.
+          headers:
+            Set-Cookie:
+              description: "`hermes_session=<token>; HttpOnly; Secure; SameSite=Strict; Path=/`"
+              schema: {type: string}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Session"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+    get:
+      tags: [session]
+      operationId: getSession
+      summary: Who am I.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: The current session.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Session"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    delete:
+      tags: [session]
+      operationId: logout
+      summary: Log out (ends this session only).
+      x-hermes-role: user
+      responses:
+        "204": {description: Logged out.}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+
+  /users:
+    get:
+      tags: [users]
+      operationId: listUsers
+      summary: List users.
+      x-hermes-role: admin
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Users.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UserPage"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      tags: [users]
+      operationId: createUser
+      summary: Create a user and their mailbox.
+      description: Also creates the Postfix/Dovecot mailbox through the station's `email_create_user` helper.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/UserCreate"}
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "422": {$ref: "#/components/responses/Invalid"}
+  /users/{user_id}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      tags: [users]
+      operationId: getUser
+      summary: A user (admins, or the user themselves).
+      x-hermes-role: user
+      responses:
+        "200":
+          description: The user.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      tags: [users]
+      operationId: updateUser
+      summary: Change a user (admins; users may change their own display name, phone and location).
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/UserPatch"}
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/Invalid"}
+    delete:
+      tags: [users]
+      operationId: deleteUser
+      summary: Delete a user and their mailbox (`root` cannot be deleted).
+      x-hermes-role: admin
+      responses:
+        "204": {description: Deleted.}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /users/{user_id}/password:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    put:
+      tags: [users]
+      operationId: setPassword
+      summary: Set a password (the user, with the current one; or an admin). Updates the mailbox too.
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PasswordChange"}
+      responses:
+        "204": {description: Changed. Other sessions of that user end.}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "422": {$ref: "#/components/responses/Invalid"}
+
+  /messages:
+    get:
+      tags: [messages]
+      operationId: listMessages
+      summary: Messages, newest first.
+      x-hermes-role: user
+      parameters:
+        - name: box
+          in: query
+          schema: {type: string, enum: [inbox, outbox, drafts, all], default: all}
+        - name: peer
+          in: query
+          description: Only messages from or to this station (`uucp_name`) — the conversation view.
+          schema: {$ref: "#/components/schemas/UucpName"}
+        - name: status
+          in: query
+          schema: {$ref: "#/components/schemas/MessageStatus"}
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Messages, without bodies.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MessagePage"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [messages]
+      operationId: createMessage
+      summary: Store a draft.
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/MessageCreate"}
+      responses:
+        "201":
+          description: Draft stored.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Message"}
+        "403":
+          description: Attachments are not allowed for this role (`settings.allow_attachments_role`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+        "422": {$ref: "#/components/responses/Invalid"}
+  /messages/{message_id}:
+    parameters:
+      - $ref: "#/components/parameters/MessageId"
+    get:
+      tags: [messages]
+      operationId: getMessage
+      summary: A message with its body.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: The message with its body (ciphertext stays hidden when `body_encrypted`).
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Message"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      tags: [messages]
+      operationId: updateDraft
+      summary: Change a draft (only while `status` is `draft`).
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/MessagePatch"}
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Message"}
+        "409": {$ref: "#/components/responses/Conflict"}
+    delete:
+      tags: [messages]
+      operationId: deleteMessage
+      summary: Delete a message; queued UUCP jobs for it are cancelled.
+      x-hermes-role: user
+      responses:
+        "204": {description: Deleted.}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /messages/{message_id}/send:
+    parameters:
+      - $ref: "#/components/parameters/MessageId"
+    post:
+      tags: [messages]
+      operationId: sendMessage
+      summary: Queue a draft to each recipient (one UUCP job per recipient).
+      description: Safe to retry; recipients already queued are left as they are.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: Queued; `recipients` carries each one's state and job id.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Message"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "413": {$ref: "#/components/responses/TooLarge"}
+        "507":
+          description: The UUCP spool for a recipient is full (`code` = `spool_full`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+  /messages/{message_id}/decrypt:
+    parameters:
+      - $ref: "#/components/parameters/MessageId"
+    post:
+      tags: [messages]
+      operationId: decryptMessage
+      summary: Decrypt an encrypted body with its passphrase (nothing is stored).
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/Passphrase"}
+      responses:
+        "200":
+          description: The plain body.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [body]
+                properties:
+                  body: {type: string}
+        "422":
+          description: Wrong passphrase (`code` = `bad_passphrase`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+
+  /attachments:
+    post:
+      tags: [attachments]
+      operationId: uploadAttachment
+      summary: Upload a file before attaching it to a draft.
+      description: |
+        Images are recompressed (VVC) and audio encoded (LPCNet) for HF unless `codec` is
+        `none`. With a passphrase the stored file is encrypted.
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  contentMediaType: application/octet-stream
+                passphrase: {type: string, writeOnly: true}
+                codec: {$ref: "#/components/schemas/Codec"}
+      responses:
+        "201":
+          description: Stored.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Attachment"}
+        "413": {$ref: "#/components/responses/TooLarge"}
+  /attachments/{attachment_id}:
+    parameters:
+      - name: attachment_id
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      tags: [attachments]
+      operationId: downloadAttachment
+      summary: Download an attachment, decoded back to a common format.
+      x-hermes-role: user
+      parameters:
+        - name: X-Hermes-Passphrase
+          in: header
+          description: Required when the attachment is encrypted.
+          schema: {type: string}
+      responses:
+        "200":
+          description: The file.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                contentMediaType: application/octet-stream
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422":
+          description: Missing or wrong passphrase (`code` = `bad_passphrase`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+    delete:
+      tags: [attachments]
+      operationId: deleteAttachment
+      summary: Delete an attachment that no sent message uses.
+      x-hermes-role: user
+      responses:
+        "204": {description: Deleted.}
+        "409": {$ref: "#/components/responses/Conflict"}
+
+  /stations:
+    get:
+      tags: [stations]
+      operationId: listStations
+      summary: The stations this one can reach, from `/etc/uucp/sys`.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: Stations.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Station"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /stations/{uucp_name}:
+    parameters:
+      - name: uucp_name
+        in: path
+        required: true
+        schema: {$ref: "#/components/schemas/UucpName"}
+    get:
+      tags: [stations]
+      operationId: getStation
+      summary: A station.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: The station.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Station"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      tags: [stations]
+      operationId: updateStation
+      summary: Change alias, frequency, mode or enabled. The UUCP configuration itself is never written.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/StationPatch"}
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Station"}
+        "422": {$ref: "#/components/responses/Invalid"}
+
+  /schedules:
+    get:
+      tags: [schedules]
+      operationId: listSchedules
+      summary: Connection schedules.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: Connection schedules.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Schedule"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [schedules]
+      operationId: createSchedule
+      summary: Create a connection schedule.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ScheduleWrite"}
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Schedule"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "422": {$ref: "#/components/responses/Invalid"}
+  /schedules/next:
+    get:
+      tags: [schedules]
+      operationId: nextSchedule
+      summary: The next window the station will call in, if any.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: The next window.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ScheduleNext"}
+        "204": {description: No enabled schedule.}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /schedules/{schedule_id}:
+    parameters:
+      - name: schedule_id
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      tags: [schedules]
+      operationId: getSchedule
+      summary: A schedule.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: The schedule.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Schedule"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      tags: [schedules]
+      operationId: updateSchedule
+      summary: Change a schedule.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ScheduleWrite"}
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Schedule"}
+        "422": {$ref: "#/components/responses/Invalid"}
+    delete:
+      tags: [schedules]
+      operationId: deleteSchedule
+      summary: Delete a schedule.
+      x-hermes-role: admin
+      responses:
+        "204": {description: Deleted.}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /queue:
+    get:
+      tags: [queue]
+      operationId: listQueue
+      summary: Jobs waiting in the UUCP spool.
+      x-hermes-role: operator
+      parameters:
+        - name: station
+          in: query
+          schema: {$ref: "#/components/schemas/UucpName"}
+      responses:
+        "200":
+          description: Jobs, oldest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/QueueJob"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /queue/{job_id}:
+    parameters:
+      - name: job_id
+        in: path
+        required: true
+        description: The UUCP job id (`<station>.<id>`).
+        schema: {type: string, pattern: "^[A-Za-z0-9._-]{1,64}$"}
+    delete:
+      tags: [queue]
+      operationId: cancelJob
+      summary: Cancel a job. A mail job's sender is told it was not delivered.
+      x-hermes-role: operator
+      responses:
+        "204": {description: Cancelled.}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /queue/call:
+    post:
+      tags: [queue]
+      operationId: callNow
+      summary: Call a station now (or every station with work queued).
+      x-hermes-role: operator
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                station: {$ref: "#/components/schemas/UucpName"}
+      responses:
+        "202": {description: Call started; follow it on the `queue` and `modem.status` topics.}
+        "409":
+          description: A call is already in progress (`code` = `busy`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+  /queue/stop:
+    post:
+      tags: [queue]
+      operationId: stopCalls
+      summary: Stop the call in progress.
+      x-hermes-role: operator
+      responses:
+        "204": {description: Stopped.}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /radio:
+    get:
+      tags: [radio]
+      operationId: getRadioState
+      summary: The radio's current state (the same data as the `radio.state` topic).
+      x-hermes-role: user
+      responses:
+        "200":
+          description: State.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RadioState"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /radio/active-profile:
+    put:
+      tags: [radio]
+      operationId: selectProfile
+      summary: Switch to another saved profile.
+      x-hermes-role: operator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [profile]
+              properties:
+                profile: {type: integer, minimum: 0}
+      responses:
+        "200":
+          description: Switched.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RadioState"}
+        "409":
+          description: Refused while transmitting (`code` = `busy`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+  /radio/profiles:
+    get:
+      tags: [radio]
+      operationId: listProfiles
+      summary: Every saved radio profile.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: Every saved profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/RadioProfile"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /radio/profiles/{profile}:
+    parameters:
+      - name: profile
+        in: path
+        required: true
+        schema: {type: integer, minimum: 0}
+    get:
+      tags: [radio]
+      operationId: getProfile
+      summary: A saved radio profile.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: The profile.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RadioProfile"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      tags: [radio]
+      operationId: updateProfile
+      summary: Change a profile. On the active profile the radio follows at once.
+      description: All fields are validated before any is applied.
+      x-hermes-role: operator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/RadioProfilePatch"}
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RadioProfile"}
+        "422": {$ref: "#/components/responses/Invalid"}
+  /radio/protection/reset:
+    post:
+      tags: [radio]
+      operationId: resetProtection
+      summary: Clear the high-SWR protection after the antenna is fixed.
+      x-hermes-role: operator
+      responses:
+        "204": {description: Cleared.}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /radio/defaults:
+    post:
+      tags: [radio]
+      operationId: restoreRadioDefaults
+      summary: Restore the radio's factory profiles.
+      x-hermes-role: admin
+      responses:
+        "200":
+          description: Restored.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/RadioProfile"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /modem:
+    get:
+      tags: [modem]
+      operationId: getModemStatus
+      summary: Mercury's link state (the same data as the `modem.status` topic).
+      x-hermes-role: user
+      responses:
+        "200":
+          description: Status.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ModemStatus"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /modem/config:
+    get:
+      tags: [modem]
+      operationId: getModemConfig
+      summary: The modem configuration.
+      x-hermes-role: operator
+      responses:
+        "200":
+          description: Configuration.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ModemConfig"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    patch:
+      tags: [modem]
+      operationId: updateModemConfig
+      summary: Change the modem configuration. Applied before the reply; a change that fails is not saved.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ModemConfigPatch"}
+      responses:
+        "200":
+          description: Applied and saved.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ModemConfig"}
+        "422":
+          description: Not applied (`code` = `audio_failed`, `ptt_failed` or a validation error).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+
+  /system:
+    get:
+      tags: [system]
+      operationId: getSystem
+      summary: Station identity, versions, clock, resources and network.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: System status.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/System"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /system/settings:
+    get:
+      tags: [system]
+      operationId: getSettings
+      summary: Station settings.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: Settings.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Settings"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    patch:
+      tags: [system]
+      operationId: updateSettings
+      summary: Change station settings.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/Settings"}
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Settings"}
+        "422": {$ref: "#/components/responses/Invalid"}
+  /system/reboot:
+    post:
+      tags: [system]
+      operationId: reboot
+      summary: Reboot the station.
+      x-hermes-role: admin
+      responses:
+        "202": {description: Rebooting.}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /system/shutdown:
+    post:
+      tags: [system]
+      operationId: shutdown
+      summary: Shut the station down.
+      x-hermes-role: admin
+      responses:
+        "202": {description: Shutting down.}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /system/factory-reset:
+    post:
+      tags: [system]
+      operationId: factoryReset
+      summary: Erase the station's data, in two calls.
+      description: |
+        The first call (no body) returns a confirmation code valid for 60 seconds. The
+        second call, with that code, erases messages, attachments, users other than `root`
+        and settings, then reboots. It never deletes system directories.
+      x-hermes-role: admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                confirmation_code: {type: string}
+      responses:
+        "200":
+          description: First call — the code to confirm with.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [confirmation_code, expires_at]
+                properties:
+                  confirmation_code: {type: string}
+                  expires_at: {type: string, format: date-time}
+        "202": {description: "Second call — erasing, then rebooting."}
+        "422":
+          description: Wrong or expired code (`code` = `bad_confirmation`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+
+  /logs/{log}:
+    parameters:
+      - name: log
+        in: path
+        required: true
+        schema: {type: string, enum: [mail, uucp, uucp-debug, backend]}
+    get:
+      tags: [logs]
+      operationId: readLog
+      summary: The last lines of a log.
+      x-hermes-role: operator
+      parameters:
+        - name: lines
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 5000, default: 500}
+      responses:
+        "200":
+          description: Lines, oldest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/LogLine"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /wifi:
+    get:
+      tags: [wifi]
+      operationId: getWifi
+      summary: The Wi-Fi access point.
+      x-hermes-role: admin
+      responses:
+        "200":
+          description: The access point.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Wifi"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    patch:
+      tags: [wifi]
+      operationId: updateWifi
+      summary: Change the access point; it restarts, so clients reconnect.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/WifiPatch"}
+      responses:
+        "200":
+          description: Applied.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Wifi"}
+        "422": {$ref: "#/components/responses/Invalid"}
+  /wifi/allowed-macs:
+    get:
+      tags: [wifi]
+      operationId: listAllowedMacs
+      summary: Wi-Fi addresses allowed when MAC filtering is on.
+      x-hermes-role: admin
+      responses:
+        "200":
+          description: Allowed addresses (used when `mac_filter` is on).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/MacAddress"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [wifi]
+      operationId: allowMac
+      summary: Allow a Wi-Fi address.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mac]
+              properties:
+                mac: {$ref: "#/components/schemas/MacAddress"}
+      responses:
+        "201": {description: Added.}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /wifi/allowed-macs/{mac}:
+    parameters:
+      - name: mac
+        in: path
+        required: true
+        schema: {$ref: "#/components/schemas/MacAddress"}
+    delete:
+      tags: [wifi]
+      operationId: removeMac
+      summary: Remove an allowed Wi-Fi address.
+      x-hermes-role: admin
+      responses:
+        "204": {description: Removed.}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /gps:
+    get:
+      tags: [gps]
+      operationId: getGps
+      summary: Position, fix and logging settings.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: GPS state.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Gps"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/settings:
+    patch:
+      tags: [gps]
+      operationId: updateGpsSettings
+      summary: Change GPS logging.
+      x-hermes-role: operator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/GpsSettings"}
+      responses:
+        "200":
+          description: Applied.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GpsSettings"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/files:
+    get:
+      tags: [gps]
+      operationId: listGpsFiles
+      summary: Recorded position files.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: Recorded position files.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/GpsFile"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    delete:
+      tags: [gps]
+      operationId: deleteGpsFiles
+      summary: Delete every recorded file and cancel their queued transfers.
+      x-hermes-role: operator
+      responses:
+        "204": {description: Deleted.}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/files/{name}:
+    parameters:
+      - name: name
+        in: path
+        required: true
+        schema: {type: string, pattern: "^[A-Za-z0-9._-]{1,128}$"}
+    get:
+      tags: [gps]
+      operationId: downloadGpsFile
+      summary: Download a position file.
+      x-hermes-role: user
+      responses:
+        "200":
+          description: The file.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                contentMediaType: application/octet-stream
+        "404": {$ref: "#/components/responses/NotFound"}
+  /gps/sos:
+    post:
+      tags: [gps]
+      operationId: sendSos
+      summary: Send the current position as an emergency message to `settings.sos_recipients`.
+      x-hermes-role: user
+      responses:
+        "202":
+          description: Queued.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Message"}
+        "409":
+          description: No GPS fix (`code` = `no_fix`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+
+  /events:
+    get:
+      tags: [events]
+      operationId: listEvents
+      summary: Audit log — who did what, when. Kept 90 days.
+      x-hermes-role: admin
+      parameters:
+        - name: user_id
+          in: query
+          schema: {type: integer, format: int64}
+        - name: action
+          in: query
+          schema: {type: string}
+        - name: since
+          in: query
+          schema: {type: string, format: date-time}
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Events, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Event"}
+                  next_cursor: {type: string}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: hermes_session
+      description: Set by `POST /session`. Also accepted on the WebSocket upgrade.
+    bearerToken:
+      type: http
+      scheme: bearer
+      description: The same opaque session token, for tools that don't keep cookies.
+
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 200, default: 50}
+    Cursor:
+      name: cursor
+      in: query
+      description: The `next_cursor` of the previous page.
+      schema: {type: string}
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema: {type: integer, format: int64}
+    MessageId:
+      name: message_id
+      in: path
+      required: true
+      schema: {type: integer, format: int64}
+
+  responses:
+    Unauthorized:
+      description: Not logged in, or the session ended (`code` = `unauthenticated`).
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+    Forbidden:
+      description: The role is too low (`code` = `forbidden`).
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+    NotFound:
+      description: No such resource (`code` = `not_found`).
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+    Conflict:
+      description: Conflicts with the current state (`code` says which).
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+    Invalid:
+      description: Validation failed (`code` = `invalid`; `errors` per field).
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+    TooLarge:
+      description: Over the size limit for HF (`code` = `too_large`).
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+    TooManyRequests:
+      description: Too many failed logins (`code` = `rate_limited`).
+      headers:
+        Retry-After:
+          schema: {type: integer}
+      content:
+        application/problem+json:
+          schema: {$ref: "#/components/schemas/Problem"}
+
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: {type: string, format: uri-reference, example: "https://hermes.radio/problems/invalid"}
+        title: {type: string, example: Validation failed}
+        status: {type: integer, example: 422}
+        code:
+          type: string
+          description: Stable machine-readable code.
+          example: invalid
+        detail: {type: string}
+        errors:
+          type: object
+          description: Messages per field, for forms.
+          additionalProperties:
+            type: array
+            items: {type: string}
+
+    Timestamp:
+      type: string
+      format: date-time
+      description: ISO 8601, UTC.
+    UucpName:
+      type: string
+      pattern: "^[A-Za-z0-9_-]{1,32}$"
+      description: A station's UUCP system name.
+    Role:
+      type: string
+      enum: [user, operator, admin]
+    Mode:
+      type: string
+      enum: [LSB, USB, CW, FM, AM, DRM, FT8, RTTY, DSTAR]
+    Codec:
+      type: string
+      enum: [auto, vvc, lpcnet, none]
+      default: auto
+    MacAddress:
+      type: string
+      pattern: "^([0-9a-f]{2}:){5}[0-9a-f]{2}$"
+
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status: {type: string, enum: [ok, degraded]}
+        components:
+          type: object
+          properties:
+            radio: {type: string, enum: [ok, down, absent]}
+            modem: {type: string, enum: [ok, down]}
+            database: {type: string, enum: [ok, down]}
+            uucp: {type: string, enum: [ok, down]}
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: {type: string}
+        password: {type: string, writeOnly: true}
+    Session:
+      type: object
+      required: [user, expires_at]
+      properties:
+        user: {$ref: "#/components/schemas/User"}
+        token:
+          type: string
+          description: Returned only by `POST /session`.
+        expires_at: {$ref: "#/components/schemas/Timestamp"}
+
+    User:
+      type: object
+      required: [id, username, display_name, role, disabled, created_at]
+      properties:
+        id: {type: integer, format: int64}
+        username:
+          type: string
+          pattern: "^[a-z0-9._-]{1,32}$"
+          description: The mailbox name (`<username>@<station domain>`).
+        display_name: {type: string, maxLength: 64}
+        role: {$ref: "#/components/schemas/Role"}
+        phone: {type: [string, "null"]}
+        location: {type: [string, "null"]}
+        disabled: {type: boolean}
+        last_login_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        created_at: {$ref: "#/components/schemas/Timestamp"}
+        updated_at: {$ref: "#/components/schemas/Timestamp"}
+    UserPage:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: {$ref: "#/components/schemas/User"}
+        next_cursor: {type: string}
+    UserCreate:
+      type: object
+      required: [username, password, display_name]
+      properties:
+        username: {type: string, pattern: "^[a-z0-9._-]{1,32}$"}
+        password: {type: string, minLength: 8, writeOnly: true}
+        display_name: {type: string, maxLength: 64}
+        role: {$ref: "#/components/schemas/Role"}
+        phone: {type: string}
+        location: {type: string}
+    UserPatch:
+      type: object
+      description: Only admins may change `role` or `disabled`.
+      properties:
+        display_name: {type: string, maxLength: 64}
+        role: {$ref: "#/components/schemas/Role"}
+        phone: {type: [string, "null"]}
+        location: {type: [string, "null"]}
+        disabled: {type: boolean}
+    PasswordChange:
+      type: object
+      required: [new_password]
+      properties:
+        current_password:
+          type: string
+          writeOnly: true
+          description: Required when changing your own password.
+        new_password: {type: string, minLength: 8, writeOnly: true}
+    Passphrase:
+      type: object
+      required: [passphrase]
+      properties:
+        passphrase: {type: string, writeOnly: true}
+
+    MessageStatus:
+      type: string
+      enum: [draft, queued, sent, failed, received]
+      description: For outgoing messages, derived from the recipients' states.
+    Message:
+      type: object
+      required: [id, direction, status, origin, subject, body_encrypted, recipients, attachments, created_at]
+      properties:
+        id: {type: integer, format: int64}
+        direction: {type: string, enum: [in, out]}
+        status: {$ref: "#/components/schemas/MessageStatus"}
+        origin: {$ref: "#/components/schemas/UucpName"}
+        author_id:
+          type: [integer, "null"]
+          format: int64
+          description: The local user who wrote it; null for incoming messages.
+        subject: {type: string, maxLength: 255}
+        body:
+          type: string
+          description: Absent in lists, and when `body_encrypted` (use `/decrypt`).
+        body_encrypted: {type: boolean}
+        recipients:
+          type: array
+          items: {$ref: "#/components/schemas/Recipient"}
+        attachments:
+          type: array
+          items: {$ref: "#/components/schemas/Attachment"}
+        created_at: {$ref: "#/components/schemas/Timestamp"}
+        updated_at: {$ref: "#/components/schemas/Timestamp"}
+        received_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+    Recipient:
+      type: object
+      required: [station, status]
+      properties:
+        station: {$ref: "#/components/schemas/UucpName"}
+        status: {type: string, enum: [pending, queued, sent, failed, cancelled]}
+        uucp_job_id: {type: [string, "null"]}
+        queued_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        sent_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        error: {type: [string, "null"]}
+    MessagePage:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: {$ref: "#/components/schemas/Message"}
+        next_cursor: {type: string}
+    MessageCreate:
+      type: object
+      required: [subject, recipients]
+      properties:
+        subject: {type: string, maxLength: 255}
+        body: {type: string}
+        recipients:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: {$ref: "#/components/schemas/UucpName"}
+        attachment_ids:
+          type: array
+          maxItems: 1
+          description: One attachment per message, as `.hmp` carries today.
+          items: {type: integer, format: int64}
+        passphrase:
+          type: string
+          writeOnly: true
+          description: When given, the body is encrypted with it (AES-256, as today).
+    MessagePatch:
+      type: object
+      properties:
+        subject: {type: string, maxLength: 255}
+        body: {type: string}
+        recipients:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: {$ref: "#/components/schemas/UucpName"}
+        attachment_ids:
+          type: array
+          maxItems: 1
+          items: {type: integer, format: int64}
+        passphrase: {type: string, writeOnly: true}
+
+    Attachment:
+      type: object
+      required: [id, original_name, mime_type, size_bytes, encrypted, codec, created_at]
+      properties:
+        id: {type: integer, format: int64}
+        message_id: {type: [integer, "null"], format: int64}
+        original_name: {type: string}
+        mime_type: {type: string}
+        size_bytes:
+          type: integer
+          description: Size as sent over the air, after encoding.
+        encrypted: {type: boolean}
+        codec: {type: string, enum: [vvc, lpcnet, none]}
+        created_at: {$ref: "#/components/schemas/Timestamp"}
+
+    Station:
+      type: object
+      required: [uucp_name, enabled]
+      properties:
+        uucp_name: {$ref: "#/components/schemas/UucpName"}
+        alias: {type: [string, "null"]}
+        display_name: {type: [string, "null"]}
+        frequency_hz: {type: [integer, "null"], minimum: 0}
+        mode: {oneOf: [$ref: "#/components/schemas/Mode", type: "null"]}
+        enabled: {type: boolean}
+        last_contact_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        synced_at: {$ref: "#/components/schemas/Timestamp"}
+    StationPatch:
+      type: object
+      properties:
+        alias: {type: [string, "null"], pattern: "^[A-Za-z0-9_-]{1,32}$"}
+        display_name: {type: [string, "null"], maxLength: 64}
+        frequency_hz: {type: [integer, "null"], minimum: 0}
+        mode: {oneOf: [$ref: "#/components/schemas/Mode", type: "null"]}
+        enabled: {type: boolean}
+
+    Schedule:
+      type: object
+      required: [id, title, start_time, end_time, enabled, stations]
+      properties:
+        id: {type: integer, format: int64}
+        title: {type: string}
+        start_time: {type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$", description: "Station local time, HH:MM."}
+        end_time:
+          type: string
+          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          description: An end before the start crosses midnight.
+        enabled: {type: boolean}
+        stations:
+          type: array
+          items: {$ref: "#/components/schemas/UucpName"}
+    ScheduleWrite:
+      type: object
+      properties:
+        title: {type: string, maxLength: 64}
+        start_time: {type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"}
+        end_time: {type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"}
+        enabled: {type: boolean}
+        stations:
+          type: array
+          items: {$ref: "#/components/schemas/UucpName"}
+    ScheduleNext:
+      type: object
+      required: [schedule_id, starts_at, ends_at, stations]
+      properties:
+        schedule_id: {type: integer, format: int64}
+        starts_at: {$ref: "#/components/schemas/Timestamp"}
+        ends_at: {$ref: "#/components/schemas/Timestamp"}
+        stations:
+          type: array
+          items: {$ref: "#/components/schemas/UucpName"}
+
+    QueueJob:
+      type: object
+      required: [job_id, station, kind, size_bytes, queued_at]
+      properties:
+        job_id: {type: string}
+        station: {$ref: "#/components/schemas/UucpName"}
+        kind: {type: string, enum: [message, mail, gps, file, other]}
+        size_bytes: {type: integer}
+        queued_at: {$ref: "#/components/schemas/Timestamp"}
+        message_id:
+          type: [integer, "null"]
+          format: int64
+          description: The message this job carries, when it is one.
+        mail_from: {type: [string, "null"], description: "For mail jobs."}
+
+    RadioState:
+      type: object
+      required: [active_profile, tx, frequency_hz, mode, backend]
+      properties:
+        active_profile: {type: integer}
+        tx: {type: boolean}
+        frequency_hz: {type: integer}
+        mode: {$ref: "#/components/schemas/Mode"}
+        power: {type: integer, minimum: 0, maximum: 100, description: Percent.}
+        swr: {type: [number, "null"]}
+        fwd_w: {type: [number, "null"]}
+        ref_w: {type: [number, "null"]}
+        s_meter_db:
+          type: [number, "null"]
+          description: dB relative to S9; null when the rig gives no reading.
+        protection: {type: boolean, description: High-SWR protection tripped.}
+        timeout_s: {type: integer, description: Transmit timeout.}
+        digital_voice: {type: boolean}
+        backend: {type: string, enum: [sbitx, hamlib, none]}
+        rig_model: {type: [string, "null"], description: "Hamlib model name, e.g. IC-7100."}
+    RadioProfile:
+      type: object
+      required: [profile, frequency_hz, mode]
+      properties:
+        profile: {type: integer}
+        name: {type: [string, "null"]}
+        frequency_hz: {type: integer, minimum: 0}
+        mode: {$ref: "#/components/schemas/Mode"}
+        power: {type: integer, minimum: 0, maximum: 100}
+        volume: {type: integer, minimum: 0, maximum: 100}
+        step_hz: {type: integer, minimum: 1}
+        filter_width_hz: {type: [integer, "null"]}
+        tone_hz: {type: [integer, "null"]}
+        timeout_s: {type: integer, minimum: 0}
+        ref_threshold: {type: integer, minimum: 0}
+    RadioProfilePatch:
+      type: object
+      properties:
+        name: {type: [string, "null"], maxLength: 32}
+        frequency_hz: {type: integer, minimum: 0}
+        mode: {$ref: "#/components/schemas/Mode"}
+        power: {type: integer, minimum: 0, maximum: 100}
+        volume: {type: integer, minimum: 0, maximum: 100}
+        step_hz: {type: integer, minimum: 1}
+        filter_width_hz: {type: [integer, "null"]}
+        tone_hz: {type: [integer, "null"]}
+        timeout_s: {type: integer, minimum: 0}
+        ref_threshold: {type: integer, minimum: 0}
+
+    ModemStatus:
+      type: object
+      required: [link, direction, audio_ok]
+      properties:
+        link: {type: string, enum: [idle, listening, calling, connected, disconnecting]}
+        my_call: {type: [string, "null"]}
+        peer_call: {type: [string, "null"]}
+        direction: {type: string, enum: [tx, rx, idle]}
+        snr_db: {type: [number, "null"]}
+        peer_snr_db: {type: [number, "null"]}
+        bitrate_bps: {type: [integer, "null"]}
+        bytes_tx: {type: integer}
+        bytes_rx: {type: integer}
+        tx_gain_db: {type: number}
+        tx_peak_dbfs: {type: [number, "null"]}
+        arq_tx_mode: {type: [string, "null"]}
+        arq_rx_mode: {type: [string, "null"]}
+        audio_ok: {type: boolean}
+        audio_error: {type: [string, "null"]}
+    ModemConfig:
+      type: object
+      properties:
+        sound_system: {type: string, enum: [alsa, pulse, oss, rtp, shm, null_device]}
+        input_device: {type: string}
+        output_device: {type: string}
+        input_channel: {type: string, enum: [left, right, stereo]}
+        tx_gain_db: {type: number, minimum: -20, maximum: 20}
+        waterfall: {type: boolean}
+        ptt:
+          type: object
+          properties:
+            method: {type: string, enum: [none, hamlib, serial, cm108, radio]}
+            device: {type: string}
+            hamlib_model: {type: integer}
+            serial_speed: {type: integer}
+            line: {type: string, enum: [rts, dtr, both]}
+            invert: {type: string, enum: [none, rts, dtr, both]}
+            cm108_gpio: {type: integer, minimum: 1, maximum: 4}
+        devices:
+          readOnly: true
+          type: object
+          description: What the station offers, to fill pickers.
+          properties:
+            capture:
+              type: array
+              items: {$ref: "#/components/schemas/AudioDevice"}
+            playback:
+              type: array
+              items: {$ref: "#/components/schemas/AudioDevice"}
+    ModemConfigPatch:
+      type: object
+      description: Same fields as `ModemConfig` without `devices`.
+      properties:
+        sound_system: {type: string, enum: [alsa, pulse, oss, rtp, shm, null_device]}
+        input_device: {type: string}
+        output_device: {type: string}
+        input_channel: {type: string, enum: [left, right, stereo]}
+        tx_gain_db: {type: number, minimum: -20, maximum: 20}
+        waterfall: {type: boolean}
+        ptt:
+          type: object
+          properties:
+            method: {type: string, enum: [none, hamlib, serial, cm108, radio]}
+            device: {type: string}
+            hamlib_model: {type: integer}
+            serial_speed: {type: integer}
+            line: {type: string, enum: [rts, dtr, both]}
+            invert: {type: string, enum: [none, rts, dtr, both]}
+            cm108_gpio: {type: integer, minimum: 1, maximum: 4}
+    AudioDevice:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: string}
+        name: {type: string}
+
+    System:
+      type: object
+      required: [hostname, uucp_name, versions, clock, memory, disk]
+      properties:
+        hostname: {type: string}
+        uucp_name: {$ref: "#/components/schemas/UucpName"}
+        callsign: {type: [string, "null"]}
+        domain: {type: string, description: Mail domain of this station.}
+        versions:
+          type: object
+          properties:
+            backend: {type: string}
+            mercury: {type: string}
+            os: {type: string}
+        clock:
+          type: object
+          required: [now]
+          properties:
+            now: {$ref: "#/components/schemas/Timestamp"}
+            synchronized: {type: boolean}
+            timezone: {type: string, example: America/Sao_Paulo}
+        uptime_s: {type: integer}
+        memory:
+          type: object
+          properties:
+            total_bytes: {type: integer}
+            available_bytes: {type: integer}
+        disk:
+          type: object
+          properties:
+            total_bytes: {type: integer}
+            free_bytes: {type: integer}
+        network:
+          type: array
+          items:
+            type: object
+            properties:
+              interface: {type: string}
+              addresses:
+                type: array
+                items: {type: string}
+              ssid: {type: [string, "null"]}
+              default_route: {type: boolean}
+        services:
+          type: object
+          additionalProperties: {type: string, enum: [active, inactive, failed]}
+          example: {uucp: active, postfix: active, gps: inactive}
+    Settings:
+      type: object
+      properties:
+        language: {type: string, enum: [en, es, pt-BR, fr]}
+        allow_attachments_role: {$ref: "#/components/schemas/Role"}
+        allow_messages_role: {$ref: "#/components/schemas/Role"}
+        max_message_bytes: {type: integer}
+        max_spool_bytes: {type: integer}
+        forward_email: {type: [string, "null"], format: email}
+        sos_recipients:
+          type: array
+          items: {$ref: "#/components/schemas/UucpName"}
+        idle_logout_s: {type: integer, minimum: 60}
+
+    LogLine:
+      type: object
+      required: [text]
+      properties:
+        ts: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        text: {type: string}
+
+    Wifi:
+      type: object
+      required: [ssid, enabled]
+      properties:
+        enabled: {type: boolean}
+        ssid: {type: string, maxLength: 32}
+        channel: {type: integer}
+        mac_filter: {type: boolean}
+        has_password: {type: boolean, readOnly: true}
+    WifiPatch:
+      type: object
+      properties:
+        enabled: {type: boolean}
+        ssid: {type: string, maxLength: 32}
+        channel: {type: integer}
+        mac_filter: {type: boolean}
+        password: {type: [string, "null"], minLength: 8, writeOnly: true, description: "null makes the network open."}
+
+    Gps:
+      type: object
+      required: [fix, settings]
+      properties:
+        fix: {type: string, enum: [none, "2d", "3d"]}
+        latitude: {type: [number, "null"]}
+        longitude: {type: [number, "null"]}
+        altitude_m: {type: [number, "null"]}
+        at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        settings: {$ref: "#/components/schemas/GpsSettings"}
+    GpsSettings:
+      type: object
+      properties:
+        logging: {type: boolean}
+        sample_interval_s: {type: integer, minimum: 1}
+        file_period_s: {type: integer, minimum: 60}
+        email: {type: [string, "null"], format: email}
+    GpsFile:
+      type: object
+      required: [name, size_bytes, created_at]
+      properties:
+        name: {type: string}
+        size_bytes: {type: integer}
+        created_at: {$ref: "#/components/schemas/Timestamp"}
+
+    Event:
+      type: object
+      required: [id, at, action]
+      properties:
+        id: {type: integer, format: int64}
+        at: {$ref: "#/components/schemas/Timestamp"}
+        user_id: {type: [integer, "null"], format: int64}
+        action: {type: string, example: user.create}
+        target: {type: [string, "null"], example: "user:12"}
+        detail: {type: object, additionalProperties: true}
+        ip: {type: [string, "null"]}

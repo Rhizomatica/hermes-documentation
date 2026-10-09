@@ -1,0 +1,630 @@
+asyncapi: 3.1.0
+info:
+  title: HERMES station real-time API (hermes.v1)
+  version: 1.0.0-draft.1
+  description: |
+    **Tentative proposal, 2026-10-09.** Defines the future architecture; nothing here is
+    implemented yet.
+
+    One WebSocket per client, served by hermes-radio-daemon (which includes Mercury) next
+    to the REST API in `openapi.yaml`. Payload schemas are shared with that file, so a
+    field means the same thing in both.
+
+    The application described here is the **station**: `send` operations are frames the
+    station sends, `receive` operations are frames it accepts from a client.
+
+    ## Connecting
+
+    - `GET /api/v2/ws` with `Sec-WebSocket-Protocol: hermes.v1`. A client that doesn't
+      ask for `hermes.v1` is refused (426) by this endpoint; the old radiod and Mercury
+      protocols stay on their old ports until no released UI uses them.
+    - Authentication is the REST session: the `hermes_session` cookie (browsers send it
+      on the upgrade by themselves) or `Authorization: Bearer <token>` (tools). No
+      session, no upgrade (401). The session's role gates every command.
+    - Only same-origin browsers are accepted (`Origin` is checked).
+
+    ## Rules
+
+    - Every frame is either JSON text with a `type`, or a binary frame with the common
+      header below.
+    - A command carries a client-chosen `id` and gets exactly one `reply` with that id.
+    - State is pushed only to subscribers, and only when it changes. Subscribing sends a
+      full snapshot (`snapshot: true`); later events carry only the fields that changed,
+      at most 10 a second per topic.
+    - `seq` counts events per topic. On a gap the client re-subscribes for a new snapshot.
+    - A `heartbeat` every 5 s carries the station clock. A client that sends nothing for
+      60 s (not even a WebSocket ping) is disconnected.
+    - Slow commands (rig reads, audio restarts) run off the socket thread and reply when
+      done; other traffic keeps flowing.
+    - Each client has a send queue. Binary frames are dropped first; a client more than
+      2 MB behind is disconnected (close code 1008).
+    - If the client that holds PTT disconnects, the station unkeys at once.
+
+    ## Binary frames
+
+    Little-endian. Header (12 bytes): `u8 kind`, `u8 version` (1), `u16 flags` (0),
+    `u32 seq`, `u32 sample_rate`. Then:
+
+    | kind | Direction | Topic | Payload |
+    | --- | --- | --- | --- |
+    | 1 | station → client | `radio.audio.rx` | `int16` mono samples |
+    | 2 | client → station | (command `audio.tx`) | `int16` mono samples; only while this client holds PTT |
+    | 3 | station → client | `radio.spectrum.rx`, `modem.spectrum.rx` | `u16 nbins`, `f32 start_hz`, `f32 bin_hz`, `f32 dB × nbins` |
+    | 4 | station → client | `radio.spectrum.tx` | as kind 3 |
+
+    Kind 3 is shared by two topics; a client subscribes to one of them at a time.
+
+    ## Choices where the two earlier proposals differ
+
+    | Topic | README | hermes-backend | This spec | Why |
+    | --- | --- | --- | --- | --- |
+    | Endpoints | `/ws/radio` and `/ws/modem` | one socket | one socket, `/api/v2/ws` | One backend now serves both |
+    | Subprotocol | `hermes.v1` | `hermes-v1` | `hermes.v1` | Dots name versions in this project's other protocols |
+    | Auth | nginx `auth_request` headers | in-band `AUTHENTICATE` with a JWT | the REST session on the upgrade | No unauthenticated socket state, and no second login path |
+    | Error codes | strings | numbers 4001–4010 | strings | Readable in logs; the same codes as REST |
+    | Heartbeat | 5 s, carries the clock | 30 s ping, 60 s timeout | 5 s heartbeat, 60 s idle timeout | The UI needs the station clock; the timeout tolerates a slow Wi-Fi link |
+    | Binary | audio and spectrum | JSON only | binary, one header | A 512-bin spectrum at 20 fps is 41 kB/s as binary, several times that as JSON |
+  license:
+    name: GPL-3.0-or-later
+
+defaultContentType: application/json
+
+servers:
+  station:
+    host: station.hermes.radio
+    pathname: /api/v2/ws
+    protocol: wss
+    description: The station, on its local network.
+    security:
+      - $ref: "#/components/securitySchemes/sessionCookie"
+      - $ref: "#/components/securitySchemes/bearerToken"
+    bindings:
+      ws:
+        headers:
+          type: object
+          properties:
+            Sec-WebSocket-Protocol:
+              type: string
+              const: hermes.v1
+
+channels:
+  station:
+    address: /api/v2/ws
+    title: The station socket
+    messages:
+      hello: { $ref: "#/components/messages/Hello" }
+      heartbeat: { $ref: "#/components/messages/Heartbeat" }
+      subscribe: { $ref: "#/components/messages/Subscribe" }
+      unsubscribe: { $ref: "#/components/messages/Unsubscribe" }
+      command: { $ref: "#/components/messages/Command" }
+      reply: { $ref: "#/components/messages/Reply" }
+      radioState: { $ref: "#/components/messages/RadioStateEvent" }
+      radioProfiles: { $ref: "#/components/messages/RadioProfilesEvent" }
+      radioRig: { $ref: "#/components/messages/RadioRigEvent" }
+      digiRx: { $ref: "#/components/messages/DigiRxEvent" }
+      modemStatus: { $ref: "#/components/messages/ModemStatusEvent" }
+      modemConfig: { $ref: "#/components/messages/ModemConfigEvent" }
+      modemChat: { $ref: "#/components/messages/ModemChatEvent" }
+      messages: { $ref: "#/components/messages/MessagesEvent" }
+      queue: { $ref: "#/components/messages/QueueEvent" }
+      system: { $ref: "#/components/messages/SystemEvent" }
+      gps: { $ref: "#/components/messages/GpsEvent" }
+      binaryDown: { $ref: "#/components/messages/BinaryFrame" }
+      binaryUp: { $ref: "#/components/messages/BinaryTxAudio" }
+
+operations:
+  sendHello:
+    action: send
+    channel: { $ref: "#/channels/station" }
+    summary: First frame after the upgrade.
+    messages:
+      - $ref: "#/channels/station/messages/hello"
+  sendHeartbeat:
+    action: send
+    channel: { $ref: "#/channels/station" }
+    summary: Every 5 seconds.
+    messages:
+      - $ref: "#/channels/station/messages/heartbeat"
+  receiveSubscription:
+    action: receive
+    channel: { $ref: "#/channels/station" }
+    summary: Subscribe to or leave topics.
+    messages:
+      - $ref: "#/channels/station/messages/subscribe"
+      - $ref: "#/channels/station/messages/unsubscribe"
+    reply:
+      channel: { $ref: "#/channels/station" }
+      messages:
+        - $ref: "#/channels/station/messages/reply"
+  receiveCommand:
+    action: receive
+    channel: { $ref: "#/channels/station" }
+    summary: Run a command; exactly one reply with the same id.
+    messages:
+      - $ref: "#/channels/station/messages/command"
+    reply:
+      channel: { $ref: "#/channels/station" }
+      messages:
+        - $ref: "#/channels/station/messages/reply"
+  sendEvents:
+    action: send
+    channel: { $ref: "#/channels/station" }
+    summary: Topic events, to subscribers only.
+    messages:
+      - $ref: "#/channels/station/messages/radioState"
+      - $ref: "#/channels/station/messages/radioProfiles"
+      - $ref: "#/channels/station/messages/radioRig"
+      - $ref: "#/channels/station/messages/digiRx"
+      - $ref: "#/channels/station/messages/modemStatus"
+      - $ref: "#/channels/station/messages/modemConfig"
+      - $ref: "#/channels/station/messages/modemChat"
+      - $ref: "#/channels/station/messages/messages"
+      - $ref: "#/channels/station/messages/queue"
+      - $ref: "#/channels/station/messages/system"
+      - $ref: "#/channels/station/messages/gps"
+  sendBinary:
+    action: send
+    channel: { $ref: "#/channels/station" }
+    summary: Audio and spectrum streams, to subscribers only.
+    messages:
+      - $ref: "#/channels/station/messages/binaryDown"
+  receiveTxAudio:
+    action: receive
+    channel: { $ref: "#/channels/station" }
+    summary: Transmit audio from the client that holds PTT.
+    messages:
+      - $ref: "#/channels/station/messages/binaryUp"
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: httpApiKey
+      name: hermes_session
+      in: cookie
+      description: The REST session cookie, sent by the browser on the upgrade.
+    bearerToken:
+      type: http
+      scheme: bearer
+      description: The same session token, for tools.
+
+  messages:
+    Hello:
+      name: hello
+      payload: { $ref: "#/components/schemas/Hello" }
+      examples:
+        - payload:
+            type: hello
+            protocol: hermes.v1
+            service: hermes-radio-daemon
+            version: 2.0.0
+            role: operator
+            user: rafael
+            topics: [radio.state, radio.profiles, modem.status, messages, queue]
+            commands: [radio.set, radio.ptt, digi.send]
+            limits: { max_frame_bytes: 65536, max_events_per_s: 10 }
+    Heartbeat:
+      name: heartbeat
+      payload: { $ref: "#/components/schemas/Heartbeat" }
+    Subscribe:
+      name: subscribe
+      payload: { $ref: "#/components/schemas/Subscribe" }
+      examples:
+        - payload: { type: subscribe, id: "1", topics: [radio.state, radio.spectrum.rx] }
+    Unsubscribe:
+      name: unsubscribe
+      payload: { $ref: "#/components/schemas/Unsubscribe" }
+    Command:
+      name: cmd
+      payload: { $ref: "#/components/schemas/Command" }
+      examples:
+        - name: tune
+          payload: { type: cmd, id: "42", cmd: radio.set, args: { profile: 1, frequency_hz: 7050000, mode: USB } }
+        - name: key
+          payload: { type: cmd, id: "43", cmd: radio.ptt, args: { "on": true } }
+    Reply:
+      name: reply
+      payload: { $ref: "#/components/schemas/Reply" }
+      examples:
+        - name: ok
+          payload: { type: reply, id: "42", ok: true, data: { frequency_hz: 7050000 } }
+        - name: error
+          payload: { type: reply, id: "42", ok: false, error: { code: out_of_range, message: "frequency_hz outside 1.8-30 MHz" } }
+    RadioStateEvent:
+      name: radio.state
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: radio.state }
+              data: { $ref: "openapi.yaml#/components/schemas/RadioState" }
+    RadioProfilesEvent:
+      name: radio.profiles
+      summary: Every saved profile; on change, the profiles that changed.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: radio.profiles }
+              data:
+                type: object
+                properties:
+                  profiles:
+                    type: array
+                    items: { $ref: "openapi.yaml#/components/schemas/RadioProfile" }
+    RadioRigEvent:
+      name: radio.rig
+      summary: Hamlib levels, functions and parameters the client asked to watch (`rig.watch`).
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: radio.rig }
+              data:
+                type: object
+                properties:
+                  levels: { type: object, additionalProperties: { type: number } }
+                  funcs: { type: object, additionalProperties: { type: boolean } }
+                  parms: { type: object, additionalProperties: { type: number } }
+    DigiRxEvent:
+      name: digi.rx
+      summary: One event per FT8, CW, RTTY or D-STAR decode. The snapshot is the last 100.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: digi.rx }
+              data: { $ref: "#/components/schemas/DigiDecode" }
+    ModemStatusEvent:
+      name: modem.status
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: modem.status }
+              data: { $ref: "openapi.yaml#/components/schemas/ModemStatus" }
+    ModemConfigEvent:
+      name: modem.config
+      summary: Operator role and above.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: modem.config }
+              data: { $ref: "openapi.yaml#/components/schemas/ModemConfig" }
+    ModemChatEvent:
+      name: modem.chat
+      summary: Mercury's keyboard chat (ARQ and broadcast). The snapshot is the stored history.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: modem.chat }
+              data: { $ref: "#/components/schemas/ChatLine" }
+    MessagesEvent:
+      name: messages
+      summary: A message arrived, or a message's state changed. The UI stops polling the inbox.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: messages }
+              data:
+                type: object
+                required: [change, message]
+                properties:
+                  change: { type: string, enum: [created, received, updated, deleted] }
+                  message: { $ref: "openapi.yaml#/components/schemas/Message" }
+    QueueEvent:
+      name: queue
+      summary: A UUCP job was queued, sent, failed or cancelled; a call started or ended.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: queue }
+              data:
+                type: object
+                properties:
+                  change: { type: string, enum: [queued, sent, failed, cancelled, call_started, call_ended] }
+                  job: { $ref: "openapi.yaml#/components/schemas/QueueJob" }
+                  station: { $ref: "openapi.yaml#/components/schemas/UucpName" }
+    SystemEvent:
+      name: system
+      summary: Health, disk, clock sync or a service changed state.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: system }
+              data: { $ref: "openapi.yaml#/components/schemas/Health" }
+    GpsEvent:
+      name: gps
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: gps }
+              data: { $ref: "openapi.yaml#/components/schemas/Gps" }
+    BinaryFrame:
+      name: binary
+      contentType: application/octet-stream
+      summary: Kinds 1, 3 and 4 (see the binary frame table).
+      payload:
+        type: string
+        format: binary
+    BinaryTxAudio:
+      name: binary.tx
+      contentType: application/octet-stream
+      summary: Kind 2 — transmit audio, only while this client holds PTT; otherwise dropped.
+      payload:
+        type: string
+        format: binary
+
+  schemas:
+    Topic:
+      type: string
+      enum:
+        - radio.state
+        - radio.profiles
+        - radio.rig
+        - radio.spectrum.rx
+        - radio.spectrum.tx
+        - radio.audio.rx
+        - digi.rx
+        - modem.status
+        - modem.config
+        - modem.chat
+        - modem.spectrum.rx
+        - messages
+        - queue
+        - system
+        - gps
+    Hello:
+      type: object
+      required: [type, protocol, service, version, role, topics, commands]
+      properties:
+        type: { const: hello }
+        protocol: { const: hermes.v1 }
+        service: { type: string }
+        version: { type: string }
+        role: { type: string, enum: [user, operator, admin] }
+        user: { type: string }
+        topics:
+          type: array
+          description: Topics this station offers (a station without a radio offers no `radio.*`).
+          items: { $ref: "#/components/schemas/Topic" }
+        commands:
+          type: array
+          description: Commands this client's role may run.
+          items: { $ref: "#/components/schemas/CommandName" }
+        limits:
+          type: object
+          properties:
+            max_frame_bytes: { type: integer }
+            max_events_per_s: { type: integer }
+    Heartbeat:
+      type: object
+      required: [type, ts]
+      properties:
+        type: { const: heartbeat }
+        ts: { type: string, format: date-time, description: Station clock, UTC. }
+    Subscribe:
+      type: object
+      required: [type, id, topics]
+      properties:
+        type: { const: subscribe }
+        id: { $ref: "#/components/schemas/RequestId" }
+        topics:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/Topic" }
+    Unsubscribe:
+      type: object
+      required: [type, id, topics]
+      properties:
+        type: { const: unsubscribe }
+        id: { $ref: "#/components/schemas/RequestId" }
+        topics:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/Topic" }
+    RequestId:
+      type: string
+      maxLength: 64
+      description: Chosen by the client; echoed in the reply.
+    CommandName:
+      type: string
+      enum:
+        - radio.set
+        - radio.select_profile
+        - radio.ptt
+        - radio.reset_protection
+        - rig.get
+        - rig.set
+        - rig.watch
+        - digi.send
+        - recording.start
+        - recording.stop
+        - audio.tx
+        - modem.chat.send
+    Command:
+      type: object
+      required: [type, id, cmd]
+      properties:
+        type: { const: cmd }
+        id: { $ref: "#/components/schemas/RequestId" }
+        cmd: { $ref: "#/components/schemas/CommandName" }
+        args:
+          description: Arguments of `cmd`.
+          oneOf:
+            - $ref: "#/components/schemas/RadioSetArgs"
+            - $ref: "#/components/schemas/SelectProfileArgs"
+            - $ref: "#/components/schemas/PttArgs"
+            - $ref: "#/components/schemas/RigGetArgs"
+            - $ref: "#/components/schemas/RigSetArgs"
+            - $ref: "#/components/schemas/RigWatchArgs"
+            - $ref: "#/components/schemas/DigiSendArgs"
+            - $ref: "#/components/schemas/RecordingArgs"
+            - $ref: "#/components/schemas/AudioTxArgs"
+            - $ref: "#/components/schemas/ChatSendArgs"
+            - type: object
+              maxProperties: 0
+              description: For `radio.reset_protection`.
+    RadioSetArgs:
+      type: object
+      title: radio.set (operator)
+      description: |
+        Any of these, in one call; all are validated before any is applied. Without
+        `profile`, the active profile.
+      properties:
+        profile: { type: integer, minimum: 0 }
+        frequency_hz: { type: integer, minimum: 0 }
+        mode: { $ref: "openapi.yaml#/components/schemas/Mode" }
+        power: { type: integer, minimum: 0, maximum: 100 }
+        volume: { type: integer, minimum: 0, maximum: 100 }
+        step_hz: { type: integer, minimum: 1 }
+        filter_width_hz: { type: integer }
+        tone_hz: { type: integer }
+        timeout_s: { type: integer, minimum: 0 }
+        ref_threshold: { type: integer, minimum: 0 }
+        digital_voice: { type: boolean }
+    SelectProfileArgs:
+      type: object
+      title: radio.select_profile (operator)
+      required: [profile]
+      properties:
+        profile: { type: integer, minimum: 0 }
+    PttArgs:
+      type: object
+      title: radio.ptt (operator)
+      required: ["on"]
+      properties:
+        "on": { type: boolean }
+    RigGetArgs:
+      type: object
+      title: rig.get (operator)
+      description: Read Hamlib controls now; the reply carries their values.
+      required: [names]
+      properties:
+        names:
+          type: array
+          items: { type: string, examples: [AF, RF, NB, PREAMP] }
+    RigSetArgs:
+      type: object
+      title: rig.set (operator)
+      required: [name, value]
+      properties:
+        name: { type: string }
+        value:
+          oneOf:
+            - type: number
+            - type: boolean
+    RigWatchArgs:
+      type: object
+      title: rig.watch (operator)
+      description: The controls `radio.rig` events report for this client; an empty list stops.
+      required: [names]
+      properties:
+        names:
+          type: array
+          items: { type: string }
+        interval_ms: { type: integer, minimum: 250, default: 1000 }
+    DigiSendArgs:
+      type: object
+      title: digi.send (operator)
+      required: [mode, text]
+      properties:
+        mode: { type: string, enum: [FT8, CW, RTTY] }
+        text: { type: string, maxLength: 256, description: FT8 free text is at most 13 characters. }
+    RecordingArgs:
+      type: object
+      title: recording.start / recording.stop (operator)
+      properties:
+        stream: { type: string, enum: [rx, tx, both], default: both }
+    AudioTxArgs:
+      type: object
+      title: audio.tx (operator)
+      description: Announces binary kind 2 frames at this rate; requires PTT held by this client.
+      required: [sample_rate]
+      properties:
+        sample_rate: { type: integer, enum: [8000, 16000, 48000] }
+    ChatSendArgs:
+      type: object
+      title: modem.chat.send (user)
+      required: [plane, text]
+      properties:
+        plane: { type: string, enum: [arq, broadcast] }
+        text: { type: string, maxLength: 1024 }
+    Reply:
+      type: object
+      required: [type, id, ok]
+      properties:
+        type: { const: reply }
+        id: { $ref: "#/components/schemas/RequestId" }
+        ok: { type: boolean }
+        data:
+          description: Command result, when `ok`.
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - bad_request
+                - unknown_cmd
+                - missing_arg
+                - out_of_range
+                - forbidden
+                - busy
+                - rig_timeout
+                - not_supported
+                - no_ptt
+                - internal
+            message: { type: string }
+    EventEnvelope:
+      type: object
+      required: [type, topic, seq, ts, data]
+      properties:
+        type: { const: event }
+        topic: { $ref: "#/components/schemas/Topic" }
+        seq:
+          type: integer
+          minimum: 0
+          description: Per topic and connection; starts at 0 with the snapshot.
+        ts: { type: string, format: date-time }
+        snapshot:
+          type: boolean
+          default: false
+          description: true for the full state sent on subscribe.
+        data: { type: object }
+    DigiDecode:
+      type: object
+      required: [mode, text, at]
+      properties:
+        mode: { type: string, enum: [FT8, CW, RTTY, DSTAR] }
+        text: { type: string }
+        at: { type: string, format: date-time }
+        frequency_hz: { type: integer }
+        snr_db: { type: [number, "null"] }
+        from: { type: [string, "null"], description: "Callsign, when the mode carries one." }
+    ChatLine:
+      type: object
+      required: [plane, dir, text, at]
+      properties:
+        plane: { type: string, enum: [arq, broadcast] }
+        dir: { type: string, enum: [rx, tx] }
+        peer: { type: [string, "null"] }
+        text: { type: string }
+        at: { type: string, format: date-time }

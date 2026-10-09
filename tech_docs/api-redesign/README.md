@@ -9,6 +9,11 @@
 > fixes still apply; the parts that assume hermes-api in PHP behind nginx `auth_request`
 > will be revised. The station range is every Raspberry Pi from 1 GB to 16 GB. See
 > [COMPARISON.md](COMPARISON.md) for the decision register.
+>
+> The tentative API for that backend is specified in [openapi.yaml](openapi.yaml) (REST,
+> OpenAPI 3.1) and [asyncapi.yaml](asyncapi.yaml) (the `hermes.v1` WebSocket, AsyncAPI 3.1).
+> Where this document and the hermes-backend docs disagree, each spec says which way it went
+> and why.
 
 ## Summary
 
