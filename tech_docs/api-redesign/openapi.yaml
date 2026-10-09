@@ -2231,13 +2231,16 @@ components:
         id: {type: integer, format: int64}
         at:
           $ref: "#/components/schemas/Timestamp"
-          description: Received (end of the FT8 slot, or end of the line) or sent.
+          description: |
+            When it happened. FT8 received: when the transmission started (the window's
+            wall-clock start plus the decoder's time offset). CW and RTTY received: when the
+            line ended. Sent: when it was keyed.
         mode: {$ref: "#/components/schemas/DigiMode"}
         dir: {type: string, enum: [rx, tx]}
         frequency_hz: {type: integer, description: Dial frequency.}
         offset_hz: {type: [integer, "null"], description: "Audio offset of the signal (FT8, RTTY)."}
         snr_db: {type: [number, "null"], description: "FT8: the decoder's SNR estimate (2.5 kHz bandwidth)."}
-        dt_s: {type: [number, "null"], description: "FT8: time offset from the slot start."}
+        dt_s: {type: [number, "null"], description: "FT8: start against 0.5 s into the UTC 15 s slot, as WSJT-X reports DT. HERMES stations send when a message is queued, so theirs is not near 0."}
         text:
           type: string
           maxLength: 512
