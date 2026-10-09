@@ -22,6 +22,9 @@ info:
       on the upgrade by themselves) or `Authorization: Bearer <token>` (tools). No
       session, no upgrade (401). The session's role gates every command.
     - Only same-origin browsers are accepted (`Origin` is checked).
+    - The upgrade response carries `X-Request-Id`, which the station's logs use for this
+      connection; each command's `id` is logged with it.
+    - `readonly` may subscribe to everything `user` sees and runs no commands.
 
     ## Rules
 
@@ -64,6 +67,10 @@ info:
     | Error codes | strings | numbers 4001–4010 | strings | Readable in logs; the same codes as REST |
     | Heartbeat | 5 s, carries the clock | 30 s ping, 60 s timeout | 5 s heartbeat, 60 s idle timeout | The UI needs the station clock; the timeout tolerates a slow Wi-Fi link |
     | Binary | audio and spectrum | JSON only | binary, one header | A 512-bin spectrum at 20 fps is 41 kB/s as binary, several times that as JSON |
+    | Roles | 3 | 4 with `readonly` | 4 with `readonly` | Adopted, as in `openapi.yaml` |
+    | Correlation | command `id` | `requestId` | command `id`, plus `X-Request-Id` per connection | Adopted for tracing; `id` already pairs a command with its reply |
+    | Language | — | `locale` in the token | `locale` in `hello` | Adopted |
+    | Read state | — | `MESSAGE_ACK` | `messages` events with `change: read` | Adopted as local read state, as in `openapi.yaml` |
   license:
     name: GPL-3.0-or-later
 
@@ -199,6 +206,7 @@ components:
             version: 2.0.0
             role: operator
             user: rafael
+            locale: pt-BR
             topics: [radio.state, radio.profiles, modem.status, messages, queue]
             commands: [radio.set, radio.ptt, digi.send]
             limits: { max_frame_bytes: 65536, max_events_per_s: 10 }
@@ -320,7 +328,7 @@ components:
                 type: object
                 required: [change, message]
                 properties:
-                  change: { type: string, enum: [created, received, updated, deleted] }
+                  change: { type: string, enum: [created, received, updated, read, unread, deleted] }
                   message: { $ref: "openapi.yaml#/components/schemas/Message" }
     QueueEvent:
       name: queue
@@ -398,8 +406,9 @@ components:
         protocol: { const: hermes.v1 }
         service: { type: string }
         version: { type: string }
-        role: { type: string, enum: [user, operator, admin] }
+        role: { type: string, enum: [readonly, user, operator, admin] }
         user: { type: string }
+        locale: { $ref: "openapi.yaml#/components/schemas/Locale" }
         topics:
           type: array
           description: Topics this station offers (a station without a radio offers no `radio.*`).

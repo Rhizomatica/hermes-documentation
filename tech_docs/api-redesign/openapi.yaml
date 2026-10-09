@@ -28,7 +28,14 @@ info:
     - No secret travels in a URL: passphrases go in bodies or the `X-Hermes-Passphrase`
       header.
     - `x-hermes-role` on an operation is the lowest role that may call it:
-      `user` < `operator` < `admin`. A role check failure is 403.
+      `readonly` < `user` < `operator` < `admin`. A role check failure is 403.
+      `readonly` sees what `user` sees and changes nothing but its own sessions and read
+      marks (observers, trainees).
+    - Every response carries `X-Request-Id`. A client may send its own (up to 64
+      characters), and it is echoed back; otherwise the station makes one. Errors repeat it
+      as `request_id`, and the station's logs use it, so a report can be traced.
+    - Text meant for people (`title`, `detail`) follows the user's `locale`, or
+      `Accept-Language` before login.
 
     ## Choices where the two earlier proposals differ
 
@@ -41,6 +48,13 @@ info:
     | Messages | inbox/outbox + per-recipient rows | conversations | Messages with per-recipient delivery; `GET /messages?peer=` gives a conversation view | The UUCP `.hmp` and mail model is per message and per destination; a conversation is a filter over it |
     | Errors | problem+json with `errors` | problem+json with `code` | problem+json with both `code` and `errors` | Machines branch on `code`, forms show `errors` |
     | Radio control | WebSocket only | REST through a CLI | Saved settings and state in REST; live control, PTT and streams on the WebSocket | PTT must be released when its client disappears, which only a socket can tell |
+    | Roles | 3 | 4, flat (each route lists every role) | 4 (`readonly` added), ordered | Adopted `readonly`; an order keeps every route to one role |
+    | Request ids | none | `requestId` | `X-Request-Id`, and `request_id` in errors | Adopted |
+    | Language | station setting | per user (`locale`) | per user, station default | Adopted |
+    | Sessions | none | list and revoke your own | `GET /sessions`, `DELETE /sessions/{id}` | Adopted |
+    | First boot | installer only | `/setup` wizard | `/setup`, once, before any user exists | Adopted; the UUCP name and mail domain stay installer-set, so the wizard can't break the network maps |
+    | Apps | none | `/apps` install, remove, update | `/apps` registry, enable and disable | Adopted the registry; installing stays with the Debian packages |
+    | Delivery | per-recipient UUCP state | per-recipient, per-channel, with acknowledgements | per-recipient UUCP state, plus read state | Adopted local read state; read receipts between stations wait until no station needs the old `.hmp` format |
   license:
     name: GPL-3.0-or-later
     identifier: GPL-3.0-or-later
@@ -82,6 +96,10 @@ tags:
     description: Position and position logging.
   - name: events
     description: Audit log.
+  - name: setup
+    description: First-boot setup.
+  - name: apps
+    description: The station's frontend apps.
 
 paths:
   /health:
@@ -96,6 +114,46 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/Health"}
+
+  /setup:
+    get:
+      tags: [setup]
+      operationId: getSetupStatus
+      summary: Whether the first-boot setup has been done (no login needed).
+      security: []
+      responses:
+        "200":
+          description: Setup state.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SetupStatus"}
+    post:
+      tags: [setup]
+      operationId: runSetup
+      summary: First-boot setup, once.
+      description: |
+        Accepted only until setup is completed, while no user but the installer's `root`
+        exists, and only from the station's own network. Creates the first admin, names the
+        station and sets its language, time zone, first radio profile and enabled apps. The
+        UUCP name and mail domain are set by the installer and are not changed here.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/SetupRequest"}
+      responses:
+        "201":
+          description: Done; the new admin is logged in.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Session"}
+        "409":
+          description: Setup was already done (`code` = `setup_done`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+        "422": {$ref: "#/components/responses/Invalid"}
 
   /session:
     post:
@@ -127,7 +185,7 @@ paths:
       tags: [session]
       operationId: getSession
       summary: Who am I.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: The current session.
@@ -143,6 +201,45 @@ paths:
       responses:
         "204": {description: Logged out.}
         "401": {$ref: "#/components/responses/Unauthorized"}
+
+  /sessions:
+    get:
+      tags: [session]
+      operationId: listMySessions
+      summary: Your open sessions (admins may pass `user_id`).
+      x-hermes-role: readonly
+      parameters:
+        - name: user_id
+          in: query
+          schema: {type: integer, format: int64}
+      responses:
+        "200":
+          description: Sessions, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/SessionInfo"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /sessions/{session_id}:
+    parameters:
+      - name: session_id
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    delete:
+      tags: [session]
+      operationId: revokeSession
+      summary: End one of your sessions (admins may end anyone's).
+      x-hermes-role: readonly
+      responses:
+        "204": {description: Ended.}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
 
   /users:
     get:
@@ -188,7 +285,7 @@ paths:
       tags: [users]
       operationId: getUser
       summary: A user (admins, or the user themselves).
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: The user.
@@ -248,7 +345,7 @@ paths:
       tags: [messages]
       operationId: listMessages
       summary: Messages, newest first.
-      x-hermes-role: user
+      x-hermes-role: readonly
       parameters:
         - name: box
           in: query
@@ -298,7 +395,7 @@ paths:
       tags: [messages]
       operationId: getMessage
       summary: A message with its body.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: The message with its body (ciphertext stays hidden when `body_encrypted`).
@@ -382,6 +479,30 @@ paths:
             application/problem+json:
               schema: {$ref: "#/components/schemas/Problem"}
 
+  /messages/{message_id}/read:
+    parameters:
+      - $ref: "#/components/parameters/MessageId"
+    put:
+      tags: [messages]
+      operationId: markRead
+      summary: Mark an incoming message as read by you.
+      x-hermes-role: readonly
+      responses:
+        "200":
+          description: Marked; `read_at` is set.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Message"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      tags: [messages]
+      operationId: markUnread
+      summary: Mark it unread again.
+      x-hermes-role: readonly
+      responses:
+        "204": {description: Marked unread.}
+        "404": {$ref: "#/components/responses/NotFound"}
+
   /attachments:
     post:
       tags: [attachments]
@@ -421,7 +542,7 @@ paths:
       tags: [attachments]
       operationId: downloadAttachment
       summary: Download an attachment, decoded back to a common format.
-      x-hermes-role: user
+      x-hermes-role: readonly
       parameters:
         - name: X-Hermes-Passphrase
           in: header
@@ -455,7 +576,7 @@ paths:
       tags: [stations]
       operationId: listStations
       summary: The stations this one can reach, from `/etc/uucp/sys`.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: Stations.
@@ -479,7 +600,7 @@ paths:
       tags: [stations]
       operationId: getStation
       summary: A station.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: The station.
@@ -510,7 +631,7 @@ paths:
       tags: [schedules]
       operationId: listSchedules
       summary: Connection schedules.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: Connection schedules.
@@ -547,7 +668,7 @@ paths:
       tags: [schedules]
       operationId: nextSchedule
       summary: The next window the station will call in, if any.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: The next window.
@@ -566,7 +687,7 @@ paths:
       tags: [schedules]
       operationId: getSchedule
       summary: A schedule.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: The schedule.
@@ -673,7 +794,7 @@ paths:
       tags: [radio]
       operationId: getRadioState
       summary: The radio's current state (the same data as the `radio.state` topic).
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: State.
@@ -712,7 +833,7 @@ paths:
       tags: [radio]
       operationId: listProfiles
       summary: Every saved radio profile.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: Every saved profile.
@@ -736,7 +857,7 @@ paths:
       tags: [radio]
       operationId: getProfile
       summary: A saved radio profile.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: The profile.
@@ -795,7 +916,7 @@ paths:
       tags: [modem]
       operationId: getModemStatus
       summary: Mercury's link state (the same data as the `modem.status` topic).
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: Status.
@@ -843,7 +964,7 @@ paths:
       tags: [system]
       operationId: getSystem
       summary: Station identity, versions, clock, resources and network.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: System status.
@@ -856,7 +977,7 @@ paths:
       tags: [system]
       operationId: getSettings
       summary: Station settings.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: Settings.
@@ -1049,7 +1170,7 @@ paths:
       tags: [gps]
       operationId: getGps
       summary: Position, fix and logging settings.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: GPS state.
@@ -1080,7 +1201,7 @@ paths:
       tags: [gps]
       operationId: listGpsFiles
       summary: Recorded position files.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: Recorded position files.
@@ -1112,7 +1233,7 @@ paths:
       tags: [gps]
       operationId: downloadGpsFile
       summary: Download a position file.
-      x-hermes-role: user
+      x-hermes-role: readonly
       responses:
         "200":
           description: The file.
@@ -1172,6 +1293,57 @@ paths:
                     items: {$ref: "#/components/schemas/Event"}
                   next_cursor: {type: string}
         '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /apps:
+    get:
+      tags: [apps]
+      operationId: listApps
+      summary: The frontend apps installed on this station.
+      description: |
+        Each app (chat, GPS, radio, mail…) is an independent web app served under its own
+        path and built only on this API. The station's shell reads this list to show the apps
+        a user may open. Apps are installed and updated as Debian packages, not through the API.
+      x-hermes-role: readonly
+      responses:
+        "200":
+          description: Apps.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/App"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /apps/{app_id}:
+    parameters:
+      - name: app_id
+        in: path
+        required: true
+        schema: {type: string, pattern: "^[a-z0-9-]{1,32}$"}
+    patch:
+      tags: [apps]
+      operationId: updateApp
+      summary: Enable or disable an app, or change who may open it.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled: {type: boolean}
+                min_role: {$ref: "#/components/schemas/Role"}
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/App"}
+        "404": {$ref: "#/components/responses/NotFound"}
 
 components:
   securitySchemes:
@@ -1259,6 +1431,9 @@ components:
           description: Stable machine-readable code.
           example: invalid
         detail: {type: string}
+        request_id:
+          type: string
+          description: The `X-Request-Id` of the failed request.
         errors:
           type: object
           description: Messages per field, for forms.
@@ -1276,7 +1451,7 @@ components:
       description: A station's UUCP system name.
     Role:
       type: string
-      enum: [user, operator, admin]
+      enum: [readonly, user, operator, admin]
     Mode:
       type: string
       enum: [LSB, USB, CW, FM, AM, DRM, FT8, RTTY, DSTAR]
@@ -1328,6 +1503,7 @@ components:
           description: The mailbox name (`<username>@<station domain>`).
         display_name: {type: string, maxLength: 64}
         role: {$ref: "#/components/schemas/Role"}
+        locale: {$ref: "#/components/schemas/Locale"}
         phone: {type: [string, "null"]}
         location: {type: [string, "null"]}
         disabled: {type: boolean}
@@ -1350,6 +1526,7 @@ components:
         password: {type: string, minLength: 8, writeOnly: true}
         display_name: {type: string, maxLength: 64}
         role: {$ref: "#/components/schemas/Role"}
+        locale: {$ref: "#/components/schemas/Locale"}
         phone: {type: string}
         location: {type: string}
     UserPatch:
@@ -1358,6 +1535,7 @@ components:
       properties:
         display_name: {type: string, maxLength: 64}
         role: {$ref: "#/components/schemas/Role"}
+        locale: {$ref: "#/components/schemas/Locale"}
         phone: {type: [string, "null"]}
         location: {type: [string, "null"]}
         disabled: {type: boolean}
@@ -1406,6 +1584,9 @@ components:
         created_at: {$ref: "#/components/schemas/Timestamp"}
         updated_at: {$ref: "#/components/schemas/Timestamp"}
         received_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        read_at:
+          oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]
+          description: For incoming messages, when the current user marked it read.
     Recipient:
       type: object
       required: [station, status]
@@ -1722,7 +1903,9 @@ components:
     Settings:
       type: object
       properties:
-        language: {type: string, enum: [en, es, pt-BR, fr]}
+        language:
+          $ref: "#/components/schemas/Locale"
+          description: The station default, for users without their own `locale`.
         allow_attachments_role: {$ref: "#/components/schemas/Role"}
         allow_messages_role: {$ref: "#/components/schemas/Role"}
         max_message_bytes: {type: integer}
@@ -1794,3 +1977,64 @@ components:
         target: {type: [string, "null"], example: "user:12"}
         detail: {type: object, additionalProperties: true}
         ip: {type: [string, "null"]}
+
+    Locale:
+      type: string
+      enum: [en, es, pt-BR, fr]
+    SessionInfo:
+      type: object
+      required: [id, created_at, last_seen_at, expires_at, current]
+      properties:
+        id: {type: integer, format: int64}
+        user_id: {type: integer, format: int64}
+        created_at: {$ref: "#/components/schemas/Timestamp"}
+        last_seen_at: {$ref: "#/components/schemas/Timestamp"}
+        expires_at: {$ref: "#/components/schemas/Timestamp"}
+        ip: {type: [string, "null"]}
+        user_agent: {type: [string, "null"]}
+        current: {type: boolean, description: The session making this request.}
+    SetupStatus:
+      type: object
+      required: [done]
+      properties:
+        done: {type: boolean}
+        uucp_name: {$ref: "#/components/schemas/UucpName"}
+        domain: {type: string}
+    SetupRequest:
+      type: object
+      required: [station_name, admin, language, timezone]
+      properties:
+        station_name: {type: string, maxLength: 64}
+        callsign: {type: [string, "null"], maxLength: 16}
+        country: {type: [string, "null"], pattern: "^[A-Z]{2}$", description: ISO 3166-1 alpha-2.}
+        language: {$ref: "#/components/schemas/Locale"}
+        timezone: {type: string, example: America/Sao_Paulo}
+        admin:
+          type: object
+          required: [username, display_name, password]
+          properties:
+            username: {type: string, pattern: "^[a-z0-9._-]{1,32}$"}
+            display_name: {type: string, maxLength: 64}
+            password: {type: string, minLength: 8, writeOnly: true}
+        radio_profile:
+          type: object
+          properties:
+            frequency_hz: {type: integer, minimum: 0}
+            mode: {$ref: "#/components/schemas/Mode"}
+        apps:
+          type: array
+          description: Apps to enable (ids from `GET /apps`).
+          items: {type: string}
+    App:
+      type: object
+      required: [id, name, path, version, enabled, min_role]
+      properties:
+        id: {type: string, example: hermes-chat}
+        name: {type: string, example: Chat}
+        description: {type: [string, "null"]}
+        path: {type: string, example: /apps/chat/}
+        icon: {type: [string, "null"], description: "Path to the app's icon."}
+        version: {type: string}
+        package: {type: [string, "null"], description: "Debian package that installs it."}
+        enabled: {type: boolean}
+        min_role: {$ref: "#/components/schemas/Role"}

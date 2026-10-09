@@ -110,6 +110,13 @@ Rafael's position: **hermes-radio-daemon becomes the station's backend.** It wil
 include Mercury and serve the other APIs, both WebSocket and REST. That closes
 D-00, D-03, D-05, D-07 and D-23 below; the rest of the register is decided against it.
 
+**Adopted from hermes-backend into the specs** (`openapi.yaml`, `asyncapi.yaml`): the
+`readonly` role; request ids (`X-Request-Id`, `request_id` in errors); a per-user
+`locale`; listing and revoking your own sessions; the one-time `/setup` wizard (without
+renaming the station's UUCP identity); the `/apps` registry for independent frontend
+apps (installed as Debian packages); and read state for incoming messages. Read receipts
+between stations wait until every station has moved off the old `.hmp` format.
+
 ## Decision register
 
 The seven hard forks above are the headline. This register expands them — plus every
