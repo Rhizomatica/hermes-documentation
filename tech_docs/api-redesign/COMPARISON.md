@@ -63,6 +63,7 @@ compatible in principle but not interchangeable in implementation.
 | Identity / login | `username` = mailbox name (UUCP) | `callsign` = login id | ⚠️ |
 | Messaging model | inbox/outbox/drafts; `messages` + `message_recipients` (row per recipient + `uucp_job_id`) | `conversations` + `participants` + `message_deliveries` + reactions + envelopes | ⚠️ |
 | Radio command path | Straight to the radio daemon over WS (not REST) | REST → backend HAL → `sbitx` CLI (`execFile`) | ⚠️ |
+| Hamlib radios (IC-7100) | `sbitx_client -c set_ptt` / `radio_client` over shared memory to radiod or sbitx_controller; on Hamlib stations radiod drives the rig | `execFile('/usr/local/bin/sbitx', ['ptt','on'])` (ADR-006) — a command that exists on no deployed station; Hamlib only appears as a `-lhamlib` link flag | ⚠️ |
 | Modem state in the UI | First-class `/ws/modem` (link, SNR, bitrate, ARQ) | Not surfaced in the gateway at all | • |
 | Auth mechanism | Session **cookie** + nginx `auth_request`; argon2id | **JWT RS256** access + refresh rotation; bcrypt | ⚠️ |
 | Roles | 3 (`admin` / `operator` / `user`) | 4 (adds `readonly`) | • |
@@ -73,8 +74,8 @@ compatible in principle but not interchangeable in implementation.
 | WS heartbeat | 5 s | 30 s PING / 60 s timeout | • |
 | WS error codes | strings (`bad_request`, `unknown_cmd`) | numeric `4001`–`4010` | • |
 | WS auth | nginx `auth_request` → `X-Hermes-User` / `X-Hermes-Role` | `AUTHENTICATE` message with JWT, 10 s timeout | ⚠️ |
-| Hardware target | 1 GB Raspberry Pi | 4 GB Pi (sBitx v2) | ⚠️ |
-| UUCP / Postfix / Dovecot | First-class compatibility constraint | Barely addressed; the sync engine that carried it was removed | • |
+| Hardware target | 1 GB Raspberry Pi (smallest deployed station — the fleet's real budget) | 4 GB Pi (sBitx v2) — matches no deployed station; this repo's sBitx guide is V3 | ⚠️ |
+| UUCP / Postfix / Dovecot | First-class compatibility constraint | Not addressed — Postfix, Dovecot and `.hmp` appear nowhere in hermes-backend; a backend that doesn't carry the UUCP mail path and `.hmp` format can't replace the deployed station | ⚠️ |
 | i18n | Not mentioned | Full `en` / `es` / `pt-BR`; locale in the JWT | • |
 | Extra features | — | `user_devices` push (FCM/APNs), WebRTC signaling, app install/remove | • |
 
@@ -101,7 +102,7 @@ Each is a hard fork, not a wording difference.
 4. **Radio command path** — daemon WebSocket (README) vs backend HAL wrapping the `sbitx` CLI.
 5. **Auth** — session cookie + nginx `auth_request` (README) vs JWT RS256 + refresh rotation (ADR-004).
 6. **HTTP/WS contract** — `/api/v2`, `snake_case`, string error codes, binary frames (README) vs `/api/v1`, `camelCase`, numeric codes, JSON-only (hermes-backend).
-7. **Hardware assumption** — 1 GB Pi (README) vs 4 GB Pi (hermes-backend). The whole RAM budget of both designs depends on which is true.
+7. **Hardware** — settled by the deployed fleet, not an open fork. The smallest Pi in service sets the RAM budget: `estacao8` (the IC-7100 station) has ~900 MB and `estacao`/`estacao2` have 2 GB, so the budget is **1 GB**. hermes-backend's "sBitx v2, Raspberry Pi 4, 4 GB" (`audits/sbitx-v2.md`) matches no deployed station — and this repo's own sBitx guide is for the **V3**.
 
 ## Decisions taken (2026-10-09)
 
@@ -132,6 +133,8 @@ UX, security, CI/CD and the rest of the functional spec the port must reproduce;
 are being decided fresh rather than reconciled, because the README is silent on them.
 Rows **R-01–R-07** are items the backend docs already assert as settled and that the
 team should ratify or reverse. All four groups are up for team review.
+
+**How to work the register.** Start with **D-00–D-07** — the seven hard forks — and settle them first, ideally as GitHub issues. The remaining rows close as they come up; working through all ~90 at once is not the path.
 
 Column meanings:
 
