@@ -90,6 +90,7 @@ info:
     | Correlation | command `id` | `requestId` | command `id`, plus `X-Request-Id` per connection | Adopted for tracing; `id` already pairs a command with its reply |
     | Language | — | `locale` in the token | `locale` in `hello` | Adopted |
     | Read state | — | `MESSAGE_ACK` | `messages` events with `change: read` | Adopted as local read state, as in `api-rest.yaml` |
+    | Broadcast | — | — | progress of an outgoing broadcast as `messages` events (`change: updated`); the mode decoded in `modem.status.listen_mode` | Broadcasts are sent through REST (`POST /messages/{id}/send`); the socket only follows them |
     | Digital modes | `digi.rx` decodes | — | `digi`: sent and received, D-STAR headers, FT8 SNR, time and audio offsets; history at `GET /digi/log` | Matches what hermes-radio-daemon already does (FT8, CW, RTTY, D-STAR), with the metadata its log drops today |
   license:
     name: GPL-3.0-or-later
@@ -340,7 +341,11 @@ components:
               data: { $ref: "#/components/schemas/ChatLine" }
     MessagesEvent:
       name: messages
-      summary: A message arrived, or a message's state changed. The UI stops polling the inbox.
+      summary: |
+        A message arrived, or a message's state changed. The UI stops polling the inbox.
+        An outgoing broadcast on the air sends `updated` at most once a second, with
+        `broadcast.frames_sent`; a withdrawn incoming one sends `updated` with
+        `broadcast.withdrawn_at`.
       payload:
         allOf:
           - $ref: "#/components/schemas/EventEnvelope"
@@ -604,6 +609,7 @@ components:
     ChatSendArgs:
       type: object
       title: modem.chat.send (user)
+      description: The broadcast plane sends in `modem.config.broadcast.mode`.
       required: [plane, text]
       properties:
         plane: { type: string, enum: [arq, broadcast] }

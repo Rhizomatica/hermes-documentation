@@ -56,9 +56,12 @@ info:
       messages and attachments, and D-STAR encrypted voice, are refused (403
       `encryption_not_allowed`) unless an admin turns them on in `settings.encryption`
       for a station licensed to use them. Both default to off.
-    - **Transmissions are accountable.** Only `operator` and above can make the station
-      transmit, and every transmission is in the audit log (`GET /events`, action
-      `radio.tx`): who, mode, frequency, text, start and end.
+    - **Transmissions are accountable.** Only `operator` and above control the radio
+      directly (PTT, digital modes, transmit audio). Users send messages, by UUCP or by
+      broadcast, and the station transmits them; that is rate-limited per user. Every
+      transmission is in the audit log (`GET /events`, action `radio.tx`): who, mode,
+      frequency, text, start and end, whether or not a broadcast names its author on the
+      air.
     - **Text from other stations is untrusted.** Anyone can transmit, so everything that
       arrives over the air is data, never markup: incoming message subjects and bodies,
       attachment names, decoded FT8, CW, RTTY and D-STAR text, chat lines and decoded
@@ -67,7 +70,12 @@ info:
       decoded off the air are claims, not identities.
     - **A message's origin** is the UUCP system that delivered it, never the sender field
       inside the `.hmp` file, and the station never stores fields from that file beyond
-      the ones it maps.
+      the ones it maps. A broadcast has no delivering system, so its origin is the station
+      whose signature it carries: NNCP's for an encrypted broadcast, the broadcast
+      header's for a plain one (signing doesn't hide anything, so it is allowed on
+      amateur bands). A broadcast whose signature doesn't check against a known station
+      is dropped, unless its area has `allow_unknown`; then `origin` is null and the
+      named sender is kept only as `claimed_origin`, a claim.
     - **The process.** hermes-radio-daemon runs as an unprivileged user with only the
       real-time, audio and device rights it needs, under systemd sandboxing. System
       actions (reboot, Wi-Fi, mailboxes, UUCP) go through a privileged helper with a fixed
@@ -95,6 +103,7 @@ info:
     | First boot | installer only | `/setup` wizard | `/setup`, once, before any user exists | Adopted; the UUCP name and mail domain stay installer-set, so the wizard can't break the network maps |
     | Apps | none | `/apps` install, remove, update | `/apps` registry, enable and disable | Adopted the registry; installing stays with the Debian packages |
     | Delivery | per-recipient UUCP state | per-recipient, per-channel, with acknowledgements | per-recipient UUCP state, plus read state | Adopted local read state; read receipts between stations wait until no station needs the old `.hmp` format |
+    | Broadcast | — | a conversation type, up to 200 recipients | A message to an **area** (NNCP's multicast group), sent on Mercury's broadcast plane as a RaptorQ carousel in a mode chosen per message: an NNCP area bundle when encrypted, a signed plain object otherwise | One transmission reaches every station listening in that mode, with no return path; NNCP areas already name the group, identify the message and authenticate the sender |
   license:
     name: GPL-3.0-or-later
     identifier: GPL-3.0-or-later
@@ -113,11 +122,29 @@ tags:
   - name: users
     description: People with an account (and a mailbox) on this station.
   - name: messages
-    description: HERMES messages exchanged with other stations over UUCP.
+    description: |
+      HERMES messages exchanged with other stations over UUCP, or broadcast to every
+      station listening.
+
+      **Broadcast.** A message with `broadcast` instead of `recipients` goes to an area
+      (`GET /areas`) on Mercury's broadcast plane, as a RaptorQ fountain carousel
+      wire-compatible with [hermes-broadcast](https://github.com/Rhizomatica/hermes-broadcast).
+      Any station listening in the same mode decodes it, even one that tunes in halfway
+      through, and nobody acknowledges it. There is no negotiation on the broadcast plane:
+      the sender picks the mode (`broadcast.mode`, by default the station's
+      `modem.config.broadcast.mode`), and only stations listening in that mode hear it.
+
+      With `broadcast.encrypt`, the message is encrypted to the area as an NNCP area
+      packet; otherwise it goes out in the clear, signed. Either way a receiver keeps one
+      copy per broadcast, however many passes or paths bring it, and an encrypted one
+      that a station missed can still reach it later through NNCP relaying over ARQ.
+      The wire format is in `broadcast.md`, same folder.
   - name: attachments
     description: Files attached to messages.
   - name: stations
     description: Stations this one can reach, from the UUCP configuration.
+  - name: areas
+    description: Broadcast groups (NNCP multicast areas), from the station's configuration.
   - name: schedules
     description: When the station calls the others.
   - name: queue
@@ -403,6 +430,14 @@ paths:
           in: query
           description: Only messages from or to this station (`uucp_name`) — the conversation view.
           schema: {$ref: "#/components/schemas/UucpName"}
+        - name: channel
+          in: query
+          description: Only UUCP messages, or only broadcasts.
+          schema: {$ref: "#/components/schemas/MessageChannel"}
+        - name: area
+          in: query
+          description: Only broadcasts to this area.
+          schema: {$ref: "#/components/schemas/AreaName"}
         - name: status
           in: query
           schema: {$ref: "#/components/schemas/MessageStatus"}
@@ -419,6 +454,8 @@ paths:
       tags: [messages]
       operationId: createMessage
       summary: Store a draft.
+      description: |
+        A draft has either `recipients` (UUCP) or `broadcast` (an area).
       x-hermes-role: user
       requestBody:
         required: true
@@ -475,7 +512,7 @@ paths:
     delete:
       tags: [messages]
       operationId: deleteMessage
-      summary: Delete a message; queued UUCP jobs for it are cancelled.
+      summary: Delete a message; queued UUCP jobs for it are cancelled, and a broadcast of it is stopped.
       x-hermes-role: user
       responses:
         "204": {description: Deleted.}
@@ -486,17 +523,35 @@ paths:
     post:
       tags: [messages]
       operationId: sendMessage
-      summary: Queue a draft to each recipient (one UUCP job per recipient).
-      description: Safe to retry; recipients already queued are left as they are.
+      summary: Queue a draft to each recipient (one UUCP job per recipient), or for broadcast.
+      description: |
+        Safe to retry; recipients already queued are left as they are, and a broadcast
+        already queued or on the air is left as it is.
+
+        A broadcast waits while an ARQ call holds the modem, then goes out in
+        its `broadcast.mode` for `broadcast.cycles` passes of the carousel; follow it on
+        the `messages` topic. Mercury changes mode only while no ARQ link is up, so calls
+        to other stations wait until the broadcast ends. The station then listens in
+        `modem.config.broadcast.mode` again.
       x-hermes-role: user
       responses:
         "200":
-          description: Queued; `recipients` carries each one's state and job id.
+          description: Queued; `recipients` carries each one's state and job id, or `broadcast` its state.
           content:
             application/json:
               schema: {$ref: "#/components/schemas/Message"}
         "403":
-          description: The draft is encrypted and `settings.encryption.messages` is off (`code` = `encryption_not_allowed`).
+          description: |
+            The draft is encrypted (a passphrase, or `broadcast.encrypt`) and
+            `settings.encryption.messages` is off (`code` = `encryption_not_allowed`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+        "429":
+          description: The user has sent `settings.tx_rate_limit.broadcasts_per_hour` broadcasts this hour (`code` = `rate_limited`).
+          headers:
+            Retry-After:
+              schema: {type: integer}
           content:
             application/problem+json:
               schema: {$ref: "#/components/schemas/Problem"}
@@ -504,6 +559,40 @@ paths:
         "413": {$ref: "#/components/responses/TooLarge"}
         "507":
           description: The UUCP spool for a recipient is full (`code` = `spool_full`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+  /messages/{message_id}/stop:
+    parameters:
+      - $ref: "#/components/parameters/MessageId"
+    post:
+      tags: [messages]
+      operationId: stopBroadcast
+      summary: Stop a broadcast at the next frame boundary.
+      description: |
+        `broadcast.state` becomes `stopped`. A broadcast still waiting for the modem is
+        taken out of the line. With `withdraw`, the station also sends a short cancel
+        object to the area: receivers drop a partial decode, and mark a copy they already
+        decoded as withdrawn (`broadcast.withdrawn_at`).
+
+        Its author may stop or withdraw it; anyone else needs `operator` (403 `forbidden`).
+      x-hermes-role: user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                withdraw: {type: boolean, default: false}
+      responses:
+        "200":
+          description: Stopped.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Message"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409":
+          description: Not a broadcast, or not waiting or on the air (`code` = `not_broadcasting`).
           content:
             application/problem+json:
               schema: {$ref: "#/components/schemas/Problem"}
@@ -688,6 +777,48 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/Station"}
         "422": {$ref: "#/components/responses/Invalid"}
+
+  /areas:
+    get:
+      tags: [areas]
+      operationId: listAreas
+      summary: The areas this station can broadcast to.
+      description: |
+        Read-only: areas, their members and their keys are set up by the installer
+        (`hermes-nncp-area-export` hands an area's keys to its stations), so the API never
+        writes them.
+      x-hermes-role: readonly
+      responses:
+        "200":
+          description: Areas.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Area"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /areas/{area}:
+    parameters:
+      - name: area
+        in: path
+        required: true
+        schema: {$ref: "#/components/schemas/AreaName"}
+    get:
+      tags: [areas]
+      operationId: getArea
+      summary: An area.
+      x-hermes-role: readonly
+      responses:
+        "200":
+          description: The area.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Area"}
+        "404": {$ref: "#/components/responses/NotFound"}
 
   /schedules:
     get:
@@ -1096,6 +1227,13 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/ModemConfig"}
+        "409":
+          description: |
+            `broadcast.mode` changed while an ARQ link is up; Mercury changes it only while
+            the link is idle (`code` = `busy`). Nothing was applied.
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
         "422":
           description: Not applied (`code` = `audio_failed`, `ptt_failed` or a validation error).
           content:
@@ -1596,6 +1734,10 @@ components:
       type: string
       pattern: "^[A-Za-z0-9_-]{1,32}$"
       description: A station's UUCP system name.
+    AreaName:
+      type: string
+      pattern: "^[A-Za-z0-9_-]{1,32}$"
+      description: A broadcast area's name, as in the NNCP configuration.
     Role:
       type: string
       enum: [readonly, user, operator, admin]
@@ -1703,24 +1845,48 @@ components:
 
     MessageStatus:
       type: string
-      enum: [draft, queued, sent, failed, received]
-      description: For outgoing messages, derived from the recipients' states.
+      enum: [draft, queued, broadcasting, sent, failed, received]
+      description: |
+        For outgoing messages, derived from the recipients' states, or for a broadcast from
+        `broadcast.state` (`waiting` is `queued`; `done` and `stopped` are `sent`).
+    MessageChannel:
+      type: string
+      enum: [uucp, broadcast]
+      description: "`uucp`: to each recipient over UUCP. `broadcast`: to an area, over Mercury's broadcast plane."
     Message:
       type: object
-      required: [id, direction, status, origin, subject, body_encrypted, recipients, attachments, created_at]
+      required: [id, direction, channel, status, origin, subject, body_encrypted, recipients, attachments, created_at]
       properties:
         id: {type: integer, format: int64}
         direction: {type: string, enum: [in, out]}
+        channel: {$ref: "#/components/schemas/MessageChannel"}
         status: {$ref: "#/components/schemas/MessageStatus"}
         origin:
-          $ref: "#/components/schemas/UucpName"
+          oneOf: [$ref: "#/components/schemas/UucpName", type: "null"]
           description: |
             For incoming messages, the UUCP system that delivered the file, never the
-            sender field inside it.
+            sender field inside it; for a broadcast, the station whose signature it
+            carries. Null only for a broadcast from an unknown station to an area with
+            `allow_unknown`.
+        claimed_origin:
+          type: [string, "null"]
+          maxLength: 64
+          description: |
+            Only when `origin` is null: the sender the broadcast names, unverified.
+            Untrusted; render as plain text.
         author_id:
           type: [integer, "null"]
           format: int64
           description: The local user who wrote it; null for incoming messages.
+        author:
+          type: [string, "null"]
+          maxLength: 32
+          description: |
+            For an incoming broadcast that names its author (`with_author`), the username
+            (mailbox name) at `origin`, vouched for by that station's signature, so a reply
+            can go to `<author>@<origin's domain>`. Null when the broadcast came from the
+            station itself, for UUCP messages, and when `origin` is null. Render as plain
+            text.
         subject:
           type: string
           maxLength: 255
@@ -1733,7 +1899,9 @@ components:
         body_encrypted: {type: boolean}
         recipients:
           type: array
+          description: Empty for a broadcast, which nobody acknowledges.
           items: {$ref: "#/components/schemas/Recipient"}
+        broadcast: {$ref: "#/components/schemas/Broadcast"}
         attachments:
           type: array
           items: {$ref: "#/components/schemas/Attachment"}
@@ -1763,7 +1931,13 @@ components:
         next_cursor: {type: string}
     MessageCreate:
       type: object
-      required: [subject, recipients]
+      required: [subject]
+      description: Either `recipients` or `broadcast`, not both.
+      oneOf:
+        - required: [recipients]
+          not: {required: [broadcast]}
+        - required: [broadcast]
+          not: {required: [recipients]}
       properties:
         subject: {type: string, maxLength: 255}
         body: {type: string}
@@ -1772,6 +1946,7 @@ components:
           minItems: 1
           uniqueItems: true
           items: {$ref: "#/components/schemas/UucpName"}
+        broadcast: {$ref: "#/components/schemas/BroadcastCreate"}
         attachment_ids:
           type: array
           maxItems: 1
@@ -1785,6 +1960,7 @@ components:
             `settings.encryption.messages` is on.
     MessagePatch:
       type: object
+      description: A draft stays UUCP or broadcast; `recipients` and `broadcast` can't swap.
       properties:
         subject: {type: string, maxLength: 255}
         body: {type: string}
@@ -1793,12 +1969,121 @@ components:
           minItems: 1
           uniqueItems: true
           items: {$ref: "#/components/schemas/UucpName"}
+        broadcast: {$ref: "#/components/schemas/BroadcastCreate"}
         attachment_ids:
           type: array
           maxItems: 1
           items: {type: integer, format: int64}
         passphrase: {type: string, writeOnly: true}
 
+    BroadcastMode:
+      type: string
+      enum: [DATAC1, DATAC3, DATAC0, DATAC4, DATAC13, FSK_LDPC, DATAC15, DATAC16, DATAC17, QAM16C2]
+      description: |
+        Mercury's payload mode on the broadcast plane (`mercury -l`, `-m`, the `MODE`
+        command). Sender and receivers must use the same one. Measured by Mercury:
+
+        | mode | index | frame | bit/s | bandwidth |
+        | --- | --- | --- | --- | --- |
+        | DATAC1 | 0 | 510 B | 976 | 1687 Hz |
+        | DATAC3 | 1 | 126 B | 316 | 562 Hz |
+        | DATAC0 | 2 | 14 B | 255 | 562 Hz |
+        | DATAC4 | 3 | 54 B | 84 | 250 Hz |
+        | DATAC13 | 4 | 14 B | 57 | 187 Hz |
+        | FSK_LDPC | 6 | 30 B | 44 | — (experimental) |
+        | DATAC15 | 7 | 30 B | 64 | 187 Hz |
+        | DATAC16 | 8 | 14 B | 36 | 187 Hz |
+        | DATAC17 | 9 | 1180 B | 1407 | 2062 Hz |
+        | QAM16C2 | 10 | 1213 B | 3130 | 2062 Hz |
+
+        DATAC14 (3-byte frames) can't carry the carousel, and MFSK is only the ARQ floor;
+        neither is offered. A weak but steady path needs a more robust mode, while a
+        fading one needs more `cycles`.
+    BroadcastCreate:
+      type: object
+      required: [area]
+      description: |
+        The whole broadcast (the `.hmp` file with its attachment, plus the header) is at
+        most 1.44 MB; larger is refused at send (413).
+      properties:
+        area: {$ref: "#/components/schemas/AreaName"}
+        mode:
+          $ref: "#/components/schemas/BroadcastMode"
+          description: Default `modem.config.broadcast.mode`.
+        cycles:
+          type: integer
+          minimum: 1
+          maximum: 16
+          default: 2
+          description: |
+            Passes of the carousel. A receiver that falls short decodes nothing at all, and
+            extra passes cost airtime but not delivery time, so err high on a fading path.
+        with_author:
+          type: boolean
+          default: false
+          description: |
+            Put the sender's username on the air, so receivers can show it and reply to
+            the user. Without it the broadcast comes from the station; the audit log
+            records the user either way.
+        encrypt:
+          type: boolean
+          default: false
+          description: |
+            Encrypt to the area as an NNCP area packet. Needs the area's keys
+            (`has_keys`) and `settings.encryption.messages`; otherwise the message goes out
+            in the clear, signed.
+        expires_at:
+          oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]
+          description: Receivers drop the broadcast after this, decoded or not.
+        supersedes:
+          type: [integer, "null"]
+          format: int64
+          description: An earlier broadcast of this station to the same area that this one replaces.
+    Broadcast:
+      type: object
+      required: [area, mode, encrypted]
+      properties:
+        area: {$ref: "#/components/schemas/AreaName"}
+        mode: {$ref: "#/components/schemas/BroadcastMode"}
+        encrypted: {type: boolean}
+        cycles: {type: [integer, "null"], description: Outgoing only.}
+        expires_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        supersedes:
+          type: [integer, "null"]
+          format: int64
+          description: The message this one replaces, when this station has it.
+        state:
+          type: string
+          enum: [waiting, transmitting, done, stopped, failed]
+          description: Outgoing only. `waiting` until no ARQ call holds the modem.
+        frames_sent: {type: integer, description: Outgoing only.}
+        frames_total: {type: integer, description: Outgoing only; every pass of the carousel.}
+        air_time_s:
+          type: integer
+          description: Outgoing only; estimated from the mode's bit rate and `frames_total`.
+        started_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        ended_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        withdrawn_at:
+          oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]
+          description: Incoming only; when the sender withdrew it.
+        error: {type: [string, "null"]}
+    Area:
+      type: object
+      required: [name, has_keys, members, allow_unknown]
+      properties:
+        name: {$ref: "#/components/schemas/AreaName"}
+        has_keys:
+          type: boolean
+          description: |
+            This station holds the area's keys, so it can send and read encrypted
+            broadcasts to it. Plain broadcasts don't need them.
+        members:
+          type: array
+          description: The stations subscribed to the area.
+          items: {$ref: "#/components/schemas/UucpName"}
+        allow_unknown:
+          type: boolean
+          description: Keep broadcasts signed by a station this one doesn't know (NNCP's `allow-unknown`).
     Attachment:
       type: object
       required: [id, original_name, mime_type, size_bytes, encrypted, codec, created_at]
@@ -1952,6 +2237,11 @@ components:
         tx_peak_dbfs: {type: [number, "null"]}
         arq_tx_mode: {type: [string, "null"]}
         arq_rx_mode: {type: [string, "null"]}
+        listen_mode:
+          oneOf: [$ref: "#/components/schemas/BroadcastMode", type: "null"]
+          description: |
+            What the modem decodes while no ARQ link is up, broadcasts included. While a
+            broadcast goes out in another mode, it is that broadcast's mode.
         audio_ok: {type: boolean}
         audio_error: {type: [string, "null"]}
     ModemConfig:
@@ -1963,6 +2253,19 @@ components:
         input_channel: {type: string, enum: [left, right, stereo]}
         tx_gain_db: {type: number, minimum: -20, maximum: 20}
         waterfall: {type: boolean}
+        broadcast:
+          type: object
+          properties:
+            mode:
+              $ref: "#/components/schemas/BroadcastMode"
+              description: |
+                The mode this station listens in while no ARQ link is up, so the mode of the
+                broadcasts it hears, and the default for those it sends. Mercury's
+                broadcast chat (`modem.chat`, plane `broadcast`) uses it too. Default DATAC3.
+            receive:
+              type: boolean
+              default: true
+              description: Decode broadcasts and file them as incoming messages.
         ptt:
           type: object
           properties:
@@ -1994,6 +2297,19 @@ components:
         input_channel: {type: string, enum: [left, right, stereo]}
         tx_gain_db: {type: number, minimum: -20, maximum: 20}
         waterfall: {type: boolean}
+        broadcast:
+          type: object
+          properties:
+            mode:
+              $ref: "#/components/schemas/BroadcastMode"
+              description: |
+                The mode this station listens in while no ARQ link is up, so the mode of the
+                broadcasts it hears, and the default for those it sends. Mercury's
+                broadcast chat (`modem.chat`, plane `broadcast`) uses it too. Default DATAC3.
+            receive:
+              type: boolean
+              default: true
+              description: Decode broadcasts and file them as incoming messages.
         ptt:
           type: object
           properties:
@@ -2093,6 +2409,7 @@ components:
           properties:
             digi_per_minute: {type: integer, minimum: 1, default: 6}
             ptt_per_minute: {type: integer, minimum: 1, default: 30}
+            broadcasts_per_hour: {type: integer, minimum: 1, default: 6}
 
     LogLine:
       type: object
