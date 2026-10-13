@@ -526,6 +526,65 @@ paths:
               schema: {$ref: "#/components/schemas/Problem"}
         "429": {$ref: "#/components/responses/TooManyRequests"}
 
+  /users/{user_id}/devices:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      tags: [users]
+      operationId: listDevices
+      summary: A user's registered devices (admins, or the user themselves).
+      x-hermes-role: user
+      responses:
+        "200":
+          description: Devices, without push tokens.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Device"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    post:
+      tags: [users]
+      operationId: registerDevice
+      summary: Register a device for push notifications.
+      description: A user registers their own device; an admin may register anyone's.
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/DeviceCreate"}
+      responses:
+        "201":
+          description: Registered.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Device"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/Invalid"}
+  /users/{user_id}/devices/{device_id}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+      - name: device_id
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    delete:
+      tags: [users]
+      operationId: unregisterDevice
+      summary: Remove a device (the user's own, or any for an admin).
+      x-hermes-role: user
+      responses:
+        "204": {description: Removed.}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
   /messages:
     get:
       tags: [messages]
@@ -766,6 +825,40 @@ paths:
       x-hermes-role: readonly
       responses:
         "204": {description: Marked unread.}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+  /messages/{message_id}/reactions:
+    parameters:
+      - $ref: "#/components/parameters/MessageId"
+    put:
+      tags: [messages]
+      operationId: setReaction
+      summary: Set or replace your reaction (an emoji) on a message — one per user.
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emoji]
+              properties:
+                emoji: {type: string, maxLength: 16}
+      responses:
+        "200":
+          description: Set (replacing any earlier one); the message with its reactions.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Message"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/Invalid"}
+    delete:
+      tags: [messages]
+      operationId: removeReaction
+      summary: Remove your reaction from a message.
+      x-hermes-role: user
+      responses:
+        "204": {description: Removed.}
         "404": {$ref: "#/components/responses/NotFound"}
 
   /attachments:
@@ -2148,6 +2241,28 @@ components:
         phone: {type: [string, "null"]}
         location: {type: [string, "null"]}
         disabled: {type: boolean}
+    Device:
+      type: object
+      required: [id, device_type, platform, created_at]
+      properties:
+        id: {type: integer, format: int64}
+        device_type: {type: string, enum: [mobile, desktop, browser]}
+        device_name: {type: [string, "null"]}
+        platform: {type: string, enum: [ios, android, web, linux]}
+        last_seen_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        created_at: {$ref: "#/components/schemas/Timestamp"}
+        updated_at: {$ref: "#/components/schemas/Timestamp"}
+    DeviceCreate:
+      type: object
+      required: [device_type, platform, push_token]
+      properties:
+        device_type: {type: string, enum: [mobile, desktop, browser]}
+        device_name: {type: [string, "null"]}
+        platform: {type: string, enum: [ios, android, web, linux]}
+        push_token:
+          type: string
+          writeOnly: true
+          description: FCM/APNs token; stored hashed and never returned.
     PasswordChange:
       type: object
       required: [new_password]
@@ -2182,6 +2297,13 @@ components:
         direction: {type: string, enum: [in, out]}
         channel: {$ref: "#/components/schemas/MessageChannel"}
         status: {$ref: "#/components/schemas/MessageStatus"}
+        client_message_id:
+          type: [string, "null"]
+          description: The idempotency key the client sent when creating the draft, if any.
+        content_type:
+          type: string
+          enum: [text, markdown, audio, system, attachment_only]
+          default: text
         origin:
           oneOf: [$ref: "#/components/schemas/UucpName", type: "null"]
           description: |
@@ -2218,6 +2340,14 @@ components:
             Absent in lists, and when `body_encrypted` (use `/decrypt`). Untrusted on
             incoming messages; render as plain text.
         body_encrypted: {type: boolean}
+        reply_to_message_id:
+          type: [integer, "null"]
+          format: int64
+          description: The message this one replies to.
+        forwarded_from_id:
+          type: [integer, "null"]
+          format: int64
+          description: The message this one forwards.
         recipients:
           type: array
           description: UUCP only. Empty for a broadcast, which nobody acknowledges, and for LXMF (see `lxmf.recipients`).
@@ -2227,6 +2357,10 @@ components:
         attachments:
           type: array
           items: {$ref: "#/components/schemas/Attachment"}
+        reactions:
+          type: array
+          description: Emoji reactions; one per user, at most 20 per message.
+          items: {$ref: "#/components/schemas/Reaction"}
         created_at: {$ref: "#/components/schemas/Timestamp"}
         updated_at: {$ref: "#/components/schemas/Timestamp"}
         received_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
@@ -2243,6 +2377,13 @@ components:
         queued_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
         sent_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
         error: {type: [string, "null"]}
+    Reaction:
+      type: object
+      required: [user_id, emoji, created_at]
+      properties:
+        user_id: {type: integer, format: int64}
+        emoji: {type: string, maxLength: 16}
+        created_at: {$ref: "#/components/schemas/Timestamp"}
     MessagePage:
       type: object
       required: [data]
@@ -2265,6 +2406,22 @@ components:
       properties:
         subject: {type: string, maxLength: 255}
         body: {type: string}
+        content_type:
+          type: string
+          enum: [text, markdown, audio, system, attachment_only]
+          default: text
+        client_message_id:
+          type: string
+          maxLength: 64
+          description: Client-chosen idempotency key; retries of the same create return the same draft.
+        reply_to_message_id:
+          type: [integer, "null"]
+          format: int64
+          description: A message this one replies to.
+        forwarded_from_id:
+          type: [integer, "null"]
+          format: int64
+          description: A message this one forwards.
         recipients:
           type: array
           minItems: 1
@@ -2290,6 +2447,17 @@ components:
       properties:
         subject: {type: string, maxLength: 255}
         body: {type: string}
+        content_type:
+          type: string
+          enum: [text, markdown, audio, system, attachment_only]
+        reply_to_message_id:
+          type: [integer, "null"]
+          format: int64
+          description: A message this one replies to.
+        forwarded_from_id:
+          type: [integer, "null"]
+          format: int64
+          description: A message this one forwards.
         recipients:
           type: array
           minItems: 1
