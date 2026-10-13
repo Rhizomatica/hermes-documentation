@@ -90,6 +90,7 @@ info:
     | Correlation | command `id` | `requestId` | command `id`, plus `X-Request-Id` per connection | Adopted for tracing; `id` already pairs a command with its reply |
     | Language | — | `locale` in the token | `locale` in `hello` | Adopted |
     | Read state | — | `MESSAGE_ACK` | `messages` events with `change: read` | Adopted as local read state, as in `api-rest.yaml` |
+    | Reticulum | — | — | backhaul links and peers heard on the `reticulum` topic; calls on `queue` with their `transport`; LXMF messages on `messages` | LXMF messages are messages; the topic only reports the node |
     | Broadcast | — | — | progress of an outgoing broadcast as `messages` events (`change: updated`); the mode decoded in `modem.status.listen_mode` | Broadcasts are sent through REST (`POST /messages/{id}/send`); the socket only follows them |
     | Digital modes | `digi.rx` decodes | — | `digi`: sent and received, D-STAR headers, FT8 SNR, time and audio offsets; history at `GET /digi/log` | Matches what hermes-radio-daemon already does (FT8, CW, RTTY, D-STAR), with the metadata its log drops today |
   license:
@@ -137,6 +138,7 @@ channels:
       queue: { $ref: "#/components/messages/QueueEvent" }
       system: { $ref: "#/components/messages/SystemEvent" }
       gps: { $ref: "#/components/messages/GpsEvent" }
+      reticulum: { $ref: "#/components/messages/ReticulumEvent" }
       binaryDown: { $ref: "#/components/messages/BinaryFrame" }
       binaryUp: { $ref: "#/components/messages/BinaryTxAudio" }
 
@@ -190,6 +192,7 @@ operations:
       - $ref: "#/channels/station/messages/queue"
       - $ref: "#/channels/station/messages/system"
       - $ref: "#/channels/station/messages/gps"
+      - $ref: "#/channels/station/messages/reticulum"
   sendBinary:
     action: send
     channel: { $ref: "#/channels/station" }
@@ -373,6 +376,9 @@ components:
                   change: { type: string, enum: [queued, sent, failed, cancelled, call_started, call_ended] }
                   job: { $ref: "api-rest.yaml#/components/schemas/QueueJob" }
                   station: { $ref: "api-rest.yaml#/components/schemas/UucpName" }
+                  transport:
+                    $ref: "api-rest.yaml#/components/schemas/Transport"
+                    description: For `call_started` and `call_ended`.
     SystemEvent:
       name: system
       summary: Health, disk, clock sync or a service changed state.
@@ -392,6 +398,25 @@ components:
             properties:
               topic: { const: gps }
               data: { $ref: "api-rest.yaml#/components/schemas/Gps" }
+    ReticulumEvent:
+      name: reticulum
+      summary: |
+        The node's state, a backhaul link's state, or an LXMF address heard announcing. The
+        snapshot is the node's state and every link.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              topic: { const: reticulum }
+              data:
+                type: object
+                required: [change]
+                properties:
+                  change: { type: string, enum: [status, link, peer] }
+                  status: { $ref: "api-rest.yaml#/components/schemas/ReticulumStatus" }
+                  link: { $ref: "api-rest.yaml#/components/schemas/ReticulumLink" }
+                  peer: { $ref: "api-rest.yaml#/components/schemas/LxmfPeer" }
     BinaryFrame:
       name: binary
       contentType: application/octet-stream
@@ -426,6 +451,7 @@ components:
         - queue
         - system
         - gps
+        - reticulum
     Hello:
       type: object
       required: [type, protocol, service, version, role, topics, commands]

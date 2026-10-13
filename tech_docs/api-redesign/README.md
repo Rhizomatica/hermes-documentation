@@ -160,6 +160,7 @@ REST keeps what is stored or acts on the station's files and services: messages,
 | Users | `GET /users`, `POST /users`, `GET/PATCH/DELETE /users/{id}`, `PUT /users/{id}/password` | admin (users may read and edit themselves) | `/user*` |
 | Messages | `GET /messages?box=inbox\|outbox\|drafts`, `POST /messages`, `GET/DELETE /messages/{id}`, `POST /messages/{id}/send`, `POST /messages/{id}/stop` (broadcast), `POST /messages/{id}/decrypt` | user | `/message*` |
 | Areas | `GET /areas`, `GET /areas/{name}` (broadcast groups, read-only) | user | — |
+| Reticulum | `GET /reticulum`, `GET/PATCH /reticulum/settings`, `GET /reticulum/links`, `GET/PUT/DELETE /reticulum/links/{station}`, `GET /reticulum/peers`, `POST /reticulum/announce` | read: user; settings and links: admin | — |
 | Attachments | `POST /attachments` (upload, before sending), `GET /attachments/{id}` (download, decoded) | user | `/file*`, `/message/image` |
 | Stations | `GET /stations`, `GET/PATCH /stations/{id}` (alias, frequency, mode, enabled) | read: user; write: admin | `/sys/stations`, `/frequency*` |
 | Schedules | `GET /schedules`, `POST /schedules`, `GET/PATCH/DELETE /schedules/{id}`, `GET /schedules/next` | read: user; write: admin | `/caller*` |
@@ -174,6 +175,8 @@ REST keeps what is stored or acts on the station's files and services: messages,
 Message sending becomes two steps that clients can retry. `POST /messages` stores a draft and returns its id. `POST /messages/{id}/send` queues it to each recipient and returns per-recipient states. The UI follows delivery through `GET /messages/{id}` or the queue, instead of re-parsing `uustat` output.
 
 A message can instead be a **broadcast** to an area, sent once over Mercury's broadcast plane in a mode the sender picks. It is an NNCP area bundle when encrypted and a signed plain object otherwise. See [broadcast.md](broadcast.md).
+
+A message can also be **LXMF**, to any Reticulum address, from the user's own LXMF address. The station is a Reticulum transport and propagation node for phones on its Wi-Fi, and links to other stations over Mercury ARQ, with calls that share the line with UUCP (`transport` on calls and schedules). See [reticulum.md](reticulum.md).
 
 The scripts' calls stop going through HTTP. `iwatch`'s `/unpack` becomes the CLI command `php artisan hermes:unpack <file>`, so it no longer needs an unauthenticated route. `caller.sh` and `mailkill.sh` read the same data through `hermes:schedule-now` and `hermes:setting language`. Until those scripts are updated, the three v1 routes they use stay open, but to localhost only.
 
@@ -249,10 +252,11 @@ The daemon that drives the transmitter now also parses requests from the network
 
 | Risk | Rule |
 | --- | --- |
-| Encryption on the air is not allowed on amateur bands | Encrypted messages, attachments and D-STAR voice are refused unless an admin enables them in `settings.encryption` for a licensed station. Both off by default |
+| Encryption on the air is not allowed on amateur bands | Encrypted messages, attachments and D-STAR voice are refused, and Reticulum doesn't run, unless an admin enables them in `settings.encryption` for a licensed station. All off by default |
 | Anyone on the Wi-Fi making the station transmit | Transmitting needs `operator`, is rate-limited per user, and every transmission is in the audit log (`radio.tx`). CW and RTTY append the station callsign when the text lacks it. The transmit timeout is enforced by the station |
 | Text that arrives over the air (FT8, CW, RTTY, D-STAR, chat, `.hmp`) is attacker-controlled | Control characters removed, lengths capped, always valid JSON, rendered as plain text. Decoded callsigns are claims, not identities |
 | A forged sender inside an `.hmp` file | The origin is the UUCP system that delivered the file |
+| A forged LXMF sender | The sender is the address whose signature checks; a wrong signature is dropped, an unknown identity is marked unverified, and display names are claims |
 | A forged broadcast, which no UUCP system delivers | Broadcasts are signed by the sending station, which vouches for the author's username when they include it; one that doesn't verify against a known station is dropped, unless its area allows unknown senders, and then its sender is shown as a claim |
 | Claiming a new station first, through `/setup` | A one-time setup code from the installer (console and `/etc/hermes/setup-code`) |
 | Cross-site requests riding a login cookie | Writes made with the cookie need a matching `Origin` or `X-Hermes-CSRF: 1` |

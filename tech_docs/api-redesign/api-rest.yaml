@@ -55,7 +55,8 @@ info:
     - **Encryption on the air** is not allowed on amateur bands. Passphrase-encrypted
       messages and attachments, and D-STAR encrypted voice, are refused (403
       `encryption_not_allowed`) unless an admin turns them on in `settings.encryption`
-      for a station licensed to use them. Both default to off.
+      for a station licensed to use them. Reticulum encrypts everything it carries, so it
+      can't run at all until `settings.encryption.reticulum` is on. All default to off.
     - **Transmissions are accountable.** Only `operator` and above control the radio
       directly (PTT, digital modes, transmit audio). Users send messages, by UUCP or by
       broadcast, and the station transmits them; that is rate-limited per user. Every
@@ -76,6 +77,14 @@ info:
       amateur bands). A broadcast whose signature doesn't check against a known station
       is dropped, unless its area has `allow_unknown`; then `origin` is null and the
       named sender is kept only as `claimed_origin`, a claim.
+    - **LXMF senders** are their signing identity's address. A message whose signature
+      is wrong is dropped. One from an identity the station hasn't heard announce yet is
+      kept with `lxmf.from.verified` false. Display names from announces are claims.
+    - **The Reticulum services are open to the Wi-Fi.** Phones on the station's network
+      may use its transport and propagation nodes without an account, as Reticulum
+      expects; the propagation node's storage is capped
+      (`reticulum.settings.propagation.storage_limit_mb`), and only accounts get an LXMF
+      address or the HERMES inbox.
     - **The process.** hermes-radio-daemon runs as an unprivileged user with only the
       real-time, audio and device rights it needs, under systemd sandboxing. System
       actions (reboot, Wi-Fi, mailboxes, UUCP) go through a privileged helper with a fixed
@@ -103,6 +112,7 @@ info:
     | First boot | installer only | `/setup` wizard | `/setup`, once, before any user exists | Adopted; the UUCP name and mail domain stay installer-set, so the wizard can't break the network maps |
     | Apps | none | `/apps` install, remove, update | `/apps` registry, enable and disable | Adopted the registry; installing stays with the Debian packages |
     | Delivery | per-recipient UUCP state | per-recipient, per-channel, with acknowledgements | per-recipient UUCP state, plus read state | Adopted local read state; read receipts between stations wait until no station needs the old `.hmp` format |
+    | Reticulum | — | — | With NNCP, the encrypted option for communication. The station is a Reticulum transport and LXMF propagation node for phones on its Wi-Fi, reaches other stations over Mercury ARQ (one backhaul link per station, calls like UUCP's), and is an LXMF client: each user has an address, and LXMF is a third message channel | Mercury's ARQ carries Reticulum where its broadcast plane can't (frame size, one client); calls are intermittent, so the propagation node holds messages like the UUCP spool |
     | Broadcast | — | a conversation type, up to 200 recipients | A message to an **area** (NNCP's multicast group), sent on Mercury's broadcast plane as a RaptorQ carousel in a mode chosen per message: an NNCP area bundle when encrypted, a signed plain object otherwise | One transmission reaches every station listening in that mode, with no return path; NNCP areas already name the group, identify the message and authenticate the sender |
   license:
     name: GPL-3.0-or-later
@@ -123,8 +133,13 @@ tags:
     description: People with an account (and a mailbox) on this station.
   - name: messages
     description: |
-      HERMES messages exchanged with other stations over UUCP, or broadcast to every
-      station listening.
+      HERMES messages exchanged with other stations over UUCP, broadcast to every
+      station listening, or exchanged with any LXMF address over Reticulum.
+
+      **LXMF.** A message with `lxmf` instead of `recipients` goes from the sender's own
+      LXMF address (or the station's) to one or more LXMF addresses: Sideband, NomadNet
+      or MeshChat users, or users of other stations. Each recipient has its own LXMF
+      delivery state, and `delivered` is a real receipt from the recipient.
 
       **Broadcast.** A message with `broadcast` instead of `recipients` goes to an area
       (`GET /areas`) on Mercury's broadcast plane, as a RaptorQ fountain carousel
@@ -145,6 +160,11 @@ tags:
     description: Stations this one can reach, from the UUCP configuration.
   - name: areas
     description: Broadcast groups (NNCP multicast areas), from the station's configuration.
+  - name: reticulum
+    description: |
+      The station's Reticulum node: a transport and LXMF propagation node for phones on
+      its Wi-Fi, with backhaul links to other stations over Mercury ARQ. LXMF messages
+      themselves are messages (`channel` = `lxmf`). See `reticulum.md`, same folder.
   - name: schedules
     description: When the station calls the others.
   - name: queue
@@ -415,6 +435,54 @@ paths:
         "204": {description: Changed. Other sessions of that user end.}
         "403": {$ref: "#/components/responses/Forbidden"}
         "422": {$ref: "#/components/responses/Invalid"}
+  /users/{user_id}/lxmf-identity/export:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    post:
+      tags: [users]
+      operationId: exportLxmfIdentity
+      summary: Export your LXMF identity, to use the same address in Sideband or another LXMF client.
+      description: |
+        Only for yourself, never for another user (an admin included), and only with your
+        current password. The key is in the format Sideband's identity import takes:
+        Base32 of the Reticulum identity's private key. Whoever holds it controls the
+        address, so the reply is `Cache-Control: no-store` and the export goes in the
+        audit log (`lxmf.identity_export`).
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: {type: string, format: password, writeOnly: true}
+      responses:
+        "200":
+          description: The identity.
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [address, identity_base32]
+                properties:
+                  address: {$ref: "#/components/schemas/LxmfAddress"}
+                  identity_base32: {type: string, description: Base32 of the private key; paste it into Sideband's identity import.}
+        "403":
+          description: Not your own identity, or a wrong password (`code` = `forbidden`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+        "409":
+          description: The user has no LXMF address yet (`code` = `reticulum_off`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
 
   /messages:
     get:
@@ -438,6 +506,10 @@ paths:
           in: query
           description: Only broadcasts to this area.
           schema: {$ref: "#/components/schemas/AreaName"}
+        - name: address
+          in: query
+          description: Only LXMF messages from or to this address — the conversation view.
+          schema: {$ref: "#/components/schemas/LxmfAddress"}
         - name: status
           in: query
           schema: {$ref: "#/components/schemas/MessageStatus"}
@@ -455,7 +527,8 @@ paths:
       operationId: createMessage
       summary: Store a draft.
       description: |
-        A draft has either `recipients` (UUCP) or `broadcast` (an area).
+        A draft has exactly one of `recipients` (UUCP), `broadcast` (an area) or `lxmf`
+        (LXMF addresses).
       x-hermes-role: user
       requestBody:
         required: true
@@ -527,6 +600,10 @@ paths:
       description: |
         Safe to retry; recipients already queued are left as they are, and a broadcast
         already queued or on the air is left as it is.
+
+        An LXMF message is handed to the LXMF router, one LXMF message per recipient; each
+        recipient's `state` follows it, up to `delivered`. A recipient reached only
+        through a backhaul link waits in the propagation node until that link is up.
 
         A broadcast waits while an ARQ call holds the modem, then goes out in
         its `broadcast.mode` for `broadcast.cycles` passes of the carousel; follow it on
@@ -820,6 +897,178 @@ paths:
               schema: {$ref: "#/components/schemas/Area"}
         "404": {$ref: "#/components/responses/NotFound"}
 
+  /reticulum:
+    get:
+      tags: [reticulum]
+      operationId: getReticulum
+      summary: The Reticulum node's state.
+      x-hermes-role: readonly
+      responses:
+        "200":
+          description: State.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ReticulumStatus"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /reticulum/settings:
+    get:
+      tags: [reticulum]
+      operationId: getReticulumSettings
+      summary: The Reticulum node's settings.
+      x-hermes-role: operator
+      responses:
+        "200":
+          description: Settings.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ReticulumSettings"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    patch:
+      tags: [reticulum]
+      operationId: updateReticulumSettings
+      summary: Change the Reticulum node's settings.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ReticulumSettings"}
+      responses:
+        "200":
+          description: Applied and saved.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ReticulumSettings"}
+        "403":
+          description: "`enabled` while `settings.encryption.reticulum` is off (`code` = `encryption_not_allowed`)."
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+        "422": {$ref: "#/components/responses/Invalid"}
+  /reticulum/links:
+    get:
+      tags: [reticulum]
+      operationId: listReticulumLinks
+      summary: Backhaul links to other stations, over Mercury ARQ.
+      x-hermes-role: readonly
+      responses:
+        "200":
+          description: Links.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/ReticulumLink"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /reticulum/links/{uucp_name}:
+    parameters:
+      - name: uucp_name
+        in: path
+        required: true
+        description: The station at the other end, as in `/stations`.
+        schema: {$ref: "#/components/schemas/UucpName"}
+    get:
+      tags: [reticulum]
+      operationId: getReticulumLink
+      summary: A backhaul link.
+      x-hermes-role: readonly
+      responses:
+        "200":
+          description: The link.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ReticulumLink"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    put:
+      tags: [reticulum]
+      operationId: putReticulumLink
+      summary: Set up, or change, the backhaul link to a station.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ReticulumLinkWrite"}
+      responses:
+        "200":
+          description: Saved.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ReticulumLink"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/Invalid"}
+    delete:
+      tags: [reticulum]
+      operationId: deleteReticulumLink
+      summary: Remove the backhaul link to a station; a session in progress is closed.
+      x-hermes-role: admin
+      responses:
+        "204": {description: Removed.}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /reticulum/peers:
+    get:
+      tags: [reticulum]
+      operationId: listLxmfPeers
+      summary: LXMF addresses this station has heard announce, newest first.
+      description: The address book for writing LXMF messages. Display names are claims.
+      x-hermes-role: readonly
+      parameters:
+        - name: q
+          in: query
+          description: Part of a display name or address.
+          schema: {type: string, maxLength: 64}
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Peers.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/LxmfPeer"}
+                  next_cursor: {type: string}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /reticulum/announce:
+    post:
+      tags: [reticulum]
+      operationId: announceLxmf
+      summary: Announce your LXMF address now (or the station's).
+      description: |
+        The announce goes out on the Wi-Fi at once and over each backhaul link the next
+        time it is up; it never starts a call. Announcing for the station needs `operator`.
+      x-hermes-role: user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                as_station: {type: boolean, default: false}
+      responses:
+        "202": {description: Announced.}
+        "409":
+          description: Reticulum is off (`code` = `reticulum_off`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+        "429":
+          description: Announced too recently (`code` = `rate_limited`).
+          headers:
+            Retry-After:
+              schema: {type: integer}
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+
   /schedules:
     get:
       tags: [schedules]
@@ -966,6 +1215,9 @@ paths:
               type: object
               properties:
                 station: {$ref: "#/components/schemas/UucpName"}
+                transport:
+                  $ref: "#/components/schemas/Transport"
+                  description: Default `uucp`. `reticulum` brings up the station's backhaul link.
       responses:
         "202": {description: Call started; follow it on the `queue` and `modem.status` topics.}
         "409":
@@ -1738,6 +1990,14 @@ components:
       type: string
       pattern: "^[A-Za-z0-9_-]{1,32}$"
       description: A broadcast area's name, as in the NNCP configuration.
+    LxmfAddress:
+      type: string
+      pattern: "^[0-9a-f]{32}$"
+      description: An LXMF address (the 16-byte hash of an `lxmf.delivery` destination), in hex.
+    Transport:
+      type: string
+      enum: [uucp, nncp, reticulum]
+      description: What an ARQ call carries. `nncp` only on stations that run NNCP.
     Role:
       type: string
       enum: [readonly, user, operator, admin]
@@ -1764,6 +2024,7 @@ components:
             modem: {type: string, enum: [ok, down]}
             database: {type: string, enum: [ok, down]}
             uucp: {type: string, enum: [ok, down]}
+            reticulum: {type: string, enum: [ok, down, absent]}
 
     LoginRequest:
       type: object
@@ -1796,6 +2057,13 @@ components:
         phone: {type: [string, "null"]}
         location: {type: [string, "null"]}
         disabled: {type: boolean}
+        lxmf_address:
+          readOnly: true
+          oneOf: [$ref: "#/components/schemas/LxmfAddress", type: "null"]
+          description: |
+            The user's LXMF address. The station holds its identity and creates it the first
+            time Reticulum is on; null until then. The user can export it to Sideband
+            (`POST /users/{id}/lxmf-identity/export`) and use the same address there.
         last_login_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
         created_at: {$ref: "#/components/schemas/Timestamp"}
         updated_at: {$ref: "#/components/schemas/Timestamp"}
@@ -1845,14 +2113,15 @@ components:
 
     MessageStatus:
       type: string
-      enum: [draft, queued, broadcasting, sent, failed, received]
+      enum: [draft, queued, broadcasting, sent, delivered, failed, received]
       description: |
         For outgoing messages, derived from the recipients' states, or for a broadcast from
         `broadcast.state` (`waiting` is `queued`; `done` and `stopped` are `sent`).
+        `delivered` only for LXMF, once every recipient has confirmed.
     MessageChannel:
       type: string
-      enum: [uucp, broadcast]
-      description: "`uucp`: to each recipient over UUCP. `broadcast`: to an area, over Mercury's broadcast plane."
+      enum: [uucp, broadcast, lxmf]
+      description: "`uucp`: to each recipient over UUCP. `broadcast`: to an area, over Mercury's broadcast plane. `lxmf`: to LXMF addresses, over Reticulum."
     Message:
       type: object
       required: [id, direction, channel, status, origin, subject, body_encrypted, recipients, attachments, created_at]
@@ -1866,8 +2135,8 @@ components:
           description: |
             For incoming messages, the UUCP system that delivered the file, never the
             sender field inside it; for a broadcast, the station whose signature it
-            carries. Null only for a broadcast from an unknown station to an area with
-            `allow_unknown`.
+            carries. Null for LXMF (see `lxmf.from`), and for a broadcast from an unknown
+            station to an area with `allow_unknown`.
         claimed_origin:
           type: [string, "null"]
           maxLength: 64
@@ -1899,9 +2168,10 @@ components:
         body_encrypted: {type: boolean}
         recipients:
           type: array
-          description: Empty for a broadcast, which nobody acknowledges.
+          description: UUCP only. Empty for a broadcast, which nobody acknowledges, and for LXMF (see `lxmf.recipients`).
           items: {$ref: "#/components/schemas/Recipient"}
         broadcast: {$ref: "#/components/schemas/Broadcast"}
+        lxmf: {$ref: "#/components/schemas/Lxmf"}
         attachments:
           type: array
           items: {$ref: "#/components/schemas/Attachment"}
@@ -1932,12 +2202,14 @@ components:
     MessageCreate:
       type: object
       required: [subject]
-      description: Either `recipients` or `broadcast`, not both.
+      description: Exactly one of `recipients`, `broadcast` or `lxmf`. For LXMF, `subject` is the title and may be empty.
       oneOf:
         - required: [recipients]
-          not: {required: [broadcast]}
+          not: {anyOf: [{required: [broadcast]}, {required: [lxmf]}]}
         - required: [broadcast]
-          not: {required: [recipients]}
+          not: {anyOf: [{required: [recipients]}, {required: [lxmf]}]}
+        - required: [lxmf]
+          not: {anyOf: [{required: [recipients]}, {required: [broadcast]}]}
       properties:
         subject: {type: string, maxLength: 255}
         body: {type: string}
@@ -1947,6 +2219,7 @@ components:
           uniqueItems: true
           items: {$ref: "#/components/schemas/UucpName"}
         broadcast: {$ref: "#/components/schemas/BroadcastCreate"}
+        lxmf: {$ref: "#/components/schemas/LxmfCreate"}
         attachment_ids:
           type: array
           maxItems: 1
@@ -1957,10 +2230,11 @@ components:
           writeOnly: true
           description: |
             When given, the body is encrypted with it (AES-256, as today). Refused unless
-            `settings.encryption.messages` is on.
+            `settings.encryption.messages` is on. Not for LXMF, which is already encrypted
+            end to end.
     MessagePatch:
       type: object
-      description: A draft stays UUCP or broadcast; `recipients` and `broadcast` can't swap.
+      description: A draft keeps its channel; `recipients`, `broadcast` and `lxmf` can't swap.
       properties:
         subject: {type: string, maxLength: 255}
         body: {type: string}
@@ -1970,6 +2244,7 @@ components:
           uniqueItems: true
           items: {$ref: "#/components/schemas/UucpName"}
         broadcast: {$ref: "#/components/schemas/BroadcastCreate"}
+        lxmf: {$ref: "#/components/schemas/LxmfCreate"}
         attachment_ids:
           type: array
           maxItems: 1
@@ -2067,6 +2342,178 @@ components:
           oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]
           description: Incoming only; when the sender withdrew it.
         error: {type: [string, "null"]}
+    LxmfCreate:
+      type: object
+      required: [to]
+      properties:
+        to:
+          type: array
+          minItems: 1
+          maxItems: 20
+          uniqueItems: true
+          items: {$ref: "#/components/schemas/LxmfAddress"}
+        method:
+          type: string
+          enum: [auto, direct, opportunistic, propagated]
+          default: auto
+          description: |
+            LXMF's delivery method. `auto`: direct when a path to the recipient is known,
+            otherwise through the propagation node. `opportunistic` fits only short
+            messages in one packet.
+        as_station:
+          type: boolean
+          default: false
+          description: Send from the station's LXMF address instead of the user's (`operator`).
+    Lxmf:
+      type: object
+      required: [method]
+      properties:
+        method: {type: string, enum: [direct, opportunistic, propagated]}
+        from:
+          type: object
+          description: Incoming only.
+          required: [address, verified]
+          properties:
+            address: {$ref: "#/components/schemas/LxmfAddress"}
+            display_name:
+              type: [string, "null"]
+              maxLength: 64
+              description: From the sender's announce; a claim. Render as plain text.
+            verified:
+              type: boolean
+              description: |
+                The signature checked against the sender's identity. False while the
+                station hasn't heard that identity announce; a wrong signature is dropped.
+        to:
+          $ref: "#/components/schemas/LxmfAddress"
+          description: Incoming only; the local address it was sent to (a user's or the station's).
+        to_user:
+          type: [string, "null"]
+          description: Incoming only; the username whose address that is, or null for the station's.
+        recipients:
+          type: array
+          description: Outgoing only.
+          items: {$ref: "#/components/schemas/LxmfRecipient"}
+    LxmfRecipient:
+      type: object
+      required: [address, state]
+      properties:
+        address: {$ref: "#/components/schemas/LxmfAddress"}
+        display_name: {type: [string, "null"], maxLength: 64}
+        state:
+          type: string
+          enum: [outbound, sending, sent, delivered, rejected, cancelled, failed]
+          description: LXMF's own states; `delivered` is the recipient's proof of delivery.
+        delivered_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        error: {type: [string, "null"]}
+    LxmfPeer:
+      type: object
+      required: [address, last_heard_at]
+      properties:
+        address: {$ref: "#/components/schemas/LxmfAddress"}
+        display_name:
+          type: [string, "null"]
+          maxLength: 64
+          description: From the announce; a claim. Render as plain text.
+        propagation_node: {type: boolean, description: It announced as an LXMF propagation node.}
+        hops: {type: [integer, "null"]}
+        via:
+          oneOf: [$ref: "#/components/schemas/UucpName", type: "null"]
+          description: The backhaul link it was heard over; null for the local network.
+        last_heard_at: {$ref: "#/components/schemas/Timestamp"}
+    ReticulumStatus:
+      type: object
+      required: [enabled, running]
+      properties:
+        enabled: {type: boolean}
+        running: {type: boolean}
+        transport_identity:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{32}$"
+          description: The station's Reticulum transport identity hash.
+        station_address:
+          oneOf: [$ref: "#/components/schemas/LxmfAddress", type: "null"]
+          description: The station's own LXMF address.
+        propagation:
+          type: object
+          properties:
+            enabled: {type: boolean}
+            address: {oneOf: [$ref: "#/components/schemas/LxmfAddress", type: "null"]}
+            messages_stored: {type: integer}
+            bytes_stored: {type: integer}
+        local_clients:
+          type: integer
+          description: Reticulum programs on the Wi-Fi connected to the station's interface.
+        links_up: {type: integer}
+    ReticulumSettings:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          default: false
+          description: Needs `settings.encryption.reticulum`.
+        propagation:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+              default: true
+              description: Run an LXMF propagation node, so messages wait here for intermittent links and offline phones.
+            storage_limit_mb: {type: integer, minimum: 1, default: 200}
+            outbound_node:
+              oneOf: [$ref: "#/components/schemas/LxmfAddress", type: "null"]
+              description: Where this station's propagated messages go; null for its own node.
+        local:
+          type: object
+          description: How phones and computers on the station's Wi-Fi reach its node.
+          properties:
+            tcp_port: {type: [integer, "null"], minimum: 1, maximum: 65535, default: 4242}
+            auto_interface: {type: boolean, default: true, description: Reticulum's link-local discovery on the Wi-Fi.}
+        announce_interval_s:
+          type: integer
+          minimum: 300
+          default: 1800
+          description: How often the station and its users' addresses are announced. Over backhaul, Reticulum's own announce cap applies.
+        arq_callsign:
+          type: string
+          maxLength: 15
+          description: |
+            The secondary callsign (Mercury `MYCALL`) that routes an incoming ARQ call to
+            Reticulum instead of UUCP; calls to the station's primary callsign stay UUCP.
+            Default `<callsign>-R`.
+    ReticulumLink:
+      type: object
+      required: [station, enabled, bring_up, state]
+      properties:
+        station: {$ref: "#/components/schemas/UucpName"}
+        enabled: {type: boolean}
+        bring_up: {$ref: "#/components/schemas/LinkBringUp"}
+        idle_timeout_s: {type: integer, minimum: 30}
+        peer_arq_callsign: {type: string, maxLength: 15, description: The other station's Reticulum callsign.}
+        state: {type: string, enum: [idle, calling, connected, disconnecting, failed]}
+        remote_identity:
+          type: [string, "null"]
+          pattern: "^[0-9a-f]{32}$"
+          description: The other station's transport identity, learned on the first session.
+        last_contact_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        bytes_tx: {type: integer}
+        bytes_rx: {type: integer}
+        error: {type: [string, "null"]}
+    ReticulumLinkWrite:
+      type: object
+      required: [bring_up, peer_arq_callsign]
+      properties:
+        enabled: {type: boolean, default: true}
+        bring_up: {$ref: "#/components/schemas/LinkBringUp"}
+        idle_timeout_s: {type: integer, minimum: 30, default: 120}
+        peer_arq_callsign: {type: string, maxLength: 15}
+    LinkBringUp:
+      type: string
+      enum: [on_demand, scheduled, permanent]
+      description: |
+        `on_demand`: call when messages wait for that station (never for announces alone).
+        `scheduled`: only in schedules with `transport` = `reticulum`. `permanent`: keep the
+        session up; it holds the modem, so UUCP calls and broadcasts wait.
     Area:
       type: object
       required: [name, has_keys, members, allow_unknown]
@@ -2132,6 +2579,7 @@ components:
           pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
           description: An end before the start crosses midnight.
         enabled: {type: boolean}
+        transport: {$ref: "#/components/schemas/Transport"}
         stations:
           type: array
           items: {$ref: "#/components/schemas/UucpName"}
@@ -2142,6 +2590,9 @@ components:
         start_time: {type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"}
         end_time: {type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"}
         enabled: {type: boolean}
+        transport:
+          $ref: "#/components/schemas/Transport"
+          description: Default `uucp`.
         stations:
           type: array
           items: {$ref: "#/components/schemas/UucpName"}
@@ -2237,6 +2688,9 @@ components:
         tx_peak_dbfs: {type: [number, "null"]}
         arq_tx_mode: {type: [string, "null"]}
         arq_rx_mode: {type: [string, "null"]}
+        session_transport:
+          oneOf: [$ref: "#/components/schemas/Transport", type: "null"]
+          description: What the ARQ session in progress carries; null without one.
         listen_mode:
           oneOf: [$ref: "#/components/schemas/BroadcastMode", type: "null"]
           description: |
@@ -2393,7 +2847,7 @@ components:
           type: object
           description: |
             Encryption on the air is not allowed on amateur bands. Turn these on only for a
-            station licensed to use encryption. Admin only; both default to off.
+            station licensed to use encryption. Admin only; all default to off.
           properties:
             messages:
               type: boolean
@@ -2403,6 +2857,10 @@ components:
               type: boolean
               default: false
               description: Allow D-STAR encrypted voice; otherwise the radio refuses to key with it on.
+            reticulum:
+              type: boolean
+              default: false
+              description: Allow Reticulum, which encrypts everything it sends, including over the air on backhaul links.
         tx_rate_limit:
           type: object
           description: Per-user limits on making the station transmit.
