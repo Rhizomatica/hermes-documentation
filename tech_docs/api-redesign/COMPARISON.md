@@ -75,7 +75,7 @@ compatible in principle but not interchangeable in implementation.
 | WS error codes | strings (`bad_request`, `unknown_cmd`) | numeric `4001`–`4010` | • |
 | WS auth | nginx `auth_request` → `X-Hermes-User` / `X-Hermes-Role` | `AUTHENTICATE` message with JWT, 10 s timeout | ⚠️ |
 | Hardware target | 1 GB Raspberry Pi (smallest deployed station — the fleet's real budget) | 4 GB Pi (sBitx v2) — matches no deployed station; this repo's sBitx guide is V3 | ⚠️ |
-| UUCP / Postfix / Dovecot | First-class compatibility constraint | Not addressed — Postfix, Dovecot and `.hmp` appear nowhere in hermes-backend; a backend that doesn't carry the UUCP mail path and `.hmp` format can't replace the deployed station | ⚠️ |
+| UUCP / Postfix / Dovecot | First-class compatibility constraint | Not a blocker: Postfix, Dovecot and UUCP mail run on their own; the backend keeps the two ties hermes-api has today — mailbox `email_*_user` create/update/delete and the mail log (D-23) | • |
 | i18n | Not mentioned | Full `en` / `es` / `pt-BR`; locale in the JWT | • |
 | Extra features | — | `user_devices` push (FCM/APNs), WebRTC signaling, app install/remove | • |
 
@@ -134,7 +134,7 @@ are being decided fresh rather than reconciled, because the README is silent on 
 Rows **R-01–R-07** are items the backend docs already assert as settled and that the
 team should ratify or reverse. All four groups are up for team review.
 
-**How to work the register.** Start with **D-00–D-07** — the seven hard forks — and settle them first, ideally as GitHub issues. The remaining rows close as they come up; working through all ~90 at once is not the path.
+**How to work the register.** Start with the open hard forks — **D-01, D-02, D-04 and D-06** (D-00, D-03, D-05 and D-07 are already decided) — and settle them first, ideally as GitHub issues. The remaining rows close as they come up; working through all ~90 at once is not the path.
 
 Column meanings:
 
