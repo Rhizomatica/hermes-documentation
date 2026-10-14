@@ -125,6 +125,12 @@ About 200 bytes, or five seconds at DATAC3.
   they already decoded as withdrawn (`POST /messages/{id}/stop` with `withdraw`). It
   names the `msg_id`, for encrypted broadcasts too; a withdraw for an encrypted one goes
   encrypted to the same area.
+  The second is **position**: a station's own `latitude`, `longitude`, optional
+  `altitude_m`, `source` (`gps`, `manual` or `estimated`) and `at` timestamp. Receivers
+  store it as the sender's last-known position (dropping an older `at` for the same
+  sender) and surface it through `GET /gps/stations`. Like every decoded callsign, a
+  position is a claim, not an identity. Sent periodically when `gps.settings.report` is
+  enabled, and signed like any broadcast.
 - Old receivers don't know the magic. They should file the object as an unnamed file,
   which needs checking against Mercury's and hermes-broadcast's bundle parsers.
 

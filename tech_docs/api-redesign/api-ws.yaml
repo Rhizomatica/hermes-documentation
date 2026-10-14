@@ -391,13 +391,25 @@ components:
               data: { $ref: "api-rest.yaml#/components/schemas/Health" }
     GpsEvent:
       name: gps
+      summary: |
+        The station's own position and fix, or other stations' positions as they arrive
+        over the air. The snapshot is the station's own `Gps` (`change: self`); a
+        `change: peers` event carries the stations whose last-known position changed.
       payload:
         allOf:
           - $ref: "#/components/schemas/EventEnvelope"
           - type: object
             properties:
               topic: { const: gps }
-              data: { $ref: "api-rest.yaml#/components/schemas/Gps" }
+              data:
+                type: object
+                required: [change]
+                properties:
+                  change: { type: string, enum: [self, peers] }
+                  gps: { $ref: "api-rest.yaml#/components/schemas/Gps" }
+                  stations:
+                    type: array
+                    items: { $ref: "api-rest.yaml#/components/schemas/Station" }
     ReticulumEvent:
       name: reticulum
       summary: |

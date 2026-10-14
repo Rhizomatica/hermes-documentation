@@ -157,7 +157,7 @@ tags:
   - name: attachments
     description: Files attached to messages.
   - name: stations
-    description: Stations this one can reach, from the UUCP configuration.
+    description: Stations this one can reach, from the UUCP configuration; their last-known positions are served by `/gps/stations`.
   - name: areas
     description: Broadcast groups (NNCP multicast areas), from the station's configuration.
   - name: reticulum
@@ -180,7 +180,7 @@ tags:
   - name: wifi
     description: The station's access point.
   - name: gps
-    description: Position and position logging.
+    description: Position, position logging, and the last-known positions of other stations for the map.
   - name: events
     description: Audit log.
   - name: digi
@@ -1846,6 +1846,30 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/Gps"}
         '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/stations:
+    get:
+      tags: [gps]
+      operationId: listStationPositions
+      summary: Every known station with its last-known position, for the map.
+      description: |
+        Stations this one can reach (from `/etc/uucp/sys`), each with the position it last
+        reported over the air or was given manually. Stations with no known position are
+        still listed, with null position fields. A reported position is a claim, not an
+        identity.
+      x-hermes-role: readonly
+      responses:
+        "200":
+          description: Stations with their last-known positions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Station"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
   /gps/settings:
     patch:
       tags: [gps]
@@ -2794,6 +2818,11 @@ components:
         enabled: {type: boolean}
         last_contact_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
         synced_at: {$ref: "#/components/schemas/Timestamp"}
+        latitude: {type: [number, "null"], description: "Last-known latitude, or null when unknown."}
+        longitude: {type: [number, "null"], description: "Last-known longitude, or null when unknown."}
+        altitude_m: {type: [number, "null"]}
+        position_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"], description: "When the last-known position was reported."}
+        position_source: {type: [string, "null"], enum: [gps, manual, estimated], description: "Where the last-known position came from; null when unknown."}
     StationPatch:
       type: object
       properties:
@@ -3171,6 +3200,12 @@ components:
         sample_interval_s: {type: integer, minimum: 1}
         file_period_s: {type: integer, minimum: 60}
         email: {type: [string, "null"], format: email}
+        report:
+          type: object
+          description: Periodic position reports broadcast over the air so other stations can plot this one on the map.
+          properties:
+            enabled: {type: boolean, description: "Broadcast this station's position. Default off."}
+            interval_s: {type: integer, minimum: 60, default: 900, description: "How often to report, in seconds."}
     GpsFile:
       type: object
       required: [name, size_bytes, created_at]

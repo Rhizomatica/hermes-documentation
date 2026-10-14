@@ -169,7 +169,7 @@ REST keeps what is stored or acts on the station's files and services: messages,
 | System | `GET /system` (status, versions, disk, network, clock), `GET/PATCH /system/settings`, `POST /system/reboot`, `POST /system/shutdown`, `POST /system/factory-reset` (admin, needs a confirmation code from a first call) | read: user; actions: admin | `/sys`, `/sys/status`, `/sys/config`, `/sys/reboot`, `/sys/shutdown`, `/radio/erasesdcard` |
 | Logs | `GET /logs/{mail\|uucp\|uucp-debug}?lines=` returning `{data:[{ts, text}]}` | operator | `/sys/maillog`, `/sys/uulog`, `/sys/uudebug` |
 | Wi-Fi | `GET/PATCH /wifi`, `GET/POST /wifi/allowed-macs`, `DELETE /wifi/allowed-macs/{mac}` | admin | `/wifi*` |
-| GPS | `GET /gps` (position, fix, settings), `PATCH /gps/settings`, `GET /gps/files`, `GET /gps/files/{name}`, `DELETE /gps/files`, `POST /gps/sos` | read: user; write: operator | `/geolocation/*` |
+| GPS | `GET /gps` (position, fix, settings), `GET /gps/stations` (all stations with their last-known position, for the map), `PATCH /gps/settings`, `GET /gps/files`, `GET /gps/files/{name}`, `DELETE /gps/files`, `POST /gps/sos` | read: user; write: operator | `/geolocation/*` |
 | Events | `GET /events` (audit log: who did what, when) | admin | `/customerrors` |
 
 Message sending becomes two steps that clients can retry. `POST /messages` stores a draft and returns its id. `POST /messages/{id}/send` queues it to each recipient and returns per-recipient states. The UI follows delivery through `GET /messages/{id}` or the queue, instead of re-parsing `uustat` output.
