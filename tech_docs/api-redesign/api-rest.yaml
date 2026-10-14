@@ -180,7 +180,7 @@ tags:
   - name: wifi
     description: The station's access point.
   - name: gps
-    description: Position, position logging, and the last-known positions of other stations for the map.
+    description: Position, the station's recorded trips (breadcrumbs), and the last-known positions of other stations for the map.
   - name: events
     description: Audit log.
   - name: digi
@@ -1870,6 +1870,110 @@ paths:
                     type: array
                     items: {$ref: "#/components/schemas/Station"}
         '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/trip:
+    get:
+      tags: [gps]
+      operationId: getCurrentTrip
+      summary: The current trip and its recorded positions (the breadcrumb).
+      description: |
+        The station's open trip: every position fix is stored in the database and listed
+        here, oldest first, so the map can draw the breadcrumb. A trip opens automatically
+        and closes only via `POST /gps/trip/close`, so one is always open; `ended_at` is
+        null until then.
+      x-hermes-role: readonly
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: The current trip and its points.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [trip, data]
+                properties:
+                  trip: {$ref: "#/components/schemas/Trip"}
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/GpsPoint"}
+                  next_cursor: {type: string}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/trip/close:
+    post:
+      tags: [gps]
+      operationId: closeTrip
+      summary: Close the current trip and start a new one.
+      description: |
+        Sets `ended_at` on the open trip and starts a new one; the next position fix is
+        recorded in the new trip. Nothing is deleted, so closed trips stay in the history.
+        Returns the trip that was closed.
+      x-hermes-role: operator
+      responses:
+        "200":
+          description: The trip that was closed.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Trip"}
+        "409":
+          description: No trip is open (`code` = `no_open_trip`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/trips:
+    get:
+      tags: [gps]
+      operationId: listTrips
+      summary: All recorded trips, newest first.
+      x-hermes-role: readonly
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Trips.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Trip"}
+                  next_cursor: {type: string}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/trips/{trip_id}:
+    parameters:
+      - name: trip_id
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      tags: [gps]
+      operationId: getTrip
+      summary: A recorded trip and its positions.
+      x-hermes-role: readonly
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: The trip and its points.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [trip, data]
+                properties:
+                  trip: {$ref: "#/components/schemas/Trip"}
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/GpsPoint"}
+                  next_cursor: {type: string}
+        "404": {$ref: "#/components/responses/NotFound"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
   /gps/settings:
     patch:
       tags: [gps]
@@ -3213,6 +3317,23 @@ components:
         name: {type: string}
         size_bytes: {type: integer}
         created_at: {$ref: "#/components/schemas/Timestamp"}
+    GpsPoint:
+      type: object
+      required: [at, latitude, longitude]
+      properties:
+        at: {$ref: "#/components/schemas/Timestamp"}
+        latitude: {type: number}
+        longitude: {type: number}
+        altitude_m: {type: [number, "null"]}
+        accuracy_m: {type: [number, "null"]}
+    Trip:
+      type: object
+      required: [id, started_at]
+      properties:
+        id: {type: integer, format: int64}
+        started_at: {$ref: "#/components/schemas/Timestamp"}
+        ended_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"], description: "Null while the trip is open."}
+        point_count: {type: integer}
 
     Event:
       type: object
