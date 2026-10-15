@@ -1,0 +1,6 @@
+# HERMES REST contract — pointer (not a real OpenAPI document)
+#
+# The canonical REST contract is ../../api-rest.yaml (OpenAPI 3.1),
+# served by hermes-radio-daemon.
+#
+# This placeholder is kept only so links from the original POC draft resolve.

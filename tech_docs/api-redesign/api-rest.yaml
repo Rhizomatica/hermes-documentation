@@ -157,7 +157,7 @@ tags:
   - name: attachments
     description: Files attached to messages.
   - name: stations
-    description: Stations this one can reach, from the UUCP configuration.
+    description: Stations this one can reach, from the UUCP configuration; their last-known positions are served by `/gps/stations`.
   - name: areas
     description: Broadcast groups (NNCP multicast areas), from the station's configuration.
   - name: reticulum
@@ -180,7 +180,7 @@ tags:
   - name: wifi
     description: The station's access point.
   - name: gps
-    description: Position and position logging.
+    description: Position, the station's recorded trips (breadcrumbs), and the last-known positions of other stations for the map.
   - name: events
     description: Audit log.
   - name: digi
@@ -435,6 +435,48 @@ paths:
         "204": {description: Changed. Other sessions of that user end.}
         "403": {$ref: "#/components/responses/Forbidden"}
         "422": {$ref: "#/components/responses/Invalid"}
+  /users/{user_id}/avatar:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    put:
+      tags: [users]
+      operationId: setAvatar
+      summary: Set or replace a user's avatar (the user themselves, or an admin).
+      description: |
+        The image is recompressed and stored as the user's avatar. A user may set their
+        own avatar; an admin may set anyone's.
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  contentMediaType: application/octet-stream
+                  description: An image (JPEG, PNG or WebP); recompressed on upload.
+      responses:
+        "200":
+          description: Updated; `avatar` carries the new URL.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "413": {$ref: "#/components/responses/TooLarge"}
+    delete:
+      tags: [users]
+      operationId: removeAvatar
+      summary: Remove a user's avatar.
+      x-hermes-role: user
+      responses:
+        "204": {description: "Removed; `avatar` is null."}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
   /users/{user_id}/lxmf-identity/export:
     parameters:
       - $ref: "#/components/parameters/UserId"
@@ -483,6 +525,65 @@ paths:
             application/problem+json:
               schema: {$ref: "#/components/schemas/Problem"}
         "429": {$ref: "#/components/responses/TooManyRequests"}
+
+  /users/{user_id}/devices:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+    get:
+      tags: [users]
+      operationId: listDevices
+      summary: A user's registered devices (admins, or the user themselves).
+      x-hermes-role: user
+      responses:
+        "200":
+          description: Devices, without push tokens.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Device"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    post:
+      tags: [users]
+      operationId: registerDevice
+      summary: Register a device for push notifications.
+      description: A user registers their own device; an admin may register anyone's.
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/DeviceCreate"}
+      responses:
+        "201":
+          description: Registered.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Device"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/Invalid"}
+  /users/{user_id}/devices/{device_id}:
+    parameters:
+      - $ref: "#/components/parameters/UserId"
+      - name: device_id
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    delete:
+      tags: [users]
+      operationId: unregisterDevice
+      summary: Remove a device (the user's own, or any for an admin).
+      x-hermes-role: user
+      responses:
+        "204": {description: Removed.}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
 
   /messages:
     get:
@@ -724,6 +825,40 @@ paths:
       x-hermes-role: readonly
       responses:
         "204": {description: Marked unread.}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+  /messages/{message_id}/reactions:
+    parameters:
+      - $ref: "#/components/parameters/MessageId"
+    put:
+      tags: [messages]
+      operationId: setReaction
+      summary: Set or replace your reaction (an emoji) on a message — one per user.
+      x-hermes-role: user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emoji]
+              properties:
+                emoji: {type: string, maxLength: 16}
+      responses:
+        "200":
+          description: Set (replacing any earlier one); the message with its reactions.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Message"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/Invalid"}
+    delete:
+      tags: [messages]
+      operationId: removeReaction
+      summary: Remove your reaction from a message.
+      x-hermes-role: user
+      responses:
+        "204": {description: Removed.}
         "404": {$ref: "#/components/responses/NotFound"}
 
   /attachments:
@@ -1711,6 +1846,134 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/Gps"}
         '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/stations:
+    get:
+      tags: [gps]
+      operationId: listStationPositions
+      summary: Every known station with its last-known position, for the map.
+      description: |
+        Stations this one can reach (from `/etc/uucp/sys`), each with the position it last
+        reported over the air or was given manually. Stations with no known position are
+        still listed, with null position fields. A reported position is a claim, not an
+        identity.
+      x-hermes-role: readonly
+      responses:
+        "200":
+          description: Stations with their last-known positions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Station"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/trip:
+    get:
+      tags: [gps]
+      operationId: getCurrentTrip
+      summary: The current trip and its recorded positions (the breadcrumb).
+      description: |
+        The station's open trip: every position fix is stored in the database and listed
+        here, oldest first, so the map can draw the breadcrumb. A trip opens automatically
+        and closes only via `POST /gps/trip/close`, so one is always open; `ended_at` is
+        null until then.
+      x-hermes-role: readonly
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: The current trip and its points.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [trip, data]
+                properties:
+                  trip: {$ref: "#/components/schemas/Trip"}
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/GpsPoint"}
+                  next_cursor: {type: string}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/trip/close:
+    post:
+      tags: [gps]
+      operationId: closeTrip
+      summary: Close the current trip and start a new one.
+      description: |
+        Sets `ended_at` on the open trip and starts a new one; the next position fix is
+        recorded in the new trip. Nothing is deleted, so closed trips stay in the history.
+        Returns the trip that was closed.
+      x-hermes-role: operator
+      responses:
+        "200":
+          description: The trip that was closed.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Trip"}
+        "409":
+          description: No trip is open (`code` = `no_open_trip`).
+          content:
+            application/problem+json:
+              schema: {$ref: "#/components/schemas/Problem"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/trips:
+    get:
+      tags: [gps]
+      operationId: listTrips
+      summary: All recorded trips, newest first.
+      x-hermes-role: readonly
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Trips.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/Trip"}
+                  next_cursor: {type: string}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /gps/trips/{trip_id}:
+    parameters:
+      - name: trip_id
+        in: path
+        required: true
+        schema: {type: integer, format: int64}
+    get:
+      tags: [gps]
+      operationId: getTrip
+      summary: A recorded trip and its positions.
+      x-hermes-role: readonly
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: The trip and its points.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [trip, data]
+                properties:
+                  trip: {$ref: "#/components/schemas/Trip"}
+                  data:
+                    type: array
+                    items: {$ref: "#/components/schemas/GpsPoint"}
+                  next_cursor: {type: string}
+        "404": {$ref: "#/components/responses/NotFound"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
   /gps/settings:
     patch:
       tags: [gps]
@@ -2044,14 +2307,21 @@ components:
 
     User:
       type: object
-      required: [id, username, display_name, role, disabled, created_at]
+      required: [id, username, role, disabled, created_at]
       properties:
         id: {type: integer, format: int64}
         username:
           type: string
           pattern: "^[a-z0-9._-]{1,32}$"
-          description: The mailbox name (`<username>@<station domain>`).
-        display_name: {type: string, maxLength: 64}
+          description: Login id and mailbox local-part. The email address is `<username>@<domain>`.
+        display_name:
+          type: [string, "null"]
+          maxLength: 64
+          description: Human name, optional; when null the UI shows the username.
+        avatar:
+          type: [string, "null"]
+          readOnly: true
+          description: URL of the user's avatar; set with `PUT /users/{id}/avatar`, cleared with `DELETE /users/{id}/avatar`. Null when none.
         role: {$ref: "#/components/schemas/Role"}
         locale: {$ref: "#/components/schemas/Locale"}
         phone: {type: [string, "null"]}
@@ -2077,11 +2347,14 @@ components:
         next_cursor: {type: string}
     UserCreate:
       type: object
-      required: [username, password, display_name]
+      required: [username, password]
       properties:
         username: {type: string, pattern: "^[a-z0-9._-]{1,32}$"}
         password: {type: string, minLength: 8, writeOnly: true}
-        display_name: {type: string, maxLength: 64}
+        display_name:
+          type: [string, "null"]
+          maxLength: 64
+          description: Human name, optional; when null the UI shows the username.
         role: {$ref: "#/components/schemas/Role"}
         locale: {$ref: "#/components/schemas/Locale"}
         phone: {type: string}
@@ -2096,6 +2369,28 @@ components:
         phone: {type: [string, "null"]}
         location: {type: [string, "null"]}
         disabled: {type: boolean}
+    Device:
+      type: object
+      required: [id, device_type, platform, created_at]
+      properties:
+        id: {type: integer, format: int64}
+        device_type: {type: string, enum: [mobile, desktop, browser]}
+        device_name: {type: [string, "null"]}
+        platform: {type: string, enum: [ios, android, web, linux]}
+        last_seen_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
+        created_at: {$ref: "#/components/schemas/Timestamp"}
+        updated_at: {$ref: "#/components/schemas/Timestamp"}
+    DeviceCreate:
+      type: object
+      required: [device_type, platform, push_token]
+      properties:
+        device_type: {type: string, enum: [mobile, desktop, browser]}
+        device_name: {type: [string, "null"]}
+        platform: {type: string, enum: [ios, android, web, linux]}
+        push_token:
+          type: string
+          writeOnly: true
+          description: FCM/APNs token; stored hashed and never returned.
     PasswordChange:
       type: object
       required: [new_password]
@@ -2130,6 +2425,13 @@ components:
         direction: {type: string, enum: [in, out]}
         channel: {$ref: "#/components/schemas/MessageChannel"}
         status: {$ref: "#/components/schemas/MessageStatus"}
+        client_message_id:
+          type: [string, "null"]
+          description: The idempotency key the client sent when creating the draft, if any.
+        content_type:
+          type: string
+          enum: [text, markdown, audio, system, attachment_only]
+          default: text
         origin:
           oneOf: [$ref: "#/components/schemas/UucpName", type: "null"]
           description: |
@@ -2166,6 +2468,14 @@ components:
             Absent in lists, and when `body_encrypted` (use `/decrypt`). Untrusted on
             incoming messages; render as plain text.
         body_encrypted: {type: boolean}
+        reply_to_message_id:
+          type: [integer, "null"]
+          format: int64
+          description: The message this one replies to.
+        forwarded_from_id:
+          type: [integer, "null"]
+          format: int64
+          description: The message this one forwards.
         recipients:
           type: array
           description: UUCP only. Empty for a broadcast, which nobody acknowledges, and for LXMF (see `lxmf.recipients`).
@@ -2175,6 +2485,10 @@ components:
         attachments:
           type: array
           items: {$ref: "#/components/schemas/Attachment"}
+        reactions:
+          type: array
+          description: Emoji reactions; one per user, at most 20 per message.
+          items: {$ref: "#/components/schemas/Reaction"}
         created_at: {$ref: "#/components/schemas/Timestamp"}
         updated_at: {$ref: "#/components/schemas/Timestamp"}
         received_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
@@ -2191,6 +2505,13 @@ components:
         queued_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
         sent_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
         error: {type: [string, "null"]}
+    Reaction:
+      type: object
+      required: [user_id, emoji, created_at]
+      properties:
+        user_id: {type: integer, format: int64}
+        emoji: {type: string, maxLength: 16}
+        created_at: {$ref: "#/components/schemas/Timestamp"}
     MessagePage:
       type: object
       required: [data]
@@ -2213,6 +2534,22 @@ components:
       properties:
         subject: {type: string, maxLength: 255}
         body: {type: string}
+        content_type:
+          type: string
+          enum: [text, markdown, audio, system, attachment_only]
+          default: text
+        client_message_id:
+          type: string
+          maxLength: 64
+          description: Client-chosen idempotency key; retries of the same create return the same draft.
+        reply_to_message_id:
+          type: [integer, "null"]
+          format: int64
+          description: A message this one replies to.
+        forwarded_from_id:
+          type: [integer, "null"]
+          format: int64
+          description: A message this one forwards.
         recipients:
           type: array
           minItems: 1
@@ -2238,6 +2575,17 @@ components:
       properties:
         subject: {type: string, maxLength: 255}
         body: {type: string}
+        content_type:
+          type: string
+          enum: [text, markdown, audio, system, attachment_only]
+        reply_to_message_id:
+          type: [integer, "null"]
+          format: int64
+          description: A message this one replies to.
+        forwarded_from_id:
+          type: [integer, "null"]
+          format: int64
+          description: A message this one forwards.
         recipients:
           type: array
           minItems: 1
@@ -2533,7 +2881,7 @@ components:
           description: Keep broadcasts signed by a station this one doesn't know (NNCP's `allow-unknown`).
     Attachment:
       type: object
-      required: [id, original_name, mime_type, size_bytes, encrypted, codec, created_at]
+      required: [id, original_name, mime_type, size_bytes, encrypted, codec, status, created_at]
       properties:
         id: {type: integer, format: int64}
         message_id: {type: [integer, "null"], format: int64}
@@ -2544,6 +2892,22 @@ components:
           description: Size as sent over the air, after encoding.
         encrypted: {type: boolean}
         codec: {type: string, enum: [vvc, lpcnet, none]}
+        status:
+          type: string
+          enum: [pending, processing, ready, failed, expired]
+          description: |
+            `pending` and `processing` while the upload is recompressed (VVC) or encoded
+            (LPCNet); `ready` once it can be attached and sent. `failed` when the
+            transcode failed; `expired` when an unattached upload was cleaned up.
+        checksum:
+          type: [string, "null"]
+          description: SHA-256 of the stored bytes, for deduplication.
+        preview:
+          type: [string, "null"]
+          description: URL of a generated preview or thumbnail, when one exists.
+        expires_at:
+          oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]
+          description: When an unattached upload is cleaned up.
         created_at: {$ref: "#/components/schemas/Timestamp"}
 
     Station:
@@ -2558,6 +2922,11 @@ components:
         enabled: {type: boolean}
         last_contact_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
         synced_at: {$ref: "#/components/schemas/Timestamp"}
+        latitude: {type: [number, "null"], description: "Last-known latitude, or null when unknown."}
+        longitude: {type: [number, "null"], description: "Last-known longitude, or null when unknown."}
+        altitude_m: {type: [number, "null"]}
+        position_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"], description: "When the last-known position was reported."}
+        position_source: {type: [string, "null"], enum: [gps, manual, estimated], description: "Where the last-known position came from; null when unknown."}
     StationPatch:
       type: object
       properties:
@@ -2579,6 +2948,15 @@ components:
           pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
           description: An end before the start crosses midnight.
         enabled: {type: boolean}
+        recurrence:
+          type: object
+          description: Which days the window repeats on; absent means every day.
+          properties:
+            byday:
+              type: array
+              uniqueItems: true
+              description: Weekday codes; empty means every day.
+              items: {type: string, enum: [MO, TU, WE, TH, FR, SA, SU]}
         transport: {$ref: "#/components/schemas/Transport"}
         stations:
           type: array
@@ -2590,6 +2968,15 @@ components:
         start_time: {type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"}
         end_time: {type: string, pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"}
         enabled: {type: boolean}
+        recurrence:
+          type: object
+          description: Which days the window repeats on; absent means every day.
+          properties:
+            byday:
+              type: array
+              uniqueItems: true
+              description: Weekday codes; empty means every day.
+              items: {type: string, enum: [MO, TU, WE, TH, FR, SA, SU]}
         transport:
           $ref: "#/components/schemas/Transport"
           description: Default `uucp`.
@@ -2657,6 +3044,10 @@ components:
         tone_hz: {type: [integer, "null"]}
         timeout_s: {type: integer, minimum: 0}
         ref_threshold: {type: integer, minimum: 0}
+        bfo_hz:
+          type: integer
+          description: Beat-frequency oscillator offset, in Hz (may be negative).
+        digital_voice: {type: boolean}
     RadioProfilePatch:
       type: object
       properties:
@@ -2670,6 +3061,8 @@ components:
         tone_hz: {type: [integer, "null"]}
         timeout_s: {type: integer, minimum: 0}
         ref_threshold: {type: integer, minimum: 0}
+        bfo_hz: {type: integer}
+        digital_voice: {type: boolean}
 
     ModemStatus:
       type: object
@@ -2911,6 +3304,12 @@ components:
         sample_interval_s: {type: integer, minimum: 1}
         file_period_s: {type: integer, minimum: 60}
         email: {type: [string, "null"], format: email}
+        report:
+          type: object
+          description: Periodic position reports broadcast over the air so other stations can plot this one on the map.
+          properties:
+            enabled: {type: boolean, description: "Broadcast this station's position. Default off."}
+            interval_s: {type: integer, minimum: 60, default: 900, description: "How often to report, in seconds."}
     GpsFile:
       type: object
       required: [name, size_bytes, created_at]
@@ -2918,6 +3317,23 @@ components:
         name: {type: string}
         size_bytes: {type: integer}
         created_at: {$ref: "#/components/schemas/Timestamp"}
+    GpsPoint:
+      type: object
+      required: [at, latitude, longitude]
+      properties:
+        at: {$ref: "#/components/schemas/Timestamp"}
+        latitude: {type: number}
+        longitude: {type: number}
+        altitude_m: {type: [number, "null"]}
+        accuracy_m: {type: [number, "null"]}
+    Trip:
+      type: object
+      required: [id, started_at]
+      properties:
+        id: {type: integer, format: int64}
+        started_at: {$ref: "#/components/schemas/Timestamp"}
+        ended_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"], description: "Null while the trip is open."}
+        point_count: {type: integer}
 
     Event:
       type: object
@@ -2929,6 +3345,14 @@ components:
         action: {type: string, example: user.create}
         target: {type: [string, "null"], example: "user:12"}
         detail: {type: object, additionalProperties: true}
+        old_value:
+          type: [object, "null"]
+          additionalProperties: true
+          description: The value before the change, when recorded.
+        new_value:
+          type: [object, "null"]
+          additionalProperties: true
+          description: The value after the change, when recorded.
         ip: {type: [string, "null"]}
 
     Locale:
@@ -2968,10 +3392,13 @@ components:
         timezone: {type: string, example: America/Sao_Paulo}
         admin:
           type: object
-          required: [username, display_name, password]
+          required: [username, password]
           properties:
             username: {type: string, pattern: "^[a-z0-9._-]{1,32}$"}
-            display_name: {type: string, maxLength: 64}
+            display_name:
+              type: [string, "null"]
+              maxLength: 64
+              description: Human name, optional; when null the UI shows the username.
             password: {type: string, minLength: 8, writeOnly: true}
         radio_profile:
           type: object
