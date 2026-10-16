@@ -112,7 +112,9 @@ State rules:
 - Slow commands, such as CAT reads or restarting Mercury's audio, run off the socket thread and reply when done, so one slow command no longer stalls everyone's audio and spectrum.
 - Each client has a send queue. Binary frames are dropped first. A client that stays more than 2 MB behind is disconnected.
 
-**Binary frames.** One header for both daemons, little-endian: `[u8 kind][u8 version=1][u16 flags][u32 seq][u32 sample_rate]`, followed by the payload. Audio (kinds 1 and 2) is `int16` mono. Spectrum (kinds 3 and 4) is `[u16 nbins][f32 start_hz][f32 bin_hz][f32 dB × nbins]`. This replaces radiod's opcode layout and Mercury's magic-number layout. Binary frames go only to subscribers of the matching topic.
+**Binary frames.** One header for both daemons, little-endian: `[u8 kind][u8 version=1][u16 flags][u32 seq][u32 sample_rate]`, followed by the payload. Spectrum (kinds 3 and 4) is `[u16 nbins][f32 start_hz][f32 bin_hz][f32 dB × nbins]`. This replaces radiod's opcode layout and Mercury's magic-number layout. Binary frames go only to subscribers of the matching topic.
+
+**Audio over WebRTC.** Receive and transmit audio travel over WebRTC (Opus at 48 kHz, the rate of radiod's audio rings), negotiated on the socket with `rtc.offer` and `rtc.close`. The browser's pipeline handles jitter, loss and echo cancellation, at about 32 kbit/s instead of 768 kbit/s of raw samples. PTT stays a socket command, and transmit audio reaches the radio only while that client holds PTT. Media stays on the Wi-Fi (host candidates only, no STUN or TURN), at most `settings.webrtc.max_sessions` sessions at once. Details in [api-ws.yaml](api-ws.yaml), Audio.
 
 **radiod topics and commands:**
 
@@ -121,10 +123,10 @@ State rules:
 | `radio.state` | active profile, `frequency_hz`, mode, tx, `power`, `swr`, `fwd_w`, `ref_w`, `s_meter_db`, protection, timeout, `digital_voice`, backend, capabilities | the 150 ms `state` broadcast |
 | `radio.profiles` | every profile's frequency, mode, power, step | the UI's 30 s REST poll of the other profile |
 | `radio.rig` | Hamlib level, function and parameter values the client asked for | `get_control_values` polling |
-| `radio.spectrum.rx`, `radio.spectrum.tx`, `radio.audio.rx` | binary kinds 3, 4, 1 | streams that today go to every client |
+| `radio.spectrum.rx`, `radio.spectrum.tx` | binary kinds 3, 4 | streams that today go to every client |
 | `digi.rx` | one event per FT8, CW, RTTY or D-STAR decode | `digi_messages` polling (whose JSON breaks on quotes) |
 
-Commands: `radio.set` takes any of profile, `frequency_hz`, mode, power, volume, step, tone, timeout and `ref_threshold` in one call, and validates all of them before applying any. The others are `radio.select_profile`, `radio.ptt` (`{on}`; released if the socket closes), `radio.reset_protection`, `radio.defaults`, `rig.set`, `digi.send` (`{mode, text}`), `recording.start` and `recording.stop`, and `audio.tx` (binary kind 2). All of them need the operator role. A `user` may only subscribe.
+Commands: `radio.set` takes any of profile, `frequency_hz`, mode, power, volume, step, tone, timeout and `ref_threshold` in one call, and validates all of them before applying any. The others are `radio.select_profile`, `radio.ptt` (`{on}`; released if the socket closes), `radio.reset_protection`, `radio.defaults`, `rig.set`, `digi.send` (`{mode, text}`), `recording.start` and `recording.stop`. All of them need the operator role. A `user` may subscribe, and listen with `rtc.offer`; transmit audio (`rtc.offer` with `tx`) needs `operator`.
 
 **Mercury topics and commands:**
 
@@ -297,7 +299,7 @@ The work ships in five steps. Each step is a release that a station can install 
 - [x] **Stay on PHP/Lumen?** *Decided 2026-10-09: no; the backend is built on hermes-radio-daemon (see Direction).* This design keeps hermes-api in Lumen, so the work is a refactor rather than a rewrite. A rewrite (for example Go, one binary with built-in WebSockets) would remove the nginx `auth_request` hop and PHP-FPM's memory, but costs much more up front.
 - [ ] **MariaDB or SQLite?** SQLite would free about 100 MB of RAM on 1 GB stations and make backups a file copy. MariaDB is already installed everywhere and needs no migration of engine.
 - [ ] **Who owns saved radio profiles?** radiod's `user.ini` today. Either `/api/v2/radio/profiles` reads and writes them through radiod's socket, as proposed here, or they move into the database and radiod reads them from there.
-- [ ] **Does the UI need audio in the browser?** If it does, `radio.audio.rx` and `audio.tx` must be tested over Wi-Fi with several clients. If it doesn't, they stay for tools and can be left out of the UI.
+- [x] **Does the UI need audio in the browser?** *Decided 2026-10-14: yes, over WebRTC* (see Audio over WebRTC). It still has to be tested over Wi-Fi with several clients, and on the kiosk's QtWebEngine.
 - [ ] **Where does the `nncp-transport` branch of hermes-api stand?** It must be merged, or retired, before the database migration.
 - [ ] **Are messages private to their author?** Today, and in these specs, every user of a station reads every message on it. Per-user privacy would scope `GET /messages` to the author and the addressed mailbox.
 - [ ] **Roles for existing users.** Everyone except `root` starts as `user`. Should stations with known operators get a list to promote at upgrade time?

@@ -49,7 +49,7 @@ info:
 
     - The upgrade needs a session and an `Origin` naming this station; `readonly` runs no
       commands.
-    - **Transmitting** (`radio.ptt`, `digi.send`, `audio.tx`) needs `operator`, is limited
+    - **Transmitting** (`radio.ptt`, `digi.send`, transmit audio on WebRTC) needs `operator`, is limited
       per user (`settings.tx_rate_limit`, error `rate_limited`) and is written to the audit
       log as `radio.tx`. The transmit timeout is enforced by the station, not the client,
       and PTT is released when its client disconnects.
@@ -61,6 +61,37 @@ info:
       field that came over the air are untrusted: control characters are removed, lengths
       are capped, and every frame is valid JSON whatever was received. Clients render them
       as plain text and never as HTML. A decoded callsign is a claim, not an identity.
+    - **WebRTC media** stays on the local network: the station offers host candidates
+      only, on UDP ports bound to its Wi-Fi interface (`settings.webrtc.udp_ports`), and
+      accepts media only for a session negotiated on an authenticated socket. Media is
+      DTLS-SRTP, as WebRTC requires; that encryption never reaches the air.
+
+    ## Audio (WebRTC)
+
+    Radio audio travels over WebRTC, with this socket as the signaling channel. The
+    browser's own audio pipeline then handles jitter, packet loss, echo cancellation for
+    the microphone and Opus coding: about 32 kbit/s instead of 768 kbit/s of raw 16-bit
+    samples at 48 kHz over Wi-Fi.
+
+    - **Negotiating.** The client sends `rtc.offer` with its SDP, after ICE gathering has
+      finished (no trickle), and the reply carries the station's answer. `rx` asks for the
+      station's receive audio (`user`); `tx` adds a microphone track (`operator`). A new
+      `rtc.offer` on the same socket renegotiates, for example to add `tx` later.
+      `rtc.close` ends the session; so does closing the socket.
+    - **Media.** Opus at 48 kHz, mono, the rate of hermes-radio-daemon's audio rings. One
+      receive track from the station; optionally one send track from the client. The
+      station encodes receive audio once and sends it to every session.
+    - **Transmitting.** PTT stays a command (`radio.ptt`) on this socket. The client's
+      audio reaches the radio only while this client holds PTT; otherwise the station
+      discards it. Key first, then speak.
+    - **On the network.** No STUN or TURN: clients are on the station's Wi-Fi. Browsers
+      hide their host addresses behind mDNS (`.local`) candidates until the page has
+      microphone permission, so the station resolves mDNS candidates. `getUserMedia`
+      needs HTTPS, which nginx provides.
+    - **Limits.** At most `settings.webrtc.max_sessions` sessions at once (default 4, for
+      the 1 GB Pi); one more gets `busy`.
+    - **Recording** (`recording.start`, `recording.stop`) is unchanged; it records on the
+      station, not in the browser.
 
     ## Binary frames
 
@@ -69,12 +100,11 @@ info:
 
     | kind | Direction | Topic | Payload |
     | --- | --- | --- | --- |
-    | 1 | station → client | `radio.audio.rx` | `int16` mono samples |
-    | 2 | client → station | (command `audio.tx`) | `int16` mono samples; only while this client holds PTT |
     | 3 | station → client | `radio.spectrum.rx`, `modem.spectrum.rx` | `u16 nbins`, `f32 start_hz`, `f32 bin_hz`, `f32 dB × nbins` |
     | 4 | station → client | `radio.spectrum.tx` | as kind 3 |
 
-    Kind 3 is shared by two topics; a client subscribes to one of them at a time.
+    Kind 3 is shared by two topics; a client subscribes to one of them at a time. Kinds 1
+    and 2 were raw audio and are retired: audio is on WebRTC.
 
     ## Choices where the two earlier proposals differ
 
@@ -85,7 +115,8 @@ info:
     | Auth | nginx `auth_request` headers | in-band `AUTHENTICATE` with a JWT | the REST session on the upgrade | No unauthenticated socket state, and no second login path |
     | Error codes | strings | numbers 4001–4010 | strings | Readable in logs; the same codes as REST |
     | Heartbeat | 5 s, carries the clock | 30 s ping, 60 s timeout | 5 s heartbeat, 60 s idle timeout | The UI needs the station clock; the timeout tolerates a slow Wi-Fi link |
-    | Binary | audio and spectrum | JSON only | binary, one header | A 512-bin spectrum at 20 fps is 41 kB/s as binary, several times that as JSON |
+    | Binary | audio and spectrum | JSON only | binary, one header, for spectrum | A 512-bin spectrum at 20 fps is 41 kB/s as binary, several times that as JSON |
+    | Audio | raw `int16` binary frames | WebRTC signaling on the socket, off by default | WebRTC (Opus, DTLS-SRTP), signaling on this socket | The browser's jitter buffer, loss concealment and echo cancellation, at a twentieth of the Wi-Fi bandwidth |
     | Roles | 3 | 4 with `readonly` | 4 with `readonly` | Adopted, as in `api-rest.yaml` |
     | Correlation | command `id` | `requestId` | command `id`, plus `X-Request-Id` per connection | Adopted for tracing; `id` already pairs a command with its reply |
     | Language | — | `locale` in the token | `locale` in `hello` | Adopted |
@@ -140,7 +171,6 @@ channels:
       gps: { $ref: "#/components/messages/GpsEvent" }
       reticulum: { $ref: "#/components/messages/ReticulumEvent" }
       binaryDown: { $ref: "#/components/messages/BinaryFrame" }
-      binaryUp: { $ref: "#/components/messages/BinaryTxAudio" }
 
 operations:
   sendHello:
@@ -196,15 +226,9 @@ operations:
   sendBinary:
     action: send
     channel: { $ref: "#/channels/station" }
-    summary: Audio and spectrum streams, to subscribers only.
+    summary: Spectrum streams, to subscribers only.
     messages:
       - $ref: "#/channels/station/messages/binaryDown"
-  receiveTxAudio:
-    action: receive
-    channel: { $ref: "#/channels/station" }
-    summary: Transmit audio from the client that holds PTT.
-    messages:
-      - $ref: "#/channels/station/messages/binaryUp"
 
 components:
   securitySchemes:
@@ -432,14 +456,7 @@ components:
     BinaryFrame:
       name: binary
       contentType: application/octet-stream
-      summary: Kinds 1, 3 and 4 (see the binary frame table).
-      payload:
-        type: string
-        format: binary
-    BinaryTxAudio:
-      name: binary.tx
-      contentType: application/octet-stream
-      summary: Kind 2 — transmit audio, only while this client holds PTT; otherwise dropped.
+      summary: Kinds 3 and 4 (see the binary frame table).
       payload:
         type: string
         format: binary
@@ -453,7 +470,6 @@ components:
         - radio.rig
         - radio.spectrum.rx
         - radio.spectrum.tx
-        - radio.audio.rx
         - digi
         - modem.status
         - modem.config
@@ -531,7 +547,8 @@ components:
         - digi.send
         - recording.start
         - recording.stop
-        - audio.tx
+        - rtc.offer
+        - rtc.close
         - modem.chat.send
     Command:
       type: object
@@ -551,11 +568,11 @@ components:
             - $ref: "#/components/schemas/RigWatchArgs"
             - $ref: "#/components/schemas/DigiSendArgs"
             - $ref: "#/components/schemas/RecordingArgs"
-            - $ref: "#/components/schemas/AudioTxArgs"
+            - $ref: "#/components/schemas/RtcOfferArgs"
             - $ref: "#/components/schemas/ChatSendArgs"
             - type: object
               maxProperties: 0
-              description: For `radio.reset_protection`.
+              description: For `radio.reset_protection` and `rtc.close`.
     RadioSetArgs:
       type: object
       title: radio.set (operator)
@@ -637,13 +654,20 @@ components:
       title: recording.start / recording.stop (operator)
       properties:
         stream: { type: string, enum: [rx, tx, both], default: both }
-    AudioTxArgs:
+    RtcOfferArgs:
       type: object
-      title: audio.tx (operator)
-      description: Announces binary kind 2 frames at this rate; requires PTT held by this client.
-      required: [sample_rate]
+      title: rtc.offer (user; operator with tx)
+      description: |
+        Start or renegotiate this socket's WebRTC audio session. The reply's `data` is
+        `{sdp}`, the station's answer, with its host candidates in it.
+      required: [sdp]
       properties:
-        sample_rate: { type: integer, enum: [8000, 16000, 48000] }
+        sdp:
+          type: string
+          maxLength: 16384
+          description: The client's SDP offer, with its ICE candidates gathered.
+        rx: { type: boolean, default: true, description: Receive the station's audio. }
+        tx: { type: boolean, default: false, description: Send microphone audio (operator). }
     ChatSendArgs:
       type: object
       title: modem.chat.send (user)

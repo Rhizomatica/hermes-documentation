@@ -3254,6 +3254,17 @@ components:
               type: boolean
               default: false
               description: Allow Reticulum, which encrypts everything it sends, including over the air on backhaul links.
+        webrtc:
+          type: object
+          description: Browser audio (`api-ws.yaml`, Audio).
+          properties:
+            max_sessions: {type: integer, minimum: 1, default: 4}
+            udp_ports:
+              type: object
+              description: The UDP range WebRTC media uses, on the Wi-Fi interface only.
+              properties:
+                min: {type: integer, minimum: 1024, maximum: 65535, default: 50000}
+                max: {type: integer, minimum: 1024, maximum: 65535, default: 50099}
         tx_rate_limit:
           type: object
           description: Per-user limits on making the station transmit.
