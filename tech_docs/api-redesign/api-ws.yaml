@@ -87,7 +87,7 @@ info:
     - **On the network.** No STUN or TURN: clients are on the station's Wi-Fi. Browsers
       hide their host addresses behind mDNS (`.local`) candidates until the page has
       microphone permission, so the station resolves mDNS candidates. `getUserMedia`
-      needs HTTPS, which nginx provides.
+      needs HTTPS, which the station serves.
     - **Limits.** At most `settings.webrtc.max_sessions` sessions at once (default 4, for
       the 1 GB Pi); one more gets `busy`.
     - **Recording** (`recording.start`, `recording.stop`) is unchanged; it records on the

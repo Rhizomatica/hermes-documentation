@@ -42,9 +42,11 @@ poc/
         └── email/                 # hermes-email
 ```
 
-> The backend is hermes-radio-daemon, not a new Go service; there is no
-> `backend/` tree in this POC. Its REST surface is `../api-rest.yaml` and its
-> WebSocket surface is `../api-ws.yaml`.
+> The backend is hermes-radio-daemon, not a separate service; there is no
+> `backend/` tree in this POC. Its C core does all network I/O, and its API
+> handlers are Go, built into it as a library (`gui_interface/api` in
+> hermes-radio-daemon; decided 2026-10-18). Its REST surface is `../api-rest.yaml`
+> and its WebSocket surface is `../api-ws.yaml`.
 
 ## Mapping to the design docs
 

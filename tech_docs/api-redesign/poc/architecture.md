@@ -11,10 +11,6 @@ in-process bus → gateway → WS subscribers). Companion to the contracts in
 flowchart TB
     Browser["Browser — phone / laptop (WiFi)"]:::client
 
-    subgraph Nginx["nginx :443 — single front door (TLS)"]
-        N["nginx"]
-    end
-
     subgraph Apps["Frontend micro-apps (static, run in browser)"]
         Shell["shell — host + /apps registry"]
         Chat["hermes-chat"]
@@ -23,8 +19,9 @@ flowchart TB
         EmailApp["hermes-email"]
     end
 
-    subgraph Backend["hermes-radio-daemon — the station backend (includes Mercury)"]
-        GW["gateway — REST /api/v2 + WS hermes.v1 (/api/v2/ws)"]
+    subgraph Backend["hermes-radio-daemon — the station backend and its only network service (includes Mercury)"]
+        GW["gateway (C) — TLS, static UI, REST /api/v2, WS hermes.v1 (/api/v2/ws), WebRTC"]
+        Handlers["API handlers (Go, built in)"]
         Auth["auth — sessions + roles"]
         Radio["radio (in-process)"]
         Modem["mercury (HF modem, in-process)"]
@@ -39,26 +36,24 @@ flowchart TB
     HF["HF transceiver (sBitx v3 / IC-7100)"]:::ext
     UUCP["UUCP / Postfix / Dovecot — store-and-forward email"]:::ext
 
-    Browser -->|HTTPS| N
-    N -->|static files| Shell
+    Browser -->|HTTPS| GW
+    GW -->|static files| Shell
     Shell --> Chat
     Shell --> GPS
     Shell --> RadioApp
     Shell --> EmailApp
 
-    Chat -->|REST + WS| N
-    GPS -->|REST + WS| N
-    RadioApp -->|REST + WS| N
-    EmailApp -->|REST + WS| N
+    Chat -->|REST + WS| GW
+    GPS -->|REST + WS| GW
+    RadioApp -->|REST + WS + WebRTC| GW
+    EmailApp -->|REST + WS| GW
 
-    N -->|REST /api/v2| GW
-    N -->|WS hermes.v1| GW
-
-    GW --> Auth
-    GW --> Radio
-    GW --> Messaging
-    GW --> Geo
-    GW --> System
+    GW --> Handlers
+    Handlers --> Auth
+    Handlers --> Radio
+    Handlers --> Messaging
+    Handlers --> Geo
+    Handlers --> System
 
     Radio --> HF
     Modem --> HF
@@ -83,11 +78,16 @@ flowchart TB
 - **Solid arrows** = request/command flow; **dotted arrows** = event push
   (via the in-process bus → gateway → WS subscribers).
 - **radio and Mercury run in-process** inside hermes-radio-daemon (D-03, D-05);
-  there is no WebSocket bridge or cgo seam.
+  there is no WebSocket bridge between them.
+- **No proxy in front** (2026-10-18): radiod terminates TLS and serves the UI, REST,
+  the WebSocket and WebRTC itself. Its C core does all network I/O and hands each
+  request or message to the **Go API handlers**, built into radiod as a library
+  (`-buildmode=c-archive`), which call back into C for radio state (D-02, D-36).
 - **`messaging`** spans chat and email — the same store-and-forward store;
   email's over-the-air path exits via **UUCP/Postfix**.
-- **Voice** is not a separate service: it is the radio's audio channel
-  (WebRTC signaling gated behind `ENABLE_WEBRTC=false`).
+- **Voice** is not a separate service: it is the radio's audio, carried to the
+  browser over WebRTC (Opus), with signaling on `hermes.v1` and media in radiod's C
+  (libdatachannel). Audio never passes through Go (D-27).
 - **Store** is the database engine; the choice between MariaDB and SQLite is
   open under D-01.
 

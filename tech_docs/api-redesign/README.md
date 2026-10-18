@@ -10,6 +10,12 @@
 > will be revised. The station range is every Raspberry Pi from 1 GB to 16 GB. See
 > [COMPARISON.md](COMPARISON.md) for the decision register.
 >
+> **Backend (2026-10-18).** radiod's C core owns all network I/O and faces the network
+> alone, with no nginx: TLS, the static UI, REST, the `hermes.v1` socket and WebRTC. The
+> API handlers are Go, built into radiod as a library; audio never passes through Go. See
+> Proposed architecture. The migration plan below still assumes hermes-api and nginx, and
+> will be revised.
+>
 > The tentative API for that backend is specified in [api-rest.yaml](api-rest.yaml) (REST,
 > OpenAPI 3.1) and [api-ws.yaml](api-ws.yaml) (the `hermes.v1` WebSocket, AsyncAPI 3.1).
 > Where this document and the hermes-backend docs disagree, each spec says which way it went
@@ -17,7 +23,7 @@
 
 ## Summary
 
-This design gives the station one front door, nginx on port 443, behind which there are two APIs. Live radio and modem state, and radio commands, travel over WebSockets served directly by hermes-radio-daemon and Mercury. Everything stored or done on the station's files and services stays REST in hermes-api, as a new `/api/v2`. hermes-api becomes the single place that authenticates users, both for REST and for opening a WebSocket. Its database is redesigned around messages with per-recipient delivery state, stations, schedules, settings and sessions.
+This design gives the station one front door, hermes-radio-daemon on its HTTPS port. It serves the UI, REST as a new `/api/v2` for everything stored or done on the station's files and services, and the `hermes.v1` WebSocket for live radio and modem state and radio commands. It is the single place that authenticates users, both for REST and for opening the WebSocket. Its database is redesigned around messages with per-recipient delivery state, stations, schedules, settings and sessions.
 
 Goals:
 
@@ -55,39 +61,32 @@ An `nncp-transport` branch of hermes-api is also deployed on NNCP stations; this
 
 ## Proposed architecture
 
-nginx is the only service the network can reach. It terminates TLS on 443 and routes by path. hermes-api answers it on every request and on every WebSocket upgrade. The daemons listen on localhost only and never handle passwords or certificates.
+hermes-radio-daemon is the only service the network can reach (decided 2026-10-18; there is no nginx). It terminates TLS and serves, on one port:
 
-![Station architecture: one front door, three backends](architecture.svg)
+| Path | Carries |
+| --- | --- |
+| `/` | The static UI files (hermes-gui or hermes-frontend) |
+| `/api/v2/*` | REST: messages, users, stations, schedules, queue, settings, system actions ([api-rest.yaml](api-rest.yaml)) |
+| `/api/v2/ws` | The `hermes.v1` WebSocket: radio and modem state, commands, spectrum, WebRTC signaling ([api-ws.yaml](api-ws.yaml)) |
+| WebRTC media | Radio audio, UDP on the Wi-Fi interface only (`settings.webrtc`) |
 
-The browser only ever talks to nginx. The dashed line is the auth check that nginx makes before letting a WebSocket through to a daemon.
-
-| Path | Goes to | Carries |
-| --- | --- | --- |
-| `/` | static UI files | hermes-gui or hermes-frontend |
-| `/api/v2/*` | hermes-api (PHP-FPM) | REST: messages, users, stations, schedules, queue, settings, system actions |
-| `/api/*` (v1) | hermes-api | Today's routes, frozen, behind login, until every client has moved |
-| `/ws/radio` | hermes-radio-daemon, `127.0.0.1:8080` | Radio state, commands, spectrum, audio |
-| `/ws/modem` | Mercury, `127.0.0.1:10000/websocket` | Modem link state, configuration, spectrum, chat |
+Inside radiod, the C core does every network read and write, WebRTC included (libdatachannel). The API handlers are written in Go and built into radiod as a library (`-buildmode=c-archive`, in hermes-radio-daemon's `gui_interface/api`). C hands each REST request or socket message to a Go handler, which builds the JSON reply and calls radiod's C functions for radio state. Events from Go handlers go out through radiod's own fan-out (`ui_hub`). Audio never passes through Go. Mercury runs inside radiod.
 
 How a request is authenticated:
 
-1. The UI logs in with `POST /api/v2/session`. hermes-api sets a session cookie (`HttpOnly`, `Secure`, `SameSite=Strict`) and stores only a hash of the token.
-2. For each REST request, hermes-api checks the cookie and the user's role itself.
-3. For a WebSocket upgrade, nginx first calls `auth_request` on `/api/v2/session/check`. That returns 204 with `X-Hermes-User` and `X-Hermes-Role`, or 401, in which case the upgrade is refused. nginx forwards those two headers to the daemon and drops any copies the client sent.
-4. The daemon trusts the headers because only nginx can reach it on localhost. It gates commands by role: `user` may only read, while `operator` and `admin` may also transmit and change settings.
+1. The UI logs in with `POST /api/v2/session`. radiod sets a session cookie (`HttpOnly`, `Secure`, `SameSite=Strict`) and stores only a hash of the token. Tools send the same token as `Authorization: Bearer`.
+2. radiod checks the session on every REST request and on every WebSocket upgrade; with no session, the upgrade is refused (401). The session's role gates every route and command (`x-hermes-role` in [api-rest.yaml](api-rest.yaml)).
+3. Browsers must come from the station's own origin (`Origin` is checked; no CORS headers).
 
-Why direct sockets to each daemon, rather than relaying them through hermes-api:
-
-- PHP-FPM cannot hold WebSockets. A relay would need a new long-running service, which becomes one more hop and one more thing that fails on a 1 GB Raspberry Pi.
-- radiod and Mercury already serve WebSockets and already own their state. Each keeps its own release cycle.
-- The two sockets share one envelope (next section), so to the UI they look like one API.
+With nothing in front of it, radiod also does what a reverse proxy did: it caps request and header sizes, times out slow clients, caps connections and rate-limits logins.
 
 How the existing services change:
 
-- radiod's static file server and its own TLS stay available for stations that run it without nginx.
+- radiod's legacy WebSocket (8080), which now also carries Mercury's UI, stays until no released UI uses it, bound to localhost.
 - The rigctld (4532) and CAT (4534) servers move to localhost by default.
 - Mercury's TNC ports (8300, 8301, 8100) already serve only local clients (uucpd, NNCP), so they bind to localhost too.
-- `sbitx_client` and the shared-memory interface stay for scripts and for Mercury's `hermes_shm` PTT. hermes-api stops using them for live control.
+- `sbitx_client` and the shared-memory interface stay for scripts and for Mercury's `hermes_shm` PTT. The API doesn't use them for live control.
+- hermes-gui and the station scripts reach today's `/api` (v1) through nginx. How they reach it while they move, with radiod alone on the network, is open (Open questions).
 
 ## Real-time WebSocket API
 
@@ -180,7 +179,7 @@ A message can instead be a **broadcast** to an area, sent once over Mercury's br
 
 A message can also be **LXMF**, to any Reticulum address, from the user's own LXMF address. The station is a Reticulum transport and propagation node for phones on its Wi-Fi, and links to other stations over Mercury ARQ, with calls that share the line with UUCP (`transport` on calls and schedules). See [reticulum.md](reticulum.md).
 
-The scripts' calls stop going through HTTP. `iwatch`'s `/unpack` becomes the CLI command `php artisan hermes:unpack <file>`, so it no longer needs an unauthenticated route. `caller.sh` and `mailkill.sh` read the same data through `hermes:schedule-now` and `hermes:setting language`. Until those scripts are updated, the three v1 routes they use stay open, but to localhost only.
+The scripts' calls should stop going through HTTP, so that no unauthenticated route is needed. `iwatch` calls `GET /api/unpack/<file>` for every incoming message, `caller.sh` reads `/api/caller` and `/api/frequency/alias/{alias}`, and `mailkill.sh` reads `/api/sys/language`. The plan was hermes-api CLI commands (`php artisan hermes:unpack`, `hermes:schedule-now`, `hermes:setting language`); with the backend in radiod, what replaces them is open (Open questions). Until then those routes stay open, to localhost only.
 
 ## Database redesign
 
@@ -236,7 +235,7 @@ A station's Wi-Fi is open to its community, so the API has to assume that anyone
 | CORS `*` together with credentials; `APP_DEBUG=true` sends stack traces | Same-origin only, no CORS headers; `APP_DEBUG=false` |
 | File password in the URL (`?i=`) | The `X-Hermes-File-Key` header |
 | `www-data` in the sudo group on stations installed without hardening | A fixed list of helper commands in `sudoers.d/hermes`, on every station |
-| Daemons on `0.0.0.0` with no auth: radiod WS 8080, rigctld 4532, Mercury WS 10000 and its TNC ports | Bound to localhost, reached only through nginx |
+| Daemons on `0.0.0.0` with no auth: radiod WS 8080, rigctld 4532, Mercury WS 10000 and its TNC ports | Bound to localhost; the network reaches only radiod's HTTPS port |
 
 Roles:
 
@@ -264,9 +263,12 @@ The daemon that drives the transmitter now also parses requests from the network
 | Cross-site requests riding a login cookie | Writes made with the cookie need a matching `Origin` or `X-Hermes-CSRF: 1` |
 | A C daemon with hardware access parsing untrusted HTTP and JSON | An unprivileged user under systemd sandboxing, a real JSON parser, fuzzing, and a privileged helper with fixed verbs for system actions |
 | A crash while transmitting | A watchdog unkeys the radio |
-| One TLS key on every station image | nginx terminates TLS, and each station gets its own key |
+| One TLS key on every station image | radiod terminates TLS; each station should get its own key (COMPARISON D-71) |
 
 ## Migration and rollout
+
+> Written for hermes-api in PHP behind nginx. Since 2026-10-18 the backend is radiod,
+> facing the network alone, so these steps will be revised.
 
 The work ships in five steps. Each step is a release that a station can install on its own. Nothing a deployed station depends on changes until the step that replaces it has shipped and been tested on the bench stations.
 
@@ -291,12 +293,12 @@ The work ships in five steps. Each step is a release that a station can install 
 - *Migration on a full SD card.* The migration first checks free space, at twice the size of the database plus the attachment folders, and aborts before changing anything.
 - *The `nncp-transport` branch of hermes-api.* It must be merged into `main` before step 2, or the NNCP stations need a migration of their own.
 - *Two UIs.* Porting both doubles step 5. Choosing one first (Open questions) halves it.
-- *nginx `auth_request` on every WebSocket upgrade* adds one PHP call per connection. That is negligible next to the 150 ms state stream it replaces.
 
 ## Open questions
 
 - [ ] **Which UI is the future?** hermes-gui (Angular, deployed) or hermes-frontend (Next.js, newer, currently not buildable)? This decides who ports to v2 first and whether step 5 is done once or twice.
-- [x] **Stay on PHP/Lumen?** *Decided 2026-10-09: no; the backend is built on hermes-radio-daemon (see Direction).* This design keeps hermes-api in Lumen, so the work is a refactor rather than a rewrite. A rewrite (for example Go, one binary with built-in WebSockets) would remove the nginx `auth_request` hop and PHP-FPM's memory, but costs much more up front.
+- [x] **Stay on PHP/Lumen?** *Decided 2026-10-09: no; the backend is built on hermes-radio-daemon (see Direction).* This design keeps hermes-api in Lumen, so the work is a refactor rather than a rewrite. A rewrite (for example Go, one binary with built-in WebSockets) would remove the nginx `auth_request` hop and PHP-FPM's memory, but costs much more up front. *2026-10-18: the API handlers are Go, built into radiod as a library; C keeps the core and all network I/O.*
+- [ ] **Today's `/api` (v1) while clients move.** With radiod alone on the network, hermes-gui and the scripts' calls (`iwatch`, `caller.sh`, `mailkill.sh`) can't reach hermes-api through nginx. Does radiod forward `/api/*` to hermes-api on localhost during the move, or do they move to v2 (and the scripts to a CLI) before radiod takes the HTTPS port?
 - [ ] **MariaDB or SQLite?** SQLite would free about 100 MB of RAM on 1 GB stations and make backups a file copy. MariaDB is already installed everywhere and needs no migration of engine.
 - [ ] **Who owns saved radio profiles?** radiod's `user.ini` today. Either `/api/v2/radio/profiles` reads and writes them through radiod's socket, as proposed here, or they move into the database and radiod reads them from there.
 - [x] **Does the UI need audio in the browser?** *Decided 2026-10-14: yes, over WebRTC* (see Audio over WebRTC). It still has to be tested over Wi-Fi with several clients, and on the kiosk's QtWebEngine.
