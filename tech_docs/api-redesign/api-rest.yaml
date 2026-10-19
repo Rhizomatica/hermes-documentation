@@ -1476,6 +1476,38 @@ paths:
       responses:
         "204": {description: Cleared.}
         '401': {$ref: '#/components/responses/Unauthorized'}
+  /radio/settings:
+    get:
+      tags: [radio]
+      operationId: getRadioSettings
+      summary: Station-wide radio settings (default profile and fallback, tuning step, SWR limit, BFO).
+      x-hermes-role: readonly
+      responses:
+        "200":
+          description: Settings.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RadioSettings"}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    patch:
+      tags: [radio]
+      operationId: updateRadioSettings
+      summary: Change station-wide radio settings.
+      x-hermes-role: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/RadioSettingsPatch"}
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RadioSettings"}
+        '422': {$ref: '#/components/responses/Invalid'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
   /radio/defaults:
     post:
       tags: [radio]
@@ -3028,7 +3060,6 @@ components:
           type: [number, "null"]
           description: dB relative to S9; null when the rig gives no reading.
         protection: {type: boolean, description: High-SWR protection tripped.}
-        timeout_s: {type: integer, description: Transmit timeout.}
         digital_voice: {type: boolean}
         backend: {type: string, enum: [sbitx, hamlib, none]}
         rig_model: {type: [string, "null"], description: "Hamlib model name, e.g. IC-7100."}
@@ -3037,35 +3068,64 @@ components:
       required: [profile, frequency_hz, mode]
       properties:
         profile: {type: integer}
-        name: {type: [string, "null"]}
         frequency_hz: {type: integer, minimum: 0}
         mode: {$ref: "#/components/schemas/Mode"}
         power: {type: integer, minimum: 0, maximum: 100}
         volume: {type: integer, minimum: 0, maximum: 100}
-        step_hz: {type: integer, minimum: 1}
         filter_width_hz: {type: [integer, "null"]}
-        tone_hz: {type: [integer, "null"]}
-        timeout_s: {type: integer, minimum: 0}
-        ref_threshold: {type: integer, minimum: 0}
-        bfo_hz:
-          type: integer
-          description: Beat-frequency oscillator offset, in Hz (may be negative).
         digital_voice: {type: boolean}
     RadioProfilePatch:
       type: object
       properties:
-        name: {type: [string, "null"], maxLength: 32}
         frequency_hz: {type: integer, minimum: 0}
         mode: {$ref: "#/components/schemas/Mode"}
         power: {type: integer, minimum: 0, maximum: 100}
         volume: {type: integer, minimum: 0, maximum: 100}
-        step_hz: {type: integer, minimum: 1}
         filter_width_hz: {type: [integer, "null"]}
-        tone_hz: {type: [integer, "null"]}
-        timeout_s: {type: integer, minimum: 0}
-        ref_threshold: {type: integer, minimum: 0}
-        bfo_hz: {type: integer}
         digital_voice: {type: boolean}
+    RadioSettings:
+      type: object
+      description: |
+        Settings radiod keeps once for the station, not per profile.
+      required: [default_profile, default_profile_fallback_s, step_hz, swr_limit, bfo_hz]
+      properties:
+        default_profile: {type: integer, minimum: 0}
+        default_profile_fallback_s:
+          type: [integer, "null"]
+          minimum: 1
+          description: |
+            How long another profile stays active before the radio returns to
+            `default_profile`; null never returns. radiod's
+            `main:default_profile_fallback_timeout` (-1 there for null).
+        step_hz: {type: integer, minimum: 1, description: The tuning step.}
+        swr_limit:
+          type: number
+          minimum: 1.0
+          multipleOf: 0.1
+          description: |
+            The SWR above which high-SWR protection trips, e.g. 2.5 for 2.5:1. radiod
+            stores it as SWR × 10 (`main:reflected_threshold` = 25).
+        bfo_hz:
+          type: [integer, "null"]
+          minimum: 0
+          description: |
+            The sBitx's beat-frequency oscillator, an absolute frequency in Hz
+            (`main:bfo`, e.g. 40035000). null on Hamlib radios, which don't use it.
+        tx_timeout_s:
+          type: [integer, "null"]
+          minimum: 10
+          description: |
+            The longest single transmission; after it the station unkeys and reports
+            `tx_timeout`. null when the radio backend doesn't support one yet.
+    RadioSettingsPatch:
+      type: object
+      properties:
+        default_profile: {type: integer, minimum: 0}
+        default_profile_fallback_s: {type: [integer, "null"], minimum: 1}
+        step_hz: {type: integer, minimum: 1}
+        swr_limit: {type: number, minimum: 1.0, multipleOf: 0.1}
+        bfo_hz: {type: integer, minimum: 0, description: sBitx only; refused on Hamlib radios.}
+        tx_timeout_s: {type: integer, minimum: 10}
 
     ModemStatus:
       type: object

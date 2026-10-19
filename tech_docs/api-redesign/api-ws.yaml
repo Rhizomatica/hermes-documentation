@@ -585,11 +585,7 @@ components:
         mode: { $ref: "api-rest.yaml#/components/schemas/Mode" }
         power: { type: integer, minimum: 0, maximum: 100 }
         volume: { type: integer, minimum: 0, maximum: 100 }
-        step_hz: { type: integer, minimum: 1 }
         filter_width_hz: { type: integer }
-        tone_hz: { type: integer }
-        timeout_s: { type: integer, minimum: 0 }
-        ref_threshold: { type: integer, minimum: 0 }
         digital_voice: { type: boolean }
     SelectProfileArgs:
       type: object

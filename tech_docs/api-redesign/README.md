@@ -125,7 +125,7 @@ State rules:
 | `radio.spectrum.rx`, `radio.spectrum.tx` | binary kinds 3, 4 | streams that today go to every client |
 | `digi.rx` | one event per FT8, CW, RTTY or D-STAR decode | `digi_messages` polling (whose JSON breaks on quotes) |
 
-Commands: `radio.set` takes any of profile, `frequency_hz`, mode, power, volume, step, tone, timeout and `ref_threshold` in one call, and validates all of them before applying any. The others are `radio.select_profile`, `radio.ptt` (`{on}`; released if the socket closes), `radio.reset_protection`, `radio.defaults`, `rig.set`, `digi.send` (`{mode, text}`), `recording.start` and `recording.stop`. All of them need the operator role. A `user` may subscribe, and listen with `rtc.offer`; transmit audio (`rtc.offer` with `tx`) needs `operator`.
+Commands: `radio.set` takes any of profile, `frequency_hz`, mode, power, volume, filter width and digital voice in one call, and validates all of them before applying any. Settings radiod keeps once per station (default profile and its fallback, tuning step, SWR limit, BFO, transmit timeout) are REST only, at `/radio/settings`. The others are `radio.select_profile`, `radio.ptt` (`{on}`; released if the socket closes), `radio.reset_protection`, `radio.defaults`, `rig.set`, `digi.send` (`{mode, text}`), `recording.start` and `recording.stop`. All of them need the operator role. A `user` may subscribe, and listen with `rtc.offer`; transmit audio (`rtc.offer` with `tx`) needs `operator`.
 
 **Mercury topics and commands:**
 
