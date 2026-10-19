@@ -3124,8 +3124,8 @@ components:
         default_profile_fallback_s: {type: [integer, "null"], minimum: 1}
         step_hz: {type: integer, minimum: 1}
         swr_limit: {type: number, minimum: 1.0, multipleOf: 0.1}
-        bfo_hz: {type: integer, minimum: 0, description: sBitx only; refused on Hamlib radios.}
-        tx_timeout_s: {type: integer, minimum: 10}
+        bfo_hz: {type: integer, minimum: 0, description: "sBitx only; refused (422) on Hamlib radios."}
+        tx_timeout_s: {type: integer, minimum: 10, description: "Refused (422) while the radio has no transmit timeout (`tx_timeout_s` null)."}
 
     ModemStatus:
       type: object
