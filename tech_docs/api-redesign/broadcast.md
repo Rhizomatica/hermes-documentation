@@ -1,30 +1,40 @@
 # Broadcast messages
 
-> **Tentative proposal, 2026-10-12.** Nothing here is implemented yet. The wire format
-> belongs to hermes-broadcast and Mercury, which keep `WIRE-FORMAT.md` identical; the
-> changes below need agreeing there before anyone builds them.
+> **Tentative proposal, 2026-10-12; revised 2026-10-21.** Nothing here is implemented yet.
+> Messaging, broadcasts included, belongs to radiod: its messaging layer runs broadcasts
+> in-process with Mercury's own carousel code (through Mercury's host API, still to be
+> added), not hermes-broadcast. The wire format is Mercury's
+> (`mercury/docs/BROADCAST-WIRE-FORMAT.md`); hermes-broadcast's `WIRE-FORMAT.md` has drifted
+> from it. The changes below need agreeing in Mercury before anyone builds them.
 
 A broadcast message goes to every station of an **area** at once, over Mercury's
 one-way broadcast plane. It complements UUCP, which delivers to one station at a time
 with acknowledgements. The API side is in [api-rest.yaml](api-rest.yaml): `broadcast` on
-a message, `GET /areas`, `POST /messages/{id}/stop`, and `broadcast` in the modem
-configuration.
+a message, `GET /areas`, `POST /messages/{id}/stop`, `listen_mode` in the modem
+configuration and `broadcast.receive` in the station settings.
 
 ## What exists today
 
-- **The carousel.** [hermes-broadcast](https://github.com/Rhizomatica/hermes-broadcast)
-  and Mercury send an object as a RaptorQ fountain carousel. Every frame carries the
+- **The carousel.** Mercury (and, outside radiod, [hermes-broadcast](https://github.com/Rhizomatica/hermes-broadcast))
+  sends an object as a RaptorQ fountain carousel. Every frame carries the
   transfer parameters, so a receiver can start on any frame and decodes once it holds
   slightly more than the object's worth of symbols. The object is at most 1.44 MB.
 - **The mode.** Sender and receivers must use the same Mercury mode; nothing negotiates
-  it. Mercury listens for broadcasts in its idle mode (`-m`, or `MODE` while no ARQ link
-  is up).
+  it. Mercury has one listen mode for receive and transmit (`-m`, or `MODE` while no ARQ
+  link is up; `MODE` answers `BUSY` during a session). Only DATAC1, DATAC3, DATAC4,
+  DATAC15, DATAC17, QAM16C2, MFSK and MFSK500 can be selected at runtime. Broadcast chat
+  works in any of them; a file needs at least 41 bytes per frame, so DATAC1, DATAC3,
+  DATAC4, DATAC17 or QAM16C2.
+- **Receiving.** Mercury decodes what it hears and has no receive switch; it files
+  nothing. Receiving and filing broadcasts is radiod's messaging layer
+  (`settings.broadcast.receive`).
 - **Encrypted broadcast.** The installer's `hermes-broadcast-send` encrypts a file to the
   network's NNCP area, tosses it in a private spool, packs the result with
   `nncp-bundle -tx` and hands the bundle to `broadcast_daemon`. Receivers run
   `nncp-bundle -rx` and `nncp-toss` on what they decode. Mercury's bench trial
   (`mercury/docs/BROADCAST-NNCP-TRIAL.md`) shows NNCP accepting such a bundle on a second,
-  independently keyed node.
+  independently keyed node. Mercury's crypto work (PR #410, not merged) seals broadcast
+  files instead as an XChaCha20-Poly1305 bundle (`bcast_aead`); see the open questions.
 - **Plain broadcast.** Mercury wraps a file in a small bundle: a length, the basename and
   the file. Nothing says who sent it, what it is or whether it is still wanted.
 
@@ -132,14 +142,21 @@ About 200 bytes, or five seconds at DATAC3.
   position is a claim, not an identity. Sent periodically when `gps.settings.report` is
   enabled, and signed like any broadcast.
 - Old receivers don't know the magic. They should file the object as an unnamed file,
-  which needs checking against Mercury's and hermes-broadcast's bundle parsers.
+  which needs checking against Mercury's bundle parser.
 
 ## On the air
 
-- A broadcast waits while an ARQ call holds the modem. Mercury changes mode only while the
-  link is idle, so while a broadcast is on the air, calls wait for it.
-- The sender picks the mode per message; the default, and what the station listens in,
-  is `modem.config.broadcast.mode`.
+- **ARQ comes first.** A broadcast waits while an ARQ session holds the modem
+  (`waiting_arq`), and an ARQ session that starts while a carousel is on the air stops it
+  (`preempted`). It goes on the air again once the link is idle. `modem.status.broadcast`
+  shows the broadcast plane (idle, sending or preempted, with the pass and frames), so
+  clients see why the listen mode can't be changed instead of finding out from a 409.
+- The sender picks the mode per message; the default is the station's listen mode,
+  `modem.config.listen_mode`. Mercury sends broadcast frames only in its listen mode, so a
+  message in another mode means radiod switching the listen mode for it and back. Until
+  it switches back, the station hears nothing in its usual mode.
+- **Stopping.** radiod stops handing frames to Mercury at the next frame; frames Mercury
+  has already queued still go out. Mercury itself has no stop.
 - **Cycles.** A receiver that falls short decodes nothing at all, and the sender can't
   know. Extra passes cost airtime but not delivery time: in Mercury's trial, 4×, 8× and
   16× delivered at the same moment. On a fading path, send more cycles. On a weak but
@@ -156,7 +173,8 @@ About 200 bytes, or five seconds at DATAC3.
 | --- | --- |
 | area | `broadcast.area`; `GET /areas` lists them, with `has_keys`, `members` and `allow_unknown` |
 | NNCP area packet or signed plain object | `broadcast.encrypt` on create, `broadcast.encrypted` on the message |
-| Mercury mode | `broadcast.mode`; `modem.config.broadcast.mode`; `modem.status.listen_mode` |
+| Mercury mode | `broadcast.mode`; `modem.config.listen_mode`; `modem.status.listen_mode` |
+| receiving and filing | `settings.broadcast.receive` |
 | passes of the carousel | `broadcast.cycles`, `frames_total`, `frames_sent`, `air_time_s` |
 | `msg_id` (and NNCP's `MsgHash` on the encrypted path) | one message per broadcast, however many passes or paths bring it |
 | author | `broadcast.with_author` on create; `author` on the incoming message |
@@ -174,5 +192,10 @@ About 200 bytes, or five seconds at DATAC3.
   `conf/nncp/pub/`, or is broadcast NNCP-only?
 - [ ] **Relaying plain broadcasts.** NNCP relays encrypted ones over ARQ. Should a station
   that heard a plain broadcast also pass it on to members that may have missed it?
+- [ ] **Preempted carousels.** Does Mercury resume a carousel an ARQ session stopped, or
+  start it over? Mercury's host API will say.
+- [ ] **Encryption.** Mercury PR #410 (not merged) seals broadcast files as an
+  XChaCha20-Poly1305 bundle (`bcast_aead`), where this proposal uses an NNCP area packet in a
+  bundle for a broadcast node. Reconcile once #410 settles.
 - [ ] **Announcements.** Is a control object worth having that says "broadcast *X* in mode
   *M* at time *T*", so receivers are in the right mode?

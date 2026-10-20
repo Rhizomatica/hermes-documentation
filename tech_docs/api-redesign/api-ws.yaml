@@ -122,7 +122,7 @@ info:
     | Language | — | `locale` in the token | `locale` in `hello` | Adopted |
     | Read state | — | `MESSAGE_ACK` | `messages` events with `change: read` | Adopted as local read state, as in `api-rest.yaml` |
     | Reticulum | — | — | backhaul links and peers heard on the `reticulum` topic; calls on `queue` with their `transport`; LXMF messages on `messages` | LXMF messages are messages; the topic only reports the node |
-    | Broadcast | — | — | progress of an outgoing broadcast as `messages` events (`change: updated`); the mode decoded in `modem.status.listen_mode` | Broadcasts are sent through REST (`POST /messages/{id}/send`); the socket only follows them |
+    | Broadcast | — | — | progress of an outgoing broadcast as `messages` events (`change: updated`); the broadcast plane's state and carousel progress in `modem.status.broadcast`, the mode decoded in `modem.status.listen_mode` | Broadcasts are sent through REST (`POST /messages/{id}/send`); the socket only follows them |
     | Digital modes | `digi.rx` decodes | — | `digi`: sent and received, D-STAR headers, FT8 SNR, time and audio offsets; history at `GET /digi/log` | Matches what hermes-radio-daemon already does (FT8, CW, RTTY, D-STAR), with the metadata its log drops today |
   license:
     name: GPL-3.0-or-later
@@ -670,7 +670,7 @@ components:
     ChatSendArgs:
       type: object
       title: modem.chat.send (user)
-      description: The broadcast plane sends in `modem.config.broadcast.mode`.
+      description: The broadcast plane sends in the station's listen mode (`modem.config.listen_mode`).
       required: [plane, text]
       properties:
         plane: { type: string, enum: [arq, broadcast] }

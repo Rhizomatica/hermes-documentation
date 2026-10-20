@@ -145,12 +145,13 @@ tags:
       delivery state, and `delivered` is a real receipt from the recipient.
 
       **Broadcast.** A message with `broadcast` instead of `recipients` goes to an area
-      (`GET /areas`) on Mercury's broadcast plane, as a RaptorQ fountain carousel
-      wire-compatible with [hermes-broadcast](https://github.com/Rhizomatica/hermes-broadcast).
+      (`GET /areas`) on Mercury's broadcast plane, as a RaptorQ fountain carousel in
+      Mercury's broadcast wire format (mercury `docs/BROADCAST-WIRE-FORMAT.md`). radiod's
+      messaging layer runs the carousel in-process with Mercury's own carousel code.
       Any station listening in the same mode decodes it, even one that tunes in halfway
       through, and nobody acknowledges it. There is no negotiation on the broadcast plane:
       the sender picks the mode (`broadcast.mode`, by default the station's
-      `modem.config.broadcast.mode`), and only stations listening in that mode hear it.
+      `modem.config.listen_mode`), and only stations listening in that mode hear it.
 
       With `broadcast.encrypt`, the message is encrypted to the area as an NNCP area
       packet; otherwise it goes out in the clear, signed. Either way a receiver keeps one
@@ -709,11 +710,16 @@ paths:
         recipient's `state` follows it, up to `delivered`. A recipient reached only
         through a backhaul link waits in the propagation node until that link is up.
 
-        A broadcast waits while an ARQ call holds the modem, then goes out in
-        its `broadcast.mode` for `broadcast.cycles` passes of the carousel; follow it on
-        the `messages` topic. Mercury changes mode only while no ARQ link is up, so calls
-        to other stations wait until the broadcast ends. The station then listens in
-        `modem.config.broadcast.mode` again.
+        A broadcast goes out in its `broadcast.mode` for `broadcast.cycles` passes of the
+        carousel; follow it on the `messages` topic, and the modem's side on
+        `modem.status.broadcast`. ARQ comes first: a broadcast waits (`waiting_arq`) while
+        an ARQ session holds the modem, and an ARQ session that starts while it is on the
+        air stops it (`preempted`). It goes on the air again once the link is idle; whether
+        it resumes or starts its carousel over is up to Mercury (open).
+
+        Mercury sends broadcast frames only in its listen mode, so for a broadcast in
+        another mode radiod switches the listen mode to it and back afterwards. Meanwhile
+        the station hears no broadcasts in its usual listen mode.
       x-hermes-role: user
       responses:
         "200":
@@ -751,8 +757,9 @@ paths:
       operationId: stopBroadcast
       summary: Stop a broadcast at the next frame boundary.
       description: |
-        `broadcast.state` becomes `stopped`. A broadcast still waiting for the modem is
-        taken out of the line. With `withdraw`, the station also sends a short cancel
+        `broadcast.state` becomes `stopped`. radiod stops handing frames to Mercury;
+        frames Mercury has already queued still go out. A broadcast still waiting for the
+        modem is taken out of the line. With `withdraw`, the station also sends a short cancel
         object to the area: receivers drop a partial decode, and mark a copy they already
         decoded as withdrawn (`broadcast.withdrawn_at`).
 
@@ -1651,8 +1658,9 @@ paths:
               schema: {$ref: "#/components/schemas/ModemConfig"}
         "409":
           description: |
-            `broadcast.mode` changed while an ARQ link is up; Mercury changes it only while
-            the link is idle (`code` = `busy`). Nothing was applied.
+            `listen_mode` changed while an ARQ link is up or a broadcast is on the air
+            (`code` = `busy`); `modem.status` says which (`link`, `broadcast.state`).
+            Nothing was applied.
           content:
             application/problem+json:
               schema: {$ref: "#/components/schemas/Problem"}
@@ -2446,7 +2454,8 @@ components:
       enum: [draft, queued, broadcasting, sent, delivered, failed, received]
       description: |
         For outgoing messages, derived from the recipients' states, or for a broadcast from
-        `broadcast.state` (`waiting` is `queued`; `done` and `stopped` are `sent`).
+        `broadcast.state` (`waiting` and `waiting_arq` are `queued`; `transmitting` and
+        `preempted` are `broadcasting`; `done` and `stopped` are `sent`).
         `delivered` only for LXMF, once every recipient has confirmed.
     MessageChannel:
       type: string
@@ -2636,27 +2645,33 @@ components:
 
     BroadcastMode:
       type: string
-      enum: [DATAC1, DATAC3, DATAC0, DATAC4, DATAC13, FSK_LDPC, DATAC15, DATAC16, DATAC17, QAM16C2]
+      enum: [DATAC1, DATAC3, DATAC4, DATAC15, DATAC17, QAM16C2, MFSK, MFSK500]
       description: |
-        Mercury's payload mode on the broadcast plane (`mercury -l`, `-m`, the `MODE`
-        command). Sender and receivers must use the same one. Measured by Mercury:
+        A Mercury payload mode the station can listen in (`mercury -m`, the `MODE`
+        command): the modes Mercury can switch to at runtime. Sender and receivers must use
+        the same one. Measured by Mercury (`docs/MODES.md`, `docs/BROADCAST-FILE.md`):
 
         | mode | index | frame | bit/s | bandwidth |
         | --- | --- | --- | --- | --- |
         | DATAC1 | 0 | 510 B | 976 | 1687 Hz |
         | DATAC3 | 1 | 126 B | 316 | 562 Hz |
-        | DATAC0 | 2 | 14 B | 255 | 562 Hz |
         | DATAC4 | 3 | 54 B | 84 | 250 Hz |
-        | DATAC13 | 4 | 14 B | 57 | 187 Hz |
-        | FSK_LDPC | 6 | 30 B | 44 | — (experimental) |
         | DATAC15 | 7 | 30 B | 64 | 187 Hz |
-        | DATAC16 | 8 | 14 B | 36 | 187 Hz |
         | DATAC17 | 9 | 1180 B | 1407 | 2062 Hz |
         | QAM16C2 | 10 | 1213 B | 3130 | 2062 Hz |
+        | MFSK | 11 | 98 B | 61 | 1000 Hz |
+        | MFSK500 | 12 | 98 B | 31 | 500 Hz |
 
-        DATAC14 (3-byte frames) can't carry the carousel, and MFSK is only the ARQ floor;
-        neither is offered. A weak but steady path needs a more robust mode, while a
-        fading one needs more `cycles`.
+        Broadcast chat (`modem.chat`, plane `broadcast`) works in any of them; a broadcast
+        message needs a `BroadcastFileMode`. DATAC0, DATAC13, DATAC14, DATAC16 and FSK_LDPC
+        can't be selected at runtime. A weak but steady path needs a more robust mode, while
+        a fading one needs more `cycles`.
+    BroadcastFileMode:
+      type: string
+      enum: [DATAC1, DATAC3, DATAC4, DATAC17, QAM16C2]
+      description: |
+        The listen modes that can carry a broadcast message: the carousel's symbols are
+        41 bytes, so a frame needs at least that much room.
     BroadcastCreate:
       type: object
       required: [area]
@@ -2666,8 +2681,10 @@ components:
       properties:
         area: {$ref: "#/components/schemas/AreaName"}
         mode:
-          $ref: "#/components/schemas/BroadcastMode"
-          description: Default `modem.config.broadcast.mode`.
+          $ref: "#/components/schemas/BroadcastFileMode"
+          description: |
+            Default `modem.config.listen_mode`. Required (422) when the listen mode can't
+            carry a broadcast message (DATAC15, MFSK, MFSK500).
         cycles:
           type: integer
           minimum: 1
@@ -2702,7 +2719,7 @@ components:
       required: [area, mode, encrypted]
       properties:
         area: {$ref: "#/components/schemas/AreaName"}
-        mode: {$ref: "#/components/schemas/BroadcastMode"}
+        mode: {$ref: "#/components/schemas/BroadcastFileMode"}
         encrypted: {type: boolean}
         cycles: {type: [integer, "null"], description: Outgoing only.}
         expires_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
@@ -2712,8 +2729,13 @@ components:
           description: The message this one replaces, when this station has it.
         state:
           type: string
-          enum: [waiting, transmitting, done, stopped, failed]
-          description: Outgoing only. `waiting` until no ARQ call holds the modem.
+          enum: [waiting, waiting_arq, transmitting, preempted, done, stopped, failed]
+          description: |
+            Outgoing only. `waiting`: behind another broadcast. `waiting_arq`: an ARQ
+            session holds the modem. `preempted`: an ARQ session started while it was on
+            the air and stopped it; it goes on the air again once the link is idle.
+            `stopped`: a user stopped it (`POST /messages/{id}/stop`).
+        cycle: {type: [integer, "null"], minimum: 1, description: "Outgoing only; the pass of the carousel on the air, from 1."}
         frames_sent: {type: integer, description: Outgoing only.}
         frames_total: {type: integer, description: Outgoing only; every pass of the carousel.}
         air_time_s:
@@ -3150,50 +3172,55 @@ components:
         listen_mode:
           oneOf: [$ref: "#/components/schemas/BroadcastMode", type: "null"]
           description: |
-            What the modem decodes while no ARQ link is up, broadcasts included. While a
-            broadcast goes out in another mode, it is that broadcast's mode.
+            What the modem decodes while no ARQ link is up, broadcasts included: the
+            station's `modem.config.listen_mode`, except while radiod has switched it to send
+            a broadcast in another mode.
+        broadcast:
+          type: object
+          required: [state]
+          description: |
+            The broadcast plane. ARQ comes first: an ARQ session that starts stops a
+            carousel on the air (`preempted`) until the link is idle again.
+          properties:
+            state: {type: string, enum: [idle, sending, preempted]}
+            message_id:
+              type: [integer, "null"]
+              format: int64
+              description: The broadcast message on the air or preempted; null for broadcast chat or when idle.
+            mode: {oneOf: [$ref: "#/components/schemas/BroadcastMode", type: "null"]}
+            cycle: {type: [integer, "null"], minimum: 1, description: "The pass of the carousel in progress, from 1."}
+            cycles_total: {type: [integer, "null"]}
+            frames_sent: {type: [integer, "null"]}
+            frames_total: {type: [integer, "null"]}
         audio_ok: {type: boolean}
         audio_error: {type: [string, "null"]}
     ModemConfig:
       type: object
       description: |
         Mercury runs inside radiod, which owns the sound card and PTT, so they are not set
-        here. A standalone Mercury keeps its own settings for them.
+        here. A standalone Mercury keeps its own settings for them. Whether broadcasts are
+        received and filed is `settings.broadcast.receive`.
       properties:
         tx_gain_db: {type: number, minimum: -20, maximum: 20}
         waterfall: {type: boolean}
-        broadcast:
-          type: object
-          properties:
-            mode:
-              $ref: "#/components/schemas/BroadcastMode"
-              description: |
-                The mode this station listens in while no ARQ link is up, so the mode of the
-                broadcasts it hears, and the default for those it sends. Mercury's
-                broadcast chat (`modem.chat`, plane `broadcast`) uses it too. Default DATAC3.
-            receive:
-              type: boolean
-              default: true
-              description: Decode broadcasts and file them as incoming messages.
+        listen_mode:
+          $ref: "#/components/schemas/BroadcastMode"
+          description: |
+            The mode the station listens in while no ARQ link is up, and sends its
+            broadcasts in by default: one setting for receive and transmit. Mercury's
+            broadcast chat (`modem.chat`, plane `broadcast`) uses it too. Default DATAC3.
     ModemConfigPatch:
       type: object
       description: Same fields as `ModemConfig`.
       properties:
         tx_gain_db: {type: number, minimum: -20, maximum: 20}
         waterfall: {type: boolean}
-        broadcast:
-          type: object
-          properties:
-            mode:
-              $ref: "#/components/schemas/BroadcastMode"
-              description: |
-                The mode this station listens in while no ARQ link is up, so the mode of the
-                broadcasts it hears, and the default for those it sends. Mercury's
-                broadcast chat (`modem.chat`, plane `broadcast`) uses it too. Default DATAC3.
-            receive:
-              type: boolean
-              default: true
-              description: Decode broadcasts and file them as incoming messages.
+        listen_mode:
+          $ref: "#/components/schemas/BroadcastMode"
+          description: |
+            The mode the station listens in while no ARQ link is up, and sends its
+            broadcasts in by default: one setting for receive and transmit. Mercury's
+            broadcast chat (`modem.chat`, plane `broadcast`) uses it too. Default DATAC3.
 
     System:
       type: object
@@ -3293,6 +3320,14 @@ components:
             digi_per_minute: {type: integer, minimum: 1, default: 6}
             ptt_per_minute: {type: integer, minimum: 1, default: 30}
             broadcasts_per_hour: {type: integer, minimum: 1, default: 6}
+        broadcast:
+          type: object
+          description: radiod's messaging layer, which runs broadcasts.
+          properties:
+            receive:
+              type: boolean
+              default: true
+              description: Decode broadcast messages heard in the listen mode and file them as incoming messages.
 
     LogLine:
       type: object
