@@ -1657,7 +1657,7 @@ paths:
             application/problem+json:
               schema: {$ref: "#/components/schemas/Problem"}
         "422":
-          description: Not applied (`code` = `audio_failed`, `ptt_failed` or a validation error).
+          description: Not applied (a validation error).
           content:
             application/problem+json:
               schema: {$ref: "#/components/schemas/Problem"}
@@ -3156,11 +3156,10 @@ components:
         audio_error: {type: [string, "null"]}
     ModemConfig:
       type: object
+      description: |
+        Mercury runs inside radiod, which owns the sound card and PTT, so they are not set
+        here. A standalone Mercury keeps its own settings for them.
       properties:
-        sound_system: {type: string, enum: [alsa, pulse, oss, rtp, shm, null_device]}
-        input_device: {type: string}
-        output_device: {type: string}
-        input_channel: {type: string, enum: [left, right, stereo]}
         tx_gain_db: {type: number, minimum: -20, maximum: 20}
         waterfall: {type: boolean}
         broadcast:
@@ -3176,35 +3175,10 @@ components:
               type: boolean
               default: true
               description: Decode broadcasts and file them as incoming messages.
-        ptt:
-          type: object
-          properties:
-            method: {type: string, enum: [none, hamlib, serial, cm108, radio]}
-            device: {type: string}
-            hamlib_model: {type: integer}
-            serial_speed: {type: integer}
-            line: {type: string, enum: [rts, dtr, both]}
-            invert: {type: string, enum: [none, rts, dtr, both]}
-            cm108_gpio: {type: integer, minimum: 1, maximum: 4}
-        devices:
-          readOnly: true
-          type: object
-          description: What the station offers, to fill pickers.
-          properties:
-            capture:
-              type: array
-              items: {$ref: "#/components/schemas/AudioDevice"}
-            playback:
-              type: array
-              items: {$ref: "#/components/schemas/AudioDevice"}
     ModemConfigPatch:
       type: object
-      description: Same fields as `ModemConfig` without `devices`.
+      description: Same fields as `ModemConfig`.
       properties:
-        sound_system: {type: string, enum: [alsa, pulse, oss, rtp, shm, null_device]}
-        input_device: {type: string}
-        output_device: {type: string}
-        input_channel: {type: string, enum: [left, right, stereo]}
         tx_gain_db: {type: number, minimum: -20, maximum: 20}
         waterfall: {type: boolean}
         broadcast:
@@ -3220,22 +3194,6 @@ components:
               type: boolean
               default: true
               description: Decode broadcasts and file them as incoming messages.
-        ptt:
-          type: object
-          properties:
-            method: {type: string, enum: [none, hamlib, serial, cm108, radio]}
-            device: {type: string}
-            hamlib_model: {type: integer}
-            serial_speed: {type: integer}
-            line: {type: string, enum: [rts, dtr, both]}
-            invert: {type: string, enum: [none, rts, dtr, both]}
-            cm108_gpio: {type: integer, minimum: 1, maximum: 4}
-    AudioDevice:
-      type: object
-      required: [id, name]
-      properties:
-        id: {type: string}
-        name: {type: string}
 
     System:
       type: object

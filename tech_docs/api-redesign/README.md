@@ -132,7 +132,7 @@ Commands: `radio.set` takes any of profile, `frequency_hz`, mode, power, volume,
 | Topic | Data | Replaces |
 | --- | --- | --- |
 | `modem.status` | link state, `my_call`, `peer_call`, direction, `snr_db`, `peer_snr_db`, `bitrate_bps`, bytes tx and rx, `tx_gain_db`, `tx_peak_dbfs`, `audio_ok`, `audio_error`, ARQ modes | the 500 ms `status` broadcast |
-| `modem.config` | sound system and devices, input channel, PTT method and device, Hamlib radio list | the lists broadcast to everyone after each connect |
+| `modem.config` | transmit gain, waterfall, broadcast mode and receive (radiod owns the sound card and PTT) | the lists broadcast to everyone after each connect |
 | `modem.chat` | snapshot = history, then one event per message sent or received | `history`, which today only arrives after a reconnect |
 | `modem.spectrum.rx` | binary kind 3 | the `MCRY` magic frame |
 
