@@ -311,7 +311,7 @@ components:
                     items: { $ref: "api-rest.yaml#/components/schemas/RadioProfile" }
     RadioRigEvent:
       name: radio.rig
-      summary: Hamlib levels, functions and parameters the client asked to watch (`rig.watch`).
+      summary: The radio's levels, functions and parameters the client asked to watch (`rig.watch`).
       payload:
         allOf:
           - $ref: "#/components/schemas/EventEnvelope"
@@ -602,7 +602,10 @@ components:
     RigGetArgs:
       type: object
       title: rig.get (operator)
-      description: Read Hamlib controls now; the reply carries their values.
+      description: >-
+        Read the radio's controls now; the reply carries their values. The names are
+        radiod's control vocabulary (`radio/radio_controls.h`), the same on every radio
+        backend (sBitx, Hamlib rigs); they follow Hamlib's spelling.
       required: [names]
       properties:
         names:

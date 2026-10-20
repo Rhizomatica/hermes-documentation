@@ -121,7 +121,7 @@ State rules:
 | --- | --- | --- |
 | `radio.state` | active profile, `frequency_hz`, mode, tx, `power`, `swr`, `fwd_w`, `ref_w`, `s_meter_db`, protection, timeout, `digital_voice`, backend, capabilities | the 150 ms `state` broadcast |
 | `radio.profiles` | every profile's frequency, mode, power, step | the UI's 30 s REST poll of the other profile |
-| `radio.rig` | Hamlib level, function and parameter values the client asked for | `get_control_values` polling |
+| `radio.rig` | the radio's level, function and parameter values the client asked for | `get_control_values` polling |
 | `radio.spectrum.rx`, `radio.spectrum.tx` | binary kinds 3, 4 | streams that today go to every client |
 | `digi.rx` | one event per FT8, CW, RTTY or D-STAR decode | `digi_messages` polling (whose JSON breaks on quotes) |
 
