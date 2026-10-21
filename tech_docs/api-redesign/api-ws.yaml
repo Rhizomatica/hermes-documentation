@@ -34,6 +34,11 @@ info:
     - State is pushed only to subscribers, and only when it changes. Subscribing sends a
       full snapshot (`snapshot: true`); later events carry only the fields that changed,
       at most 10 a second per topic.
+    - **Stream topics** (`digi`, `modem.chat`) carry one item per event, never a diff.
+      Their snapshot is a run of events with `snapshot: true`, one per stored item, oldest
+      first, each with the topic's usual `data`; with no history there are none.
+    - The reply to `subscribe` comes after the snapshot events, so the client knows the
+      snapshot is complete.
     - `seq` counts events per topic. On a gap the client re-subscribes for a new snapshot.
     - A `heartbeat` every 5 s carries the station clock. A client that sends nothing for
       60 s (not even a WebSocket ping) is disconnected.
@@ -670,7 +675,9 @@ components:
     ChatSendArgs:
       type: object
       title: modem.chat.send (user)
-      description: The broadcast plane sends in the station's listen mode (`modem.config.listen_mode`).
+      description: |
+        The broadcast plane sends in the station's listen mode (`modem.config.listen_mode`).
+        The `arq` plane needs an ARQ session up; without one the reply is `no_link`.
       required: [plane, text]
       properties:
         plane: { type: string, enum: [arq, broadcast] }
@@ -701,6 +708,7 @@ components:
                 - not_supported
                 - no_ptt
                 - wrong_mode
+                - no_link
                 - queue_full
                 - rate_limited
                 - encryption_not_allowed
@@ -721,7 +729,7 @@ components:
         snapshot:
           type: boolean
           default: false
-          description: true for the full state sent on subscribe.
+          description: true for the full state sent on subscribe; on stream topics, for each stored item.
         data: { type: object }
     ChatLine:
       type: object
