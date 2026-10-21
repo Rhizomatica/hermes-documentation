@@ -116,7 +116,7 @@ info:
     | Apps | none | `/apps` install, remove, update | `/apps` registry, enable and disable | Adopted the registry; installing stays with the Debian packages |
     | Delivery | per-recipient UUCP state | per-recipient, per-channel, with acknowledgements | per-recipient UUCP state, plus read state | Adopted local read state; read receipts between stations wait until no station needs the old `.hmp` format |
     | Reticulum | — | — | With NNCP, the encrypted option for communication. The station is a Reticulum transport and LXMF propagation node for phones on its Wi-Fi, reaches other stations over Mercury ARQ (one backhaul link per station, calls like UUCP's), and is an LXMF client: each user has an address, and LXMF is a third message channel | Mercury's ARQ carries Reticulum where its broadcast plane can't (frame size, one client); calls are intermittent, so the propagation node holds messages like the UUCP spool |
-    | Broadcast | — | a conversation type, up to 200 recipients | A message to an **area** (NNCP's multicast group), sent on Mercury's broadcast plane as a RaptorQ carousel in a mode chosen per message: an NNCP area bundle when encrypted, a signed plain object otherwise | One transmission reaches every station listening in that mode, with no return path; NNCP areas already name the group, identify the message and authenticate the sender |
+    | Broadcast | — | a conversation type, up to 200 recipients | A message to an **area** (NNCP's multicast group), sent on Mercury's broadcast plane as a RaptorQ carousel in the station's listen mode: an NNCP area bundle when encrypted, a signed plain object otherwise | One transmission reaches every station listening in that mode, with no return path; NNCP areas already name the group, identify the message and authenticate the sender |
   license:
     name: GPL-3.0-or-later
     identifier: GPL-3.0-or-later
@@ -150,8 +150,8 @@ tags:
       messaging layer runs the carousel in-process with Mercury's own carousel code.
       Any station listening in the same mode decodes it, even one that tunes in halfway
       through, and nobody acknowledges it. There is no negotiation on the broadcast plane:
-      the sender picks the mode (`broadcast.mode`, by default the station's
-      `modem.config.listen_mode`), and only stations listening in that mode hear it.
+      a broadcast goes out in the station's listen mode (`modem.config.listen_mode`), and
+      only stations listening in that mode hear it.
 
       With `broadcast.encrypt`, the message is encrypted to the area as an NNCP area
       packet; otherwise it goes out in the clear, signed. Either way a receiver keeps one
@@ -710,16 +710,16 @@ paths:
         recipient's `state` follows it, up to `delivered`. A recipient reached only
         through a backhaul link waits in the propagation node until that link is up.
 
-        A broadcast goes out in its `broadcast.mode` for `broadcast.cycles` passes of the
+        A broadcast goes out in the station's listen mode (`modem.config.listen_mode`),
+        recorded as `broadcast.mode`, for `broadcast.cycles` passes of the
         carousel; follow it on the `messages` topic, and the modem's side on
         `modem.status.broadcast`. ARQ comes first: a broadcast waits (`waiting_arq`) while
         an ARQ session holds the modem, and an ARQ session that starts while it is on the
         air stops it (`preempted`). It goes on the air again once the link is idle; whether
         it resumes or starts its carousel over is up to Mercury (open).
 
-        Mercury sends broadcast frames only in its listen mode, so for a broadcast in
-        another mode radiod switches the listen mode to it and back afterwards. Meanwhile
-        the station hears no broadcasts in its usual listen mode.
+        A broadcast is refused while the listen mode can't carry broadcast messages
+        (DATAC15, MFSK, MFSK500; 409 `code` = `listen_mode_unsuitable`).
       x-hermes-role: user
       responses:
         "200":
@@ -1659,7 +1659,9 @@ paths:
         "409":
           description: |
             `listen_mode` changed while an ARQ link is up or a broadcast is on the air
-            (`code` = `busy`); `modem.status` says which (`link`, `broadcast.state`).
+            (`code` = `busy`); `modem.status` says which (`link`, `broadcast.state`). Or
+            changed to a mode that can't carry broadcast messages while some are waiting
+            (`code` = `broadcasts_waiting`).
             Nothing was applied.
           content:
             application/problem+json:
@@ -2680,11 +2682,6 @@ components:
         most 1.44 MB; larger is refused at send (413).
       properties:
         area: {$ref: "#/components/schemas/AreaName"}
-        mode:
-          $ref: "#/components/schemas/BroadcastFileMode"
-          description: |
-            Default `modem.config.listen_mode`. Required (422) when the listen mode can't
-            carry a broadcast message (DATAC15, MFSK, MFSK500).
         cycles:
           type: integer
           minimum: 1
@@ -2719,7 +2716,12 @@ components:
       required: [area, mode, encrypted]
       properties:
         area: {$ref: "#/components/schemas/AreaName"}
-        mode: {$ref: "#/components/schemas/BroadcastFileMode"}
+        mode:
+          oneOf: [$ref: "#/components/schemas/BroadcastFileMode", type: "null"]
+          readOnly: true
+          description: |
+            The mode it went out or was heard in: the listen mode at the time. null while an
+            outgoing broadcast hasn't been on the air yet.
         encrypted: {type: boolean}
         cycles: {type: [integer, "null"], description: Outgoing only.}
         expires_at: {oneOf: [$ref: "#/components/schemas/Timestamp", type: "null"]}
@@ -3173,8 +3175,7 @@ components:
           oneOf: [$ref: "#/components/schemas/BroadcastMode", type: "null"]
           description: |
             What the modem decodes while no ARQ link is up, broadcasts included: the
-            station's `modem.config.listen_mode`, except while radiod has switched it to send
-            a broadcast in another mode.
+            station's `modem.config.listen_mode`.
         broadcast:
           type: object
           required: [state]
@@ -3207,7 +3208,7 @@ components:
           $ref: "#/components/schemas/BroadcastMode"
           description: |
             The mode the station listens in while no ARQ link is up, and sends its
-            broadcasts in by default: one setting for receive and transmit. Mercury's
+            broadcasts in: one setting for receive and transmit. Mercury's
             broadcast chat (`modem.chat`, plane `broadcast`) uses it too. Default DATAC3.
     ModemConfigPatch:
       type: object
@@ -3219,7 +3220,7 @@ components:
           $ref: "#/components/schemas/BroadcastMode"
           description: |
             The mode the station listens in while no ARQ link is up, and sends its
-            broadcasts in by default: one setting for receive and transmit. Mercury's
+            broadcasts in: one setting for receive and transmit. Mercury's
             broadcast chat (`modem.chat`, plane `broadcast`) uses it too. Default DATAC3.
 
     System:

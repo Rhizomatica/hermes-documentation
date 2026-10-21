@@ -151,10 +151,11 @@ About 200 bytes, or five seconds at DATAC3.
   (`preempted`). It goes on the air again once the link is idle. `modem.status.broadcast`
   shows the broadcast plane (idle, sending or preempted, with the pass and frames), so
   clients see why the listen mode can't be changed instead of finding out from a 409.
-- The sender picks the mode per message; the default is the station's listen mode,
-  `modem.config.listen_mode`. Mercury sends broadcast frames only in its listen mode, so a
-  message in another mode means radiod switching the listen mode for it and back. Until
-  it switches back, the station hears nothing in its usual mode.
+- **One mode per station.** A broadcast goes out in the station's listen mode,
+  `modem.config.listen_mode`, since Mercury sends broadcast frames only in the mode it
+  listens in. There is no mode per message, so the station never leaves its listen mode
+  to send. While the listen mode can't carry files (DATAC15, MFSK, MFSK500), broadcast
+  messages are refused (Rafael, 2026-10-21).
 - **Stopping.** radiod stops handing frames to Mercury at the next frame; frames Mercury
   has already queued still go out. Mercury itself has no stop.
 - **Cycles.** A receiver that falls short decodes nothing at all, and the sender can't
@@ -173,7 +174,7 @@ About 200 bytes, or five seconds at DATAC3.
 | --- | --- |
 | area | `broadcast.area`; `GET /areas` lists them, with `has_keys`, `members` and `allow_unknown` |
 | NNCP area packet or signed plain object | `broadcast.encrypt` on create, `broadcast.encrypted` on the message |
-| Mercury mode | `broadcast.mode`; `modem.config.listen_mode`; `modem.status.listen_mode` |
+| Mercury mode | `modem.config.listen_mode`; `modem.status.listen_mode`; `broadcast.mode` records it on the message |
 | receiving and filing | `settings.broadcast.receive` |
 | passes of the carousel | `broadcast.cycles`, `frames_total`, `frames_sent`, `air_time_s` |
 | `msg_id` (and NNCP's `MsgHash` on the encrypted path) | one message per broadcast, however many passes or paths bring it |

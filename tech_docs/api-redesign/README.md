@@ -175,7 +175,7 @@ REST keeps what is stored or acts on the station's files and services: messages,
 
 Message sending becomes two steps that clients can retry. `POST /messages` stores a draft and returns its id. `POST /messages/{id}/send` queues it to each recipient and returns per-recipient states. The UI follows delivery through `GET /messages/{id}` or the queue, instead of re-parsing `uustat` output.
 
-A message can instead be a **broadcast** to an area, sent once over Mercury's broadcast plane in a mode the sender picks. It is an NNCP area bundle when encrypted and a signed plain object otherwise. See [broadcast.md](broadcast.md).
+A message can instead be a **broadcast** to an area, sent once over Mercury's broadcast plane in the station's listen mode. It is an NNCP area bundle when encrypted and a signed plain object otherwise. See [broadcast.md](broadcast.md).
 
 A message can also be **LXMF**, to any Reticulum address, from the user's own LXMF address. The station is a Reticulum transport and propagation node for phones on its Wi-Fi, and links to other stations over Mercury ARQ, with calls that share the line with UUCP (`transport` on calls and schedules). See [reticulum.md](reticulum.md).
 
