@@ -1,5 +1,9 @@
 # README redesign vs. hermes-backend docs — comparison and reconciliation
 
+> **Moved.** This document is maintained in hermes-radio-daemon, at
+> [`docs/api-design/COMPARISON.md`](https://github.com/Rhizomatica/hermes-radio-daemon/blob/main/docs/api-design/COMPARISON.md), since 2026-10-30. This copy is frozen at
+> `6489e6b` and is no longer updated; make changes there.
+
 2026-10-07 · comparison for review
 
 ## Purpose

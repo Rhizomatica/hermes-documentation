@@ -1,5 +1,9 @@
 # Reticulum on the station
 
+> **Moved.** This document is maintained in hermes-radio-daemon, at
+> [`docs/api-design/reticulum.md`](https://github.com/Rhizomatica/hermes-radio-daemon/blob/main/docs/api-design/reticulum.md), since 2026-10-30. This copy is frozen at
+> `6489e6b` and is no longer updated; make changes there.
+
 > **Tentative proposal, 2026-10-13.** Nothing here is implemented yet.
 
 Reticulum, together with NNCP, is the station's **encrypted** option for communication;

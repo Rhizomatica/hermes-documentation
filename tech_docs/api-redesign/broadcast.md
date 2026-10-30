@@ -1,5 +1,9 @@
 # Broadcast messages
 
+> **Moved.** This document is maintained in hermes-radio-daemon, at
+> [`docs/api-design/broadcast.md`](https://github.com/Rhizomatica/hermes-radio-daemon/blob/main/docs/api-design/broadcast.md), since 2026-10-30. This copy is frozen at
+> `6489e6b` and is no longer updated; make changes there.
+
 > **Tentative proposal, 2026-10-12; revised 2026-10-21.** Nothing here is implemented yet.
 > Messaging, broadcasts included, belongs to radiod: its messaging layer runs broadcasts
 > in-process with Mercury's own carousel code (through Mercury's host API, still to be

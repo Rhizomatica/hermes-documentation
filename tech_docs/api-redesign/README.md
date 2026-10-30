@@ -1,5 +1,9 @@
 # HERMES UI ↔ backend API and hermes-api database redesign
 
+> **Moved.** This document is maintained in hermes-radio-daemon, at
+> [`docs/api-design/README.md`](https://github.com/Rhizomatica/hermes-radio-daemon/blob/main/docs/api-design/README.md), since 2026-10-30. This copy is frozen at
+> `6489e6b` and is no longer updated; make changes there.
+
 2026-10-06 · Rafael Diniz · draft for review
 
 > **Direction (2026-10-09).** The target architecture has changed: hermes-radio-daemon

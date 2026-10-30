@@ -1,3 +1,7 @@
+# MOVED: this contract is maintained in hermes-radio-daemon, at
+# https://github.com/Rhizomatica/hermes-radio-daemon/blob/main/api/spec/api-ws.yaml
+# since 2026-10-30. This copy is frozen at 6489e6b and is no longer
+# updated; make changes there.
 asyncapi: 3.1.0
 info:
   title: HERMES station real-time API (hermes.v1)
